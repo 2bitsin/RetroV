@@ -1,0 +1,14 @@
+#pragma once
+
+struct winhvp 
+{
+	static auto acquire() -> winhvp& ;	
+
+protected:
+	winhvp();
+	~winhvp();
+
+private:
+
+	
+};

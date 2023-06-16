@@ -1,0 +1,60 @@
+#pragma once
+
+#include <type_traits>
+#include <win32/hresult_exception.hpp>
+
+template <typename Handle, typename Ctor, typename Dtor>
+struct winhvp_movable_handle 
+{
+	using value_type = Handle;
+
+	static inline constexpr auto null_value = value_type{};
+
+	template <typename... Args>
+	winhvp_movable_handle(Args&&... args_v)
+		requires (std::is_invocable_v<Ctor, Handle&, Args...>)
+		:	m_handle{ null_value }
+	{
+		static const Ctor ctor_fun;
+		if (auto const result_v = ctor_fun(m_handle, 
+			std::forward<Args>(args_v)...); 
+			result_v != S_OK) 
+		{
+			throw hresult_exception(result_v);
+		}
+	}
+
+	~winhvp_movable_handle() 
+		requires (std::is_invocable_v<Dtor, Handle>)
+	{
+		static const Dtor dtor_fun;
+		if (m_handle == null_value) return;
+		dtor_fun(std::exchange(m_handle, null_value));
+	}
+
+	inline auto operator = (winhvp_movable_handle&& from_v) 
+		-> winhvp_movable_handle& 
+	{
+		if (&from_v == this) return;
+		auto temp_v { std::move(from_v) };
+		swap(temp_v);
+		return *this;
+	}
+
+	winhvp_movable_handle(winhvp_movable_handle const&) = delete;
+	auto operator = (winhvp_movable_handle const&) -> winhvp_movable_handle& = delete;
+
+	inline auto swap(winhvp_movable_handle& rhs_v) noexcept -> void {
+		std::swap(m_handle, rhs_v.m_handle);
+	}
+
+	inline auto value() const -> value_type { return m_handle; }
+
+private:
+	value_type m_handle { null_value };
+};
+
+#define WINHVP_DECLARE_MOVABLE_HANDLE(Value_type, Ctor, Dtor) winhvp_movable_handle<Value_type, \
+	decltype([]<typename... Args> (Value_type& handle_v, Args&&... args_v) { return Ctor(&handle_v, std::forward<Args>(args_v)...); }), \
+	decltype([]<typename... Args> (Value_type handle_v, Args&&... args_v) { return Dtor(handle_v, std::forward<Args>(args_v)...); })>
+

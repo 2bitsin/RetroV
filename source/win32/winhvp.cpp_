@@ -1,0 +1,75 @@
+#include <string>
+#include <stdexcept>
+
+#include <win32/winhvp.hpp>
+#include <win32/winhvp_partition.hpp>
+#include <windows.h>
+#include <WinHvPlatform.h>
+
+#include <win32/hresult_exception.hpp>
+
+template <WHV_CAPABILITY_CODE code_v>
+static inline auto winhvp_capabilities_select(WHV_CAPABILITY const& what_v, std::size_t size_v) {
+	if constexpr (code_v == WHV_CAPABILITY_CODE::WHvCapabilityCodeHypervisorPresent) 
+		return what_v.HypervisorPresent;
+	else if constexpr (code_v == WHV_CAPABILITY_CODE::WHvCapabilityCodeProcessorVendor)
+		return what_v.ProcessorVendor;
+	else 
+		return;
+}
+
+template <WHV_CAPABILITY_CODE code_v>
+static inline auto winhvp_capabilities() -> decltype(
+	winhvp_capabilities_select<code_v>(std::declval<WHV_CAPABILITY>(), 0u))
+{
+	WHV_CAPABILITY caps_v{ };
+
+	UINT32 size_v{ 0 };
+
+	if (auto error_code_v = WHvGetCapability(code_v, &caps_v, sizeof(caps_v), &size_v); error_code_v != S_OK) {
+		throw hresult_exception{ error_code_v };
+	}
+
+	return winhvp_capabilities_select<code_v>(caps_v, size_v);
+}
+
+static auto winhvp_capabilities_hypervisor_present() -> bool {
+	return winhvp_capabilities<WHvCapabilityCodeHypervisorPresent>();
+}
+
+static auto winhvp_capabilities_processor_vendor() -> WHV_PROCESSOR_VENDOR {
+	return winhvp_capabilities<WHvCapabilityCodeProcessorVendor>();
+}
+
+winhvp::winhvp() 
+{
+	if (!winhvp_capabilities_hypervisor_present()) {
+		throw std::runtime_error("Hyper-V not present, or not enabled.");
+	}
+
+	/*
+	switch(winhvp_capabilities_processor_vendor()) 
+	{
+	case WHV_PROCESSOR_VENDOR::WHvProcessorVendorAmd :
+		std::printf("Processor vendor : AMD\n");
+		break;
+	case WHV_PROCESSOR_VENDOR::WHvProcessorVendorHygon :
+		std::printf("Processor vendor : Hygon\n");
+		break;
+	case WHV_PROCESSOR_VENDOR::WHvProcessorVendorIntel :
+		std::printf("Processor vendor : Intel\n");
+		break;
+	default:
+		break;
+	}
+	*/
+}
+
+winhvp::~winhvp() 
+{}
+
+auto winhvp::acquire() -> winhvp& {
+	static winhvp _;
+	return _;
+}
+
