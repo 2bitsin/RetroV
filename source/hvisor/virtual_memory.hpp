@@ -8,6 +8,8 @@
 
 #include <span>
 
+struct Hypervisor;
+
 struct VirtualMemory
 {
 	VirtualMemory();

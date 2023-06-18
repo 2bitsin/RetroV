@@ -18,7 +18,13 @@ struct VirtualMachine
 	VirtualMachine (config const&);
 	~VirtualMachine ();
 
+	auto Restart() -> void;
+	auto Run() -> void;
+
+protected:
+	auto HandleIO(WHV_X64_IO_PORT_ACCESS_CONTEXT const& exit_v) -> void;
+
 private:
-	HyperVisor m_hypervisor;
 	std::vector<VirtualMemory> m_memory;
+	Hypervisor m_hypervisor;
 };

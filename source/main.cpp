@@ -12,9 +12,13 @@ int main(int, char**) try
 
 	VirtualMachine virtual_machine_v {
 		VirtualMachine::config {
-			.memory_size = 4u*1024u*1024u
+			.memory_size = 4u*1024u*1024u,
+			.path_to_bios = R"(bios.bin)"
 		}
 	};
+
+	virtual_machine_v.Restart();
+	virtual_machine_v.Run();
 
   return 0;
 }

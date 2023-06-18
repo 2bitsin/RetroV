@@ -4,12 +4,10 @@
 
 #include <stdexcept>
 
+#include <iostream>
+
 VirtualMachine::VirtualMachine(config const& config_v)
 {
-	static constexpr auto ram_permissions = WHV_MAP_GPA_RANGE_FLAGS( WHvMemoryAccessExecute | WHvMemoryAccessWrite | WHvMemoryAccessRead);
-	static constexpr auto rom_permissions = WHV_MAP_GPA_RANGE_FLAGS( WHvMemoryAccessExecute | WHvMemoryAccessRead);
-	static constexpr auto dev_permissions = WHV_MAP_GPA_RANGE_FLAGS( WHvMemoryAccessWrite | WHvMemoryAccessRead);
-
 	auto memory_size_v = config_v.memory_size;
 
 	if (memory_size_v < 1024u) {
@@ -21,26 +19,68 @@ VirtualMachine::VirtualMachine(config const& config_v)
 
 	// 0x00000 - 0x9FFFF : Conventional Memory
 	m_memory.emplace_back(conventional_memory_size_v);
-	m_hypervisor.MapPhysical(m_memory.back(), 0x00000u, ram_permissions);
+	m_hypervisor.MapPhysical(m_memory.back(), 0x00000u, m_hypervisor.AccessAll);
 
 	// 0xA0000 - 0xAFFFF : VGA Bitmap Memory
 	m_memory.emplace_back(0x10000u);
-	m_hypervisor.MapPhysical(m_memory.back(), 0xA0000u, dev_permissions);
+	m_hypervisor.MapPhysical(m_memory.back(), 0xA0000u, m_hypervisor.AccessDev);
 
 	// 0xB8000 - 0xBFFFF : VGA Text Memory
 	m_memory.emplace_back(0x8000u);
-	m_hypervisor.MapPhysical(m_memory.back(), 0xB8000u, dev_permissions);
+	m_hypervisor.MapPhysical(m_memory.back(), 0xB8000u, m_hypervisor.AccessDev);
 
 	// 0xF0000 - 0xFFFFF : BIOS ROM
 	m_memory.emplace_back(config_v.path_to_bios, 0x10000u);
-	m_hypervisor.MapPhysical(m_memory.back(), 0xF0000u, rom_permissions);
+	m_hypervisor.MapPhysical(m_memory.back(), 0xF0000u, m_hypervisor.AccessRom);
 
 	// 0x100000 - 0x100000 + memory_size_v : Extended Memory
-	m_memory.emplace_back(memory_size_v);
-	m_hypervisor.MapPhysical(m_memory.back(), 0x100000u, ram_permissions);
+	if (memory_size_v > 0u) {
+		m_memory.emplace_back(memory_size_v);
+		m_hypervisor.MapPhysical(m_memory.back(), 0x100000u, m_hypervisor.AccessAll);
+	}
 }
 
 VirtualMachine::~VirtualMachine() 
-{
+{}
 
+auto VirtualMachine::Restart() -> void {
+	m_hypervisor.RestartToRealMode();
+}
+
+auto VirtualMachine::HandleIO(WHV_X64_IO_PORT_ACCESS_CONTEXT const& io_v) -> void 
+{
+	if (!io_v.AccessInfo.IsWrite) {
+		return;
+	}
+
+	switch (io_v.PortNumber) {
+	case 0xe9:
+		switch (io_v.AccessInfo.AccessSize) {
+		case 1: std::cout << (char)io_v.Rax; break;
+		case 2: std::wcout << (wchar_t)io_v.Rax; break;
+		case 4: std::wcout << (wchar_t)io_v.Rax; break;
+		default: throw std::runtime_error("Unhandled IO port access size.");
+		}
+	default:
+		break;
+	}
+}
+
+auto VirtualMachine::Run() -> void 
+{
+	for (;;) 
+	{
+		auto const exit_v = m_hypervisor.Run();
+		auto const next_instruction_v = (exit_v.VpContext.Rip+exit_v.VpContext.InstructionLength)&0xFFFFu;
+		switch (exit_v.ExitReason) {
+		case WHvRunVpExitReasonMemoryAccess:
+			throw std::runtime_error("Unhandled memory access.");
+		case WHvRunVpExitReasonX64IoPortAccess:
+			HandleIO(exit_v.IoPortAccess); 
+			m_hypervisor.SetRegister(WHvX64RegisterRip, { .Reg64 = next_instruction_v });
+			break;		
+		default:
+			throw std::runtime_error("Unhandled exit reason.");
+		}
+	}
 }
