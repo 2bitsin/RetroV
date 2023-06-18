@@ -11,22 +11,22 @@ start_here:
     mov         sp,     0x7700
     cld
     mov         si,     strings.hello_world
-		call        print_e9
+    call        print_e9
     hlt
 
 
 print_e9:
-		push				si
-		push				ax
-	.print:
+    push				si
+    push				ax
+  .print:
     lodsb
     or          al,     al
     jz          .done
     out         0xE9,   al
     jmp         .print
   .done:
-		pop					ax
-		pop					si
+    pop					ax
+    pop					si
     ret
 
 

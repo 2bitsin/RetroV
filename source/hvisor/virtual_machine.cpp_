@@ -71,7 +71,8 @@ auto VirtualMachine::Run() -> void
 	for (;;) 
 	{
 		auto const exit_v = m_hypervisor.Run();
-		auto const next_instruction_v = (exit_v.VpContext.Rip+exit_v.VpContext.InstructionLength)&0xFFFFu;
+		auto const& vp_context_v = exit_v.VpContext;
+		auto const next_instruction_v = (vp_context_v.Rip + vp_context_v.InstructionLength)&0xFFFFu;
 		switch (exit_v.ExitReason) {
 		case WHvRunVpExitReasonMemoryAccess:
 			throw std::runtime_error("Unhandled memory access.");
