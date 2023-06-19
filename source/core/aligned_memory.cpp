@@ -1,7 +1,7 @@
 #include <win32/win32_error.hpp>
 #include <win32/windows.hpp>
 
-#include <core/memory.hpp>
+#include <core/aligned_memory.hpp>
 #include <core/virtual_alloc.hpp>
 #include <core/mapped_file.hpp>
 

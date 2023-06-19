@@ -23,3 +23,5 @@ protected:
 	std::uint32_t m_errvalue;
 	std::source_location m_location;
 };
+
+#define WIN32_ERROR_ASSERT(expression) win32_error::assert(expression, std::source_location::current(), #expression)

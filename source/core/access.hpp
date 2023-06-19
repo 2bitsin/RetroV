@@ -14,7 +14,7 @@ namespace core
 
 		static inline constexpr auto const all = read | write | execute;
 		static inline constexpr auto const rom = read | execute;
-		static inline constexpr auto const device = read | write;
+		static inline constexpr auto const device = read | write | track_dirty;
 	}
 	auto protect_from_access(std::uint32_t access_v) -> std::uint32_t;
 }

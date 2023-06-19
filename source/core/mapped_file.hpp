@@ -4,7 +4,7 @@
 #include <win32/win32_error.hpp>
 
 #include <core/access.hpp>
-#include <core/memory.hpp>
+#include <core/aligned_memory.hpp>
 
 #include <functional>
 #include <stdexcept>
