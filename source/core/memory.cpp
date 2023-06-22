@@ -1,0 +1,120 @@
+#include <core/memory.hpp>
+#include <win32/error.hpp>
+
+#include <system_error>
+#include <filesystem>
+#include <iostream>
+#include <fstream>
+
+Memory::Memory(std::size_t size_v)
+	: m_Data(nullptr)
+	, m_Size(0)
+{
+	size_v = (size_v + kPageSize - 1) & ~(kPageSize - 1);
+	auto data_v = VirtualAlloc(nullptr, size_v, 
+		MEM_COMMIT|MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	if (nullptr==data_v) {
+		throw win32::error();
+	}
+	m_Data = (std::byte*)data_v;
+	m_Size = size_v;
+}
+
+Memory::Memory(std::size_t size_v, std::span<std::byte const> data_v, bool repeat_v):
+	Memory(size_v)
+{
+	if (repeat_v) {
+		std::size_t offset_v = 0;
+		while (offset_v < size_v) {
+			std::size_t copy_v = std::min(size_v - offset_v, data_v.size());
+			std::memcpy(m_Data + offset_v, data_v.data(), copy_v);
+			offset_v += copy_v;
+		}
+	} else {
+		std::memcpy(m_Data, data_v.data(), std::min(size_v, data_v.size()));
+	}
+}
+
+Memory::Memory(std::size_t size_v, std::filesystem::path const& path_v, bool repeat_v, std::uint64_t offset_v, std::size_t length_v)
+	: Memory(size_v)
+{
+	if (!std::filesystem::exists(path_v)) {
+		throw std::system_error(std::make_error_code(
+			std::errc::no_such_file_or_directory));
+	}
+	auto file_size_v = std::filesystem::file_size(path_v);
+	if (0 == length_v) length_v = file_size_v - offset_v;	
+	if (offset_v + length_v >= file_size_v) {
+		throw std::system_error(std::make_error_code(
+			std::errc::invalid_argument));
+	}
+
+	std::ifstream file_v(path_v, std::ios::binary);
+	if (!file_v) throw std::system_error(std::make_error_code(std::errc::io_error));	
+	file_v.seekg(offset_v);
+	if (!file_v) throw std::system_error(std::make_error_code(std::errc::io_error));
+	file_v.read((char*)m_Data, std::min(length_v, size_v));		
+
+	if (repeat_v && length_v < size_v) {
+		std::size_t offset_v = length_v;
+		while (offset_v < size_v) {
+			std::size_t copy_v = std::min(size_v - offset_v, length_v);
+			std::memcpy(m_Data + offset_v, m_Data, copy_v);
+			offset_v += copy_v;
+		}
+	}
+}
+
+Memory::~Memory() 
+{
+	if (m_Data) {
+		VirtualFree(m_Data, 0, MEM_RELEASE);
+	}
+	m_Data = nullptr;
+	m_Size = 0;
+}
+
+auto Memory::operator=(Memory&& prev_v) noexcept -> Memory&
+{
+	if (this != &prev_v) {
+		auto temp_v(std::move (prev_v));
+		Swap(temp_v);
+	}
+	return *this;
+}
+
+auto Memory::Swap(Memory& prev_v) noexcept -> void
+{
+	std::swap(m_Data, prev_v.m_Data);
+	std::swap(m_Size, prev_v.m_Size);
+}
+
+Memory::Memory(Memory&& prev_v) noexcept
+	: m_Data(std::exchange(prev_v.m_Data, nullptr))
+	, m_Size(std::exchange(prev_v.m_Size, 0))
+{}
+
+auto Memory::Data() const noexcept -> std::byte const*
+{
+	return m_Data;
+}
+
+auto Memory::Data() noexcept -> std::byte *
+{
+	return m_Data;
+}
+
+auto Memory::Size() const noexcept -> std::size_t
+{
+	return m_Size;
+}
+
+auto Memory::View() const noexcept -> std::span<std::byte const>
+{
+	return { m_Data, m_Size };
+}
+
+auto Memory::View() noexcept -> std::span<std::byte>
+{
+	return { m_Data, m_Size };
+}

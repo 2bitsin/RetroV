@@ -1,23 +1,25 @@
 #pragma once
 
 #include <filesystem>
+#include <functional>
 #include <cstdint>
 #include <cstddef>
-#include <memory>
-#include <span>
+#include <vector>
 
-#include <core/access.hpp>
-#include <core/object.hpp>
+struct Machine;
 
-namespace core
+struct Config 
 {
-	struct config: public object
-	{
-		static auto create() -> std::unique_ptr<config>;
-
-		virtual auto add_processor(std::uint32_t index_v) -> void = 0;
-		virtual auto add_memory(std::uint64_t base_v, std::uint64_t size_v, std::uint32_t access_v) -> void = 0;
-		virtual auto add_memory(std::uint64_t base_v, std::uint64_t size_v, std::uint32_t access_v, std::span<std::byte const> source_v) -> void = 0;
-		virtual auto add_memory(std::uint64_t base_v, std::uint64_t size_v, std::uint32_t access_v, std::filesystem::path const& source_v) -> void = 0;
-	};
-}
+	void SetMemorySize(std::size_t memorys_size_bytes_v);
+	void SetBootROM(std::uint64_t base_v, std::filesystem::path const& path_v);
+	void AddOptionROM(std::uint64_t base_v, std::filesystem::path const& path_v);
+	
+protected:
+	friend struct Machine;
+	void ApplyBeforeSetup(Machine& machine_v) const;
+	void ApplyAfterSetup(Machine& machine_v) const;
+private:
+	std::size_t m_MemorySize { 0 };
+	std::pair<std::uint64_t, std::filesystem::path> m_BootROM;
+	std::vector<std::pair<std::uint64_t, std::filesystem::path>> m_OptionROMs;
+};
