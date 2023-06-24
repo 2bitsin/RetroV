@@ -2,6 +2,7 @@
 #include <filesystem>
 
 #include <core/machine.hpp>
+#include <devices/porte9hack.hpp>
 
 int main(int, char**) try
 {
@@ -15,8 +16,9 @@ int main(int, char**) try
 	config_v.SetBootROM(0xF0000u, "BIOS.BIN");
 
 	core::Machine machine_v(config_v);
-
+	core::PortE9HackDevice porte9hack_device_v(machine_v);
 	
+	machine_v.Run();
 
   return 0;
 }

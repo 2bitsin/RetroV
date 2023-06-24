@@ -4,16 +4,22 @@
 #include <cstdint>
 #include <cstddef>
 #include <vector>
+#include <array>
+#include <any>
 
+#include <win32/error.hpp>
 #include <win32/winhvpx.hpp>
 #include <core/memory.hpp>
 #include <core/config.hpp>
-
+#include <core/iodevice.hpp>
 
 namespace core
 { 
 	struct Machine
 	{
+		static inline constexpr auto kAccessWrite = 1u;
+		static inline constexpr auto kAccessFetch = 2u;
+
 		static inline constexpr auto kMemoryFlagsAll = WHvMapGpaRangeFlagRead|WHvMapGpaRangeFlagWrite|WHvMapGpaRangeFlagExecute;
 		static inline constexpr auto kMemoryFlagsROM = WHvMapGpaRangeFlagRead|WHvMapGpaRangeFlagExecute;
 		static inline constexpr auto kMemoryFlagsRAM = WHvMapGpaRangeFlagRead|WHvMapGpaRangeFlagWrite|WHvMapGpaRangeFlagExecute;
@@ -38,12 +44,36 @@ namespace core
 			return index_v;
 		}
 
+		auto MapIoRange(IODevice& device_v, std::uint16_t base_v, std::uint16_t size_v, std::uint32_t flags_v = kAccessFetch | kAccessWrite) -> void;
+		auto UnmapIoRange(std::uint16_t base_v, std::uint16_t size_v, std::uint32_t flags_v = kAccessFetch | kAccessWrite) -> void;
 		auto InitializeProcessor(std::uint32_t index) -> void;
+		auto Run() -> void;
+
+		template <typename T>
+		auto SetRegister(std::uint32_t index_v, WHV_REGISTER_NAME name_v, T const& value_v) -> void {
+			WHV_REGISTER_VALUE value_s { 0 };
+			std::memcpy(&value_s, &value_v, std::min(sizeof(value_s), sizeof(value_v)));
+			WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(m_Partition, index_v, &name_v, 1u, &value_s));
+		}
+
+		template <typename T>
+		auto GetRegister(std::uint32_t index_v, WHV_REGISTER_NAME name_v) -> T {
+			WHV_REGISTER_VALUE value_s { 0 };
+			WIN32_ERROR_ASSERT(::WHvGetVirtualProcessorRegisters(m_Partition, index_v, &name_v, 1u, &value_s));
+			T value_v { 0 };
+			std::memcpy(&value_v, &value_s, std::min(sizeof(value_s), sizeof(value_v)));
+			return value_v;
+		}
 
 	protected:
 		friend struct Config;
-
 		auto InitializePartitionProperties() -> void;
+		auto RunVirtualProcessor(std::uint32_t index_v, std::stop_token token_v) -> void;
+
+		auto HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
+		auto HandleIoOperation(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
+
+		auto HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
 
 		auto SetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void const* data_v, std::uint32_t size_v) -> void;
 		auto GetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void* data_v, std::uint32_t& size_v) -> void;
@@ -60,9 +90,13 @@ namespace core
 			auto size_v = sizeof(T);
 			return GetProperty(code_v, &data_v, size_v);
 		}
-	
+
 	private:
-		std::vector<Memory> m_Memories; 
 		WHV_PARTITION_HANDLE m_Partition{ nullptr };
+		std::vector<Memory> m_Memories; 
+		std::vector<std::uint32_t> m_Processors;
+		std::vector<IODevice*> m_IoWrite{ 0x10000u, nullptr };
+		std::vector<IODevice*> m_IoFetch{ 0x10000u, nullptr };
+		std::stop_source m_ProcessorBreak;
 	};
 }
