@@ -18,7 +18,7 @@ target_include_directories(HvDOS PRIVATE source)
 target_compile_features(HvDOS PRIVATE cxx_std_23)
 find_library(LIB_WINHVPLATFORM NAMES WinHvPlatform)
 target_link_libraries(HvDOS PRIVATE ${LIB_WINHVPLATFORM} SDL2::SDL2 capstone::capstone)
-set_target_stack_size(HvDOS "256MiB")
+target_stack_size(HvDOS "256MiB")
 
 # Use add_custom_command to compile bios/bios.asm to bios.bin using fasm
 file(GLOB_RECURSE SOURCE_FILES_ASI bios/*.asi)

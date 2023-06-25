@@ -1,15 +1,18 @@
 
 prologue:
-    mov         sp,     0x9FC0
+    mov         sp,     STACK_SEGMENT
     mov         ss,     sp
-    mov         sp,     0x0400
+    mov         sp,     STACK_OFFSSET
 
     mov         ax,     cs
     mov         ds,     ax
     mov         es,     ax
     mov         fs,     ax
     mov         gs,     ax
+
     cld
-    mov         si,     strings.hello
-    call        debug_print    
+    mov         si,     Strings.Hello
+    call        DebugPrint    
+    call        InitializeIVT
+    int         0x10
     hlt

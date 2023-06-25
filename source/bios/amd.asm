@@ -1,9 +1,9 @@
   org 0x0000
 
-  _VMCall equ vmmcall
+  VMCallInstruction equ vmmcall
 
-  include 'prologue.asi'
   include 'variables.asi'
+  include 'prologue.asi'
   include 'debug.asi'
   include 'intvectbl.asi'
   include 'strings.asi'

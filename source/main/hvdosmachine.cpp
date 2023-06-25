@@ -9,7 +9,16 @@ HvDosMachine::HvDosMachine(int argc, char** argv)
 	core::Config config_v;
 	config_v.AddProcessor(0x0u);
 	config_v.SetMemorySize(32_MiB);
-	config_v.SetBootROM(0xF0000u, path_v / "roms/BIOS.BIN");
+
+	if (core::Machine::IsVendorAMD()) {
+		config_v.SetBootROM(0xF0000u, path_v / "ROMs/BiosAMD.bin");
+	}
+	else if (core::Machine::IsVendorIntel()) {
+		config_v.SetBootROM(0xF0000u, path_v / "ROMs/BiosIntel.bin");
+	}
+	else {
+		throw std::runtime_error("Unknown CPU vendor");
+	}
 
 	machine_v.emplace(config_v);
 	pe9h_device_v.emplace(*machine_v);

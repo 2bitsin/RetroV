@@ -1,3 +1,3 @@
 
-strings:
-    .hello: db "Booting HvDOS ...", 13, 10, 0
+Strings:
+    .Hello: db "Booting HvDOS ...", 13, 10, 0

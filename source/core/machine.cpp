@@ -138,7 +138,7 @@ auto Machine::InitializeProcessor(std::uint32_t index_v) -> void
 		InitialProcessorState::Names, 
 		InitialProcessorState::Count, 
 		InitialProcessorState::Values));
-	auto const hypercall_v = HasVMCALL() * 1u + HasVMMCALL() * 2u;
+	auto const hypercall_v = IsVendorIntel() * 1u + IsVendorAMD() * 2u;
 	SetRegister (index_v, WHvX64RegisterRax, WHV_REGISTER_VALUE{ .Reg64 = hypercall_v });
 	m_Processors.emplace_back(index_v);
 }
@@ -168,6 +168,12 @@ auto Machine::HandleIoOperation(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& 
 	}
 }
 
+auto Machine::HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool {
+	auto const address_v = exit_v.VpContext.Rip + exit_v.VpContext.Cs.Base + exit_v.VpContext.InstructionLength;
+
+	return false;
+}
+
 auto Machine::HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool {
 	if (exit_v.VpContext.Rflags & 0x200u) {
 		// Interrupts enabled
@@ -185,9 +191,8 @@ auto Machine::HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v)
 		break;
 	case WHvRunVpExitReasonX64Halt:
 		return HandleHaltInstruction(index_v, exit_v);
-	case WHvRunVpExitReasonHypercall:
-		__debugbreak();
-		return false;
+	case WHvRunVpExitReasonHypercall:	
+		return HandleHypercall(index_v, exit_v);
 	case WHvRunVpExitReasonMemoryAccess: 
 		__debugbreak();
 		return false;
@@ -258,13 +263,13 @@ auto core::Machine::UnmapIoRange(std::uint16_t base_v, std::uint16_t size_v, std
 	}
 }
 
-auto core::Machine::HasVMCALL() -> bool
+auto core::Machine::IsVendorIntel() -> bool
 {
 	auto const vendor_v = GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
 	return vendor_v == WHvProcessorVendorIntel;
 }
 
-auto core::Machine::HasVMMCALL() -> bool
+auto core::Machine::IsVendorAMD() -> bool
 {
 	auto const vendor_v = GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
 	return vendor_v == WHvProcessorVendorAmd || vendor_v == WHvProcessorVendorHygon;

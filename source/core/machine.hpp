@@ -65,11 +65,10 @@ namespace core
 			return value_v;
 		}
 
+		static auto IsVendorIntel() -> bool;
+		static auto IsVendorAMD() -> bool;
 	protected:
 		friend struct Config;
-
-		static auto HasVMCALL() -> bool;
-		static auto HasVMMCALL() -> bool;
 
 		static auto GetCapability(WHV_CAPABILITY_CODE, void* buffer_v, std::uint32_t length_v) -> std::uint32_t;
 
@@ -86,7 +85,7 @@ namespace core
 
 		auto HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
 		auto HandleIoOperation(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
-
+		auto HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
 		auto HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
 
 		auto SetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void const* data_v, std::uint32_t size_v) -> void;

@@ -1,2 +1,54 @@
 
 align 16
+
+  rept 256 Number
+  { 
+  IVTEntry#Number:
+    VMCallInstruction
+    db Number-1
+    iret
+  }
+
+align 16
+InitialIVT:
+  rept 256 Number
+  {
+    dw IVTEntry#Number
+    dw 0xF000
+  }
+
+InitializeIVT:
+
+  push      ds
+  push      es
+  push      si
+  push      di
+  push      cx        
+
+  mov       si,     BIOS_SEGMENT
+  mov       ds,     si
+  mov       si,     InitialIVT
+
+  mov       di,     IVT_ADDRESS/16
+  mov       es,     di
+  mov       di,     IVT_ADDRESS mod 16
+
+  mov       cx,     IVT_LENGTH/2
+  rep       movsw
+
+  pop       cx
+  pop       di
+  pop       si
+  pop       es
+  pop       ds
+  ret
+
+
+
+
+
+
+
+
+
+  

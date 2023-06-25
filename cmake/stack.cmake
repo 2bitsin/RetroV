@@ -1,4 +1,4 @@
-function(set_target_stack_size target size)
+function(target_stack_size target size)
     # Determine the unit (default is bytes)
     string(REGEX MATCH "([KMGiB]+)$" unit "${size}")
     if(unit STREQUAL "KiB")

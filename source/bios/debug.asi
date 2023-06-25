@@ -1,4 +1,4 @@
-debug_print:
+DebugPrint:
     push				si
     push				ax
   .print:
