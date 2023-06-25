@@ -67,6 +67,20 @@ namespace core
 
 	protected:
 		friend struct Config;
+
+		static auto HasVMCALL() -> bool;
+		static auto HasVMMCALL() -> bool;
+
+		static auto GetCapability(WHV_CAPABILITY_CODE, void* buffer_v, std::uint32_t length_v) -> std::uint32_t;
+
+		template <typename T>
+		static inline auto GetCapability(WHV_CAPABILITY_CODE code_v) -> T {
+			T buffer_v { };
+			[[maybe_unused]] auto const length_v = GetCapability(code_v, &buffer_v, sizeof(buffer_v));
+			//if(length_v == sizeof(buffer_v));
+			return buffer_v;
+		}
+
 		auto InitializePartitionProperties() -> void;
 		auto RunVirtualProcessor(std::uint32_t index_v, std::stop_token token_v) -> void;
 

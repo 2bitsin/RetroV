@@ -44,46 +44,43 @@ struct InitialProcessorState
 		/* 18 */ WHvX64RegisterR14,
 		/* 19 */ WHvX64RegisterR15,
 		/* 1A */ WHvX64RegisterCr0,
+		/* 1B */ WHvX64RegisterCr2,
+		/* 1C */ WHvX64RegisterCr3,
+		/* 1D */ WHvX64RegisterCr4,
 	};
 
 	static constexpr const WHV_REGISTER_VALUE Values[] =
 	{
-		{.Reg64 = 0x0000000000000002u },
-		{.Reg64 = 0x000000000000FFF0u },
-
-		{.Segment = {.Base = 0xf0000u, .Limit = 0xFFFFu, .Selector = 0xF000u, .Attributes = 0x009Eu } },
-		{.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
-		{.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
-
-		{.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
-
-		{.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
-		{.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
-
-		{.Table = {.Limit = 0x03FFu, .Base = 0x00000000u  } },
-		{.Table = {.Limit = 0x0000u, .Base = 0x00000000u  } },
-
-		{.Reg64 = 0x0000000000000000u},
-		{.Reg64 = 0x0000000000000000u},
-		{.Reg64 = 0x0000000000000000u},
-		{.Reg64 = 0x0000000000000000u},
-
-		{.Reg64 = 0x0000000000000000u},
-		{.Reg64 = 0x0000000000000000u},
-		{.Reg64 = 0x0000000000000000u},
-		{.Reg64 = 0x0000000000000000u},
-
-		{.Reg64 = 0x0000000000000000u},
-		{.Reg64 = 0x0000000000000000u},
-		{.Reg64 = 0x0000000000000000u},
-		{.Reg64 = 0x0000000000000000u},
-
-		{.Reg64 = 0x0000000000000000u},
-		{.Reg64 = 0x0000000000000000u},
-		{.Reg64 = 0x0000000000000000u},
-		{.Reg64 = 0x0000000000000000u},
-
-		{.Reg64 = 0x0000000000000010u}
+		/* FLAGS */ {.Reg64 = 0x0000000000000002u },
+		/* RIP   */ {.Reg64 = 0x000000000000FFF0u },
+		/* CS    */ {.Segment = {.Base = 0xf0000u, .Limit = 0xFFFFu, .Selector = 0xF000u, .Attributes = 0x009Eu } },
+		/* DS    */ {.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
+		/* ES    */ {.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
+		/* SS    */ {.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
+		/* FS    */ {.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
+		/* GS    */ {.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
+		/* GDTR  */ {.Table = {.Limit = 0x03FFu, .Base = 0x00000000u  } },
+		/* IDTR  */ {.Table = {.Limit = 0x0000u, .Base = 0x00000000u  } },
+		/* RAX   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* RBX   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* RCX   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* RDX   */ {.Reg64 = 0x0000'0000'0000'0000u},		
+		/* RSI   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* RDI   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* RSP   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* RBP   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* R8    */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* R9    */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* R10   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* R11   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* R12   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* R13   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* R14   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* R15   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* CR0   */ {.Reg64 = 0x0000'0000'6000'0010u},
+		/* CR2   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* CR3   */ {.Reg64 = 0x0000'0000'0000'0000u},
+		/* CR4   */ {.Reg64 = 0x0000'0000'0000'0000u}
 	};
 
 	static constexpr const std::size_t Count = std::min(std::size(Names), std::size(Values));
@@ -141,6 +138,8 @@ auto Machine::InitializeProcessor(std::uint32_t index_v) -> void
 		InitialProcessorState::Names, 
 		InitialProcessorState::Count, 
 		InitialProcessorState::Values));
+	auto const hypercall_v = HasVMCALL() * 1u + HasVMMCALL() * 2u;
+	SetRegister (index_v, WHvX64RegisterRax, WHV_REGISTER_VALUE{ .Reg64 = hypercall_v });
 	m_Processors.emplace_back(index_v);
 }
 
@@ -186,10 +185,12 @@ auto Machine::HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v)
 		break;
 	case WHvRunVpExitReasonX64Halt:
 		return HandleHaltInstruction(index_v, exit_v);
-	//case WHvRunVpExitReasonMemoryAccess: 
-	//	break;
-	//case WHvRunVpExitReasonHypercall: 
-	//	break;
+	case WHvRunVpExitReasonHypercall:
+		__debugbreak();
+		return false;
+	case WHvRunVpExitReasonMemoryAccess: 
+		__debugbreak();
+		return false;
 	default:
 		__debugbreak();
 		return false;
@@ -255,6 +256,24 @@ auto core::Machine::UnmapIoRange(std::uint16_t base_v, std::uint16_t size_v, std
 		if (flags_v & kAccessFetch) 
 			m_IoFetch[port_v] = nullptr;
 	}
+}
+
+auto core::Machine::HasVMCALL() -> bool
+{
+	auto const vendor_v = GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
+	return vendor_v == WHvProcessorVendorIntel;
+}
+
+auto core::Machine::HasVMMCALL() -> bool
+{
+	auto const vendor_v = GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
+	return vendor_v == WHvProcessorVendorAmd || vendor_v == WHvProcessorVendorHygon;
+}
+
+auto core::Machine::GetCapability(WHV_CAPABILITY_CODE code_v, void* buffer_v, std::uint32_t length_v) -> std::uint32_t
+{
+	WIN32_ERROR_ASSERT(WHvGetCapability(code_v, buffer_v, length_v, &length_v));
+	return length_v;
 }
 
 auto Machine::InitializePartitionProperties() -> void {

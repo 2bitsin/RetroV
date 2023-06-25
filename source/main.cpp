@@ -1,26 +1,12 @@
-#include <iostream>
-#include <filesystem>
+#include <main/hvdosmachine.hpp>
 
-#include <core/machine.hpp>
-#include <devices/porte9hack.hpp>
-
-int main(int, char**) try
+int main(int argc, char** argv) try
 {
-	using namespace size_literals;
 	std::filesystem::current_path(R"(C:\Users\alex\Desktop\projects\leisure\HvDOS\workspace)");
 
-	core::Config config_v;
-
-	config_v.AddProcessor(0x0u);
-	config_v.SetMemorySize(32_MiB);
-	config_v.SetBootROM(0xF0000u, "BIOS.BIN");
-
-	core::Machine machine_v(config_v);
-	core::PortE9HackDevice porte9hack_device_v(machine_v);
-	
-	machine_v.Run();
-
-  return 0;
+	HvDosMachine machine_v { argc, argv };
+	auto result_v = machine_v.Run();
+  return result_v;
 }
 catch (std::exception const& ex) 
 {
