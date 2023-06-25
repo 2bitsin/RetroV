@@ -1,0 +1,14 @@
+{
+    "name": "HvDOS",
+    "version-string": "0.0.1",
+    "dependencies": [
+      {
+        "name": "SDL2",
+        "version-string": "2.24.0"
+      },
+      {
+        "name": "capstone",
+        "version-string": "5.0.0-rc2"
+      } 
+    ]
+}

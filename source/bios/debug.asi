@@ -1,0 +1,13 @@
+debug_print:
+    push				si
+    push				ax
+  .print:
+    lodsb
+    or          al,     al
+    jz          .done
+    out         0xE9,   al
+    jmp         .print
+  .done:
+    pop					ax
+    pop					si
+    ret
