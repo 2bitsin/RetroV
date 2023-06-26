@@ -1,13 +1,14 @@
-DebugPrint:
+Debug:
+.Print:
     push				si
     push				ax
-  .print:
+  .l0:
     lodsb
     or          al,     al
-    jz          .done
+    jz          .l1
     out         0xE9,   al
-    jmp         .print
-  .done:
+    jmp         .l0
+  .l1:
     pop					ax
     pop					si
     ret

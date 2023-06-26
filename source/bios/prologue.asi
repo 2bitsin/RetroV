@@ -1,5 +1,5 @@
-
-prologue:
+    
+Prologue:
     mov         sp,     STACK_SEGMENT
     mov         ss,     sp
     mov         sp,     STACK_OFFSSET
@@ -12,7 +12,7 @@ prologue:
 
     cld
     mov         si,     Strings.Hello
-    call        DebugPrint    
-    call        InitializeIVT
+    call        Debug.Print    
+    call        IVT.Initialize
     int         0x10
     hlt

@@ -21,7 +21,8 @@ target_link_libraries(HvDOS PRIVATE ${LIB_WINHVPLATFORM} SDL2::SDL2 capstone::ca
 target_stack_size(HvDOS "256MiB")
 
 # Use add_custom_command to compile bios/bios.asm to bios.bin using fasm
-file(GLOB_RECURSE SOURCE_FILES_ASI bios/*.asi)
+file(GLOB_RECURSE SOURCE_FILES_ASI source/bios/*.asi)
+message (STATUS "SOURCE_FILES_ASI: ${SOURCE_FILES_ASI}")
 add_fasm_target(BiosAMD "source/bios/amd.asm" ${SOURCE_FILES_ASI})
 add_fasm_target(BiosIntel "source/bios/intel.asm" ${SOURCE_FILES_ASI})
 

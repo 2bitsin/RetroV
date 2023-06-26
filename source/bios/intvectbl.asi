@@ -1,23 +1,29 @@
-
-align 16
-
+  align 16
+IVT:
   rept 256 Number
   { 
-  IVTEntry#Number:
+    align 4
+  .Entry#Number:
+    push      word Number-1
     VMCallInstruction
-    db Number-1
+    add       sp,         2
     iret
   }
 
-align 16
-InitialIVT:
+
+  align 16
+.Initial:
   rept 256 Number
   {
-    dw IVTEntry#Number
-    dw 0xF000
+    dw .Entry#Number, BIOS_SEGMENT
   }
 
-InitializeIVT:
+.SrcAddr: 
+  dw .Initial,BIOS_SEGMENT
+.DstAddr: 
+  dw 0, IVT_SEGMENT
+
+.Initialize:
 
   push      ds
   push      es
@@ -25,14 +31,8 @@ InitializeIVT:
   push      di
   push      cx        
 
-  mov       si,     BIOS_SEGMENT
-  mov       ds,     si
-  mov       si,     InitialIVT
-
-  mov       di,     IVT_ADDRESS/16
-  mov       es,     di
-  mov       di,     IVT_ADDRESS mod 16
-
+  lds       si,     [.SrcAddr]
+  les       di,     [.DstAddr]
   mov       cx,     IVT_LENGTH/2
   rep       movsw
 

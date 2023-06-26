@@ -131,6 +131,25 @@ void Machine::UnmapMemory(std::uint64_t base_v, std::uint64_t size_v)
 	WIN32_ERROR_ASSERT(::WHvUnmapGpaRange(m_Partition, base_v, size_v));
 }
 
+auto Machine::TranslateVirtualAddress(std::uint32_t index_v, std::uint64_t& inout_address_v, 
+	WHV_TRANSLATE_GVA_FLAGS flags_v) const -> WHV_TRANSLATE_GVA_RESULT_CODE
+{
+	WHV_TRANSLATE_GVA_RESULT result_v { };
+	auto const control0_v = GetRegister<std::uint64_t>(index_v, WHvX64RegisterCr0);
+	static constexpr const std::uint64_t kPagingEnabled = 0x80000000u;
+	if (!(control0_v & kPagingEnabled)) {
+		return WHvTranslateGvaResultSuccess;
+	}
+	WIN32_ERROR_ASSERT(::WHvTranslateGva(m_Partition, index_v, 
+		inout_address_v, flags_v, &result_v, &inout_address_v));
+	return result_v.ResultCode;
+}
+
+auto Machine::ReadPhysical(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte> buffer_v, WHV_CACHE_TYPE cache_control_v) const -> void {	
+	WIN32_ERROR_ASSERT(WHvReadGpaRange(m_Partition, index_v, address_v, WHV_ACCESS_GPA_CONTROLS{ 
+		.CacheType = cache_control_v }, buffer_v.data(), buffer_v.size()));
+}
+
 auto Machine::InitializeProcessor(std::uint32_t index_v) -> void
 {
 	WIN32_ERROR_ASSERT(::WHvCreateVirtualProcessor(m_Partition, index_v, 0u));
@@ -168,8 +187,32 @@ auto Machine::HandleIoOperation(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& 
 	}
 }
 
-auto Machine::HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool {
-	auto const address_v = exit_v.VpContext.Rip + exit_v.VpContext.Cs.Base + exit_v.VpContext.InstructionLength;
+auto Machine::HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool 
+{	
+	// Continue after VMCall when we return from the handler
+	SetRegister(index_v, WHvX64RegisterRip, WHV_REGISTER_VALUE{
+		.Reg64 = exit_v.VpContext.Rip + exit_v.VpContext.InstructionLength
+	});
+
+	// Now we want to read 3 bytes directly preceding the VMCall instruction
+	std::uint64_t push_address_v { exit_v.VpContext.Rip + exit_v.VpContext.Cs.Base - 3u };
+	if (WHvTranslateGvaResultSuccess != TranslateVirtualAddress(index_v, push_address_v)) {
+		// Can't translate the address ? something is very wrong here
+		return false;
+	}
+	
+	// Read the instruction
+#pragma pack(push, 1)
+	struct push_opcode {	std::uint8_t icode; std::uint16_t value; };
+#pragma pack(pop)
+
+	auto const push_instruction_v = ReadPhysical<push_opcode>(index_v, push_address_v);
+	if (push_instruction_v.icode != 0x68u) {
+		// Handle generic VMCall
+		
+	} else {
+		// Handle specific VMCall
+	}
 
 	return false;
 }
@@ -224,6 +267,9 @@ auto Machine::Run() -> void
 			[this, processor_v, token_v = m_ProcessorBreak.get_token()] () mutable -> void {
 				RunVirtualProcessor(processor_v, std::move(token_v));
 			}));		
+	}
+	for(auto&& future_v : futures_v) {
+		future_v.get();
 	}
 }
 

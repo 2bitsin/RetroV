@@ -7,6 +7,7 @@
 #include <array>
 #include <any>
 
+#include <utils/as_bytes.hpp>
 #include <win32/error.hpp>
 #include <win32/winhvpx.hpp>
 #include <core/memory.hpp>
@@ -35,6 +36,15 @@ namespace core
 	
 		auto MapMemory (std::size_t index_v, std::uint64_t base_v, std::uint64_t size_v=0u, std::uint32_t flags_v=kMemoryFlagsRAM, std::size_t offset_v=0u) -> void;	
 		auto UnmapMemory (std::uint64_t base_v, std::uint64_t size_v=0u) -> void;
+		auto TranslateVirtualAddress (std::uint32_t index_v, std::uint64_t& inout_address_v, WHV_TRANSLATE_GVA_FLAGS flags_v = WHvTranslateGvaFlagNone) const -> WHV_TRANSLATE_GVA_RESULT_CODE;
+		auto ReadPhysical(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte> buffer_v, WHV_CACHE_TYPE cache_control_v=WHvCacheTypeUncached) const -> void;
+		template <typename T> requires (std::is_trivially_copyable_v<T>)
+			auto ReadPhysical(std::uint32_t index_v, std::uint64_t address_v, 
+				WHV_CACHE_TYPE cache_control_v = WHvCacheTypeUncached) const -> T {
+			T buffer_v { };
+			ReadPhysical(index_v, address_v, utils::as_mutable_bytes(buffer_v), cache_control_v);
+			return buffer_v;
+		}
 	
 		template <typename... T>
 		auto InitializeMemory(T&&...args_v) -> std::size_t {
@@ -43,7 +53,7 @@ namespace core
 				std::forward<T>(args_v)...);
 			return index_v;
 		}
-
+		
 		auto MapIoRange(IODevice& device_v, std::uint16_t base_v, std::uint16_t size_v, std::uint32_t flags_v = kAccessFetch | kAccessWrite) -> void;
 		auto UnmapIoRange(std::uint16_t base_v, std::uint16_t size_v, std::uint32_t flags_v = kAccessFetch | kAccessWrite) -> void;
 		auto InitializeProcessor(std::uint32_t index) -> void;
@@ -57,7 +67,7 @@ namespace core
 		}
 
 		template <typename T>
-		auto GetRegister(std::uint32_t index_v, WHV_REGISTER_NAME name_v) -> T {
+		auto GetRegister(std::uint32_t index_v, WHV_REGISTER_NAME name_v) const -> T {
 			WHV_REGISTER_VALUE value_s { 0 };
 			WIN32_ERROR_ASSERT(::WHvGetVirtualProcessorRegisters(m_Partition, index_v, &name_v, 1u, &value_s));
 			T value_v { 0 };
@@ -110,6 +120,7 @@ namespace core
 		std::vector<std::uint32_t> m_Processors;
 		std::vector<IODevice*> m_IoWrite{ 0x10000u, nullptr };
 		std::vector<IODevice*> m_IoFetch{ 0x10000u, nullptr };
+		std::vector<VMCallDevice*> m_VmCall{ 0x10000u, nullptr };
 		std::stop_source m_ProcessorBreak;
 	};
 }
