@@ -4,7 +4,7 @@
 #include <filesystem>
 
 #include <core/machine.hpp>
-#include <devices/porte9hack.hpp>
+#include <devices/porte9handler.hpp>
 
 struct HvDosMachine
 {
@@ -12,5 +12,5 @@ struct HvDosMachine
 	auto Run() -> int;
 
 	std::optional<core::Machine> machine_v;
-	std::optional<core::PortE9HackDevice> pe9h_device_v;
+	std::optional<core::PortE9Handler> porte9_v;
 };

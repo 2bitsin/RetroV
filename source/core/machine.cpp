@@ -4,13 +4,15 @@
 #include <stop_token>
 #include <stdexcept>
 #include <algorithm>
+#include <vector>
+#include <ranges>
 #include <thread>
 #include <future>
 #include <atomic>
 #include <mutex>
 #include <array>
 
-#include "machine.hpp"
+#include <core/machine.hpp>
 
 using core::Machine;
 
@@ -85,7 +87,6 @@ struct InitialProcessorState
 
 	static constexpr const std::size_t Count = std::min(std::size(Names), std::size(Values));
 };
-
 
 Machine::Machine(Config const& config_v)
 {
@@ -190,9 +191,8 @@ auto Machine::HandleIoOperation(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& 
 auto Machine::HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool 
 {	
 	// Continue after VMCall when we return from the handler
-	SetRegister(index_v, WHvX64RegisterRip, WHV_REGISTER_VALUE{
-		.Reg64 = exit_v.VpContext.Rip + exit_v.VpContext.InstructionLength
-	});
+	SetRegister(index_v, WHvX64RegisterRip, std::uint64_t(exit_v.VpContext.Rip + 
+		exit_v.VpContext.InstructionLength));
 
 	// Now we want to read 3 bytes directly preceding the VMCall instruction
 	std::uint64_t push_address_v { exit_v.VpContext.Rip + exit_v.VpContext.Cs.Base - 3u };
@@ -203,15 +203,27 @@ auto Machine::HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& ex
 	
 	// Read the instruction
 #pragma pack(push, 1)
-	struct push_opcode {	std::uint8_t icode; std::uint16_t value; };
+	struct push16_type {	std::uint8_t icode; std::uint16_t value; };
 #pragma pack(pop)
-
-	auto const push_instruction_v = ReadPhysical<push_opcode>(index_v, push_address_v);
-	if (push_instruction_v.icode != 0x68u) {
-		// Handle generic VMCall
-		
+	
+	auto registers_v = GetRegisters(index_v);
+	if (auto const push_v = ReadPhysical<push16_type>(
+		index_v, push_address_v); 
+		push_v.icode == 0x68u) 
+	{
+		if(push_v.value >= m_VmmCall.size())
+			return false;
+		auto& handlers_v = m_VmmCall[push_v.value];
+		if (handlers_v.empty())
+			return false;
+		for (auto& handler_v : handlers_v) {
+			if (!handler_v->VMCall (*this, index_v, registers_v)) 
+				break; }
+		SetRegisters(index_v, registers_v);		
+		return true;
 	} else {
-		// Handle specific VMCall
+		// Handle generic VMCall
+		__debugbreak();
 	}
 
 	return false;
@@ -283,7 +295,7 @@ auto Machine::GetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void* data_v, std:
 	WIN32_ERROR_ASSERT(::WHvGetPartitionProperty(m_Partition, code_v, data_v, size_v, &size_v));
 }
 
-auto core::Machine::MapIoRange(IODevice& device_v, std::uint16_t base_v, std::uint16_t size_v, std::uint32_t flags_v) -> void {
+auto core::Machine::MapIoRange(IOHandler& device_v, std::uint16_t base_v, std::uint16_t size_v, std::uint32_t flags_v) -> void {
 	auto const end_v = base_v + size_v;
 	for (auto port_v = base_v; port_v < end_v; port_v += 1u) {
 		if (flags_v & kAccessWrite) {
@@ -307,6 +319,152 @@ auto core::Machine::UnmapIoRange(std::uint16_t base_v, std::uint16_t size_v, std
 		if (flags_v & kAccessFetch) 
 			m_IoFetch[port_v] = nullptr;
 	}
+}
+
+auto core::Machine::MapVcRange(VCHandler& handler_v, std::uint16_t base_v, std::uint16_t size_v) -> void
+{
+	auto const end_v = base_v + size_v;
+	if (end_v > 0x10000u) {
+		throw std::invalid_argument("Invalid range");
+	}
+	if (end_v >= m_VmmCall.size()) {
+		m_VmmCall.resize(end_v);
+	}
+
+	for (auto index_v = base_v; index_v < end_v; index_v += 1u) 
+	{
+		auto& slot_v = m_VmmCall[index_v];
+		auto offset_v = std::ranges::find(slot_v, &handler_v);
+		if (offset_v != slot_v.end()) {
+			throw std::invalid_argument("Handler already mapped");
+		}
+		slot_v.emplace(slot_v.begin(), &handler_v);
+	}
+}
+
+auto core::Machine::UnmapVcRange(VCHandler& handler_v, std::uint16_t base_v, std::uint16_t size_v) -> void
+{
+	auto const end_v = base_v + size_v;
+	if (end_v > 0x10000u) {
+		throw std::invalid_argument("Invalid range");
+	}
+	auto const last_slot_v = std::min<std::size_t>(end_v, m_VmmCall.size());
+	for (auto index_v = base_v; index_v < last_slot_v; index_v += 1u) 
+	{
+		auto& slot_v = m_VmmCall[index_v];
+		auto offset_v = std::ranges::find(slot_v, &handler_v);
+		if (offset_v == slot_v.end())
+			continue;		
+		slot_v.erase(offset_v);
+	}
+}
+
+auto core::Machine::UnmapVcRange(std::uint16_t base_v, std::uint16_t size_v) -> void
+{
+	auto const end_v = base_v + size_v;
+	if (end_v > 0x10000u) {
+		throw std::invalid_argument("Invalid range");
+	}
+	auto const last_slot_v = std::min<std::size_t>(end_v, m_VmmCall.size());
+	for (auto index_v = base_v; index_v < last_slot_v; index_v += 1u) 
+	{
+		auto& slot_v = m_VmmCall[index_v];
+		slot_v.clear();
+	}
+}
+
+auto core::Machine::GetRegisters(std::uint32_t index_v) const -> RegisterFile
+{
+	std::vector<WHV_REGISTER_VALUE> values_v;
+	values_v.resize(std::size(RegisterFile::Layout));
+	WIN32_ERROR_ASSERT(::WHvGetVirtualProcessorRegisters(m_Partition, index_v,
+		RegisterFile::Layout, std::size(RegisterFile::Layout), values_v.data()));
+	RegisterFile registers_v 
+	{ 
+		.rax			= values_v[0].Reg64,
+		.rbx			= values_v[1].Reg64,
+		.rcx			= values_v[2].Reg64,
+		.rdx			= values_v[3].Reg64,	
+		.rsi			= values_v[4].Reg64,
+		.rdi			= values_v[5].Reg64,
+		.rbp			= values_v[6].Reg64,
+		.rsp			= values_v[7].Reg64,
+		.r8				= values_v[8].Reg64,
+		.r9				= values_v[9].Reg64,
+		.r10			= values_v[10].Reg64,
+		.r11			= values_v[11].Reg64,
+		.r12			= values_v[12].Reg64,
+		.r13			= values_v[13].Reg64,
+		.r14			= values_v[14].Reg64,
+		.r15			= values_v[15].Reg64,
+		.rip			= values_v[16].Reg64,
+		.rflags		= values_v[17].Reg64,
+
+		.cs_base	= values_v[18].Segment.Base,
+		.cs_size	= values_v[18].Segment.Limit,
+		.cs				= values_v[18].Segment.Selector,
+		.cs_attr	= values_v[18].Segment.Attributes,
+
+		.ds_base	= values_v[19].Segment.Base,
+		.ds_size	= values_v[19].Segment.Limit,
+		.ds				= values_v[19].Segment.Selector,
+		.ds_attr	= values_v[19].Segment.Attributes,
+
+		.es_base	= values_v[20].Segment.Base,
+		.es_size	= values_v[20].Segment.Limit,
+		.es				= values_v[20].Segment.Selector,
+		.es_attr	= values_v[20].Segment.Attributes,
+
+		.fs_base	= values_v[21].Segment.Base,
+		.fs_size	= values_v[21].Segment.Limit,
+		.fs				= values_v[21].Segment.Selector,
+		.fs_attr	= values_v[21].Segment.Attributes,
+
+		.gs_base	= values_v[22].Segment.Base,
+		.gs_size	= values_v[22].Segment.Limit,
+		.gs				= values_v[22].Segment.Selector,
+		.gs_attr	= values_v[22].Segment.Attributes,
+
+		.ss_base	= values_v[23].Segment.Base,
+		.ss_size	= values_v[23].Segment.Limit,
+		.ss				= values_v[23].Segment.Selector,
+		.ss_attr	= values_v[23].Segment.Attributes	
+	};
+	
+	return registers_v;
+}
+
+auto core::Machine::SetRegisters(std::uint32_t index_v, RegisterFile const& registers_v) -> void
+{
+	std::vector<WHV_REGISTER_VALUE> values_v;
+	values_v.resize(std::size(RegisterFile::Layout));
+
+	values_v[ 0].Reg64 = registers_v.rax;
+	values_v[ 1].Reg64 = registers_v.rbx;
+	values_v[ 2].Reg64 = registers_v.rcx;
+	values_v[ 3].Reg64 = registers_v.rdx;
+	values_v[ 4].Reg64 = registers_v.rsi;
+	values_v[ 5].Reg64 = registers_v.rdi;
+	values_v[ 6].Reg64 = registers_v.rbp;
+	values_v[ 7].Reg64 = registers_v.rsp;
+	values_v[ 8].Reg64 = registers_v.r8;
+	values_v[ 9].Reg64 = registers_v.r9;
+	values_v[10].Reg64 = registers_v.r10;
+	values_v[11].Reg64 = registers_v.r11;
+	values_v[12].Reg64 = registers_v.r12;
+	values_v[13].Reg64 = registers_v.r13;
+	values_v[14].Reg64 = registers_v.r14;
+	values_v[15].Reg64 = registers_v.r15;
+	values_v[16].Reg64 = registers_v.rip;
+	values_v[17].Reg64 = registers_v.rflags;
+	values_v[18].Segment = { registers_v.cs_base, registers_v.cs_size, registers_v.cs, registers_v.cs_attr };
+	values_v[19].Segment = { registers_v.ds_base, registers_v.ds_size, registers_v.ds, registers_v.ds_attr };
+	values_v[20].Segment = { registers_v.es_base, registers_v.es_size, registers_v.es, registers_v.es_attr };
+	values_v[21].Segment = { registers_v.fs_base, registers_v.fs_size, registers_v.fs, registers_v.fs_attr };
+	values_v[22].Segment = { registers_v.gs_base, registers_v.gs_size, registers_v.gs, registers_v.gs_attr };
+	values_v[23].Segment = { registers_v.ss_base, registers_v.ss_size, registers_v.ss, registers_v.ss_attr };
+	
+	WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(m_Partition, index_v, RegisterFile::Layout, std::size(RegisterFile::Layout), values_v.data()));
 }
 
 auto core::Machine::IsVendorIntel() -> bool
