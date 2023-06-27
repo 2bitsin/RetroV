@@ -23,6 +23,7 @@ HvDosMachine::HvDosMachine(int argc, char** argv)
 
 	machine_v.emplace(config_v);
 	porte9_v.emplace(*machine_v);
+	disk0_v.emplace(*machine_v, 0x00u);
 }
 
 auto HvDosMachine::Run() -> int try {

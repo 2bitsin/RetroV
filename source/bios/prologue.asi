@@ -14,5 +14,5 @@ Prologue:
     mov         si,     Strings.Hello
     call        Debug.Print    
     call        IVT.Initialize
-    int         0x10
+    int         0x19 ; BOOT
     hlt

@@ -14,7 +14,7 @@ namespace core
 		virtual ~VCHandler() = default;
 		virtual auto VMCall(Machine& machine_v, std::uint32_t cpuindex_v, RegisterFile& registers_v, std::uint16_t callno_v) -> bool = 0;
 		virtual auto VMCall(Machine& machine_v, std::uint32_t cpuindex_v, RegisterFile& registers_v) -> bool {
-			VMCall(machine_v, cpuindex_v, registers_v, kLastCall);
+			return VMCall(machine_v, cpuindex_v, registers_v, kLastCall);
 		}
 	};
 }

@@ -47,23 +47,32 @@ namespace core
 		 *  Memory configuration methods
 		 *********************************/
 
-		auto MapMemory (std::size_t index_v, std::uint64_t base_v, std::uint64_t size_v=0u, std::uint32_t flags_v=kMemoryFlagsRAM, std::size_t offset_v=0u) -> void;	
-		auto UnmapMemory (std::uint64_t base_v, std::uint64_t size_v=0u) -> void;
-		auto TranslateVirtualAddress (std::uint32_t index_v, std::uint64_t& inout_address_v, WHV_TRANSLATE_GVA_FLAGS flags_v = WHvTranslateGvaFlagNone) const -> WHV_TRANSLATE_GVA_RESULT_CODE;
-		auto ReadPhysical(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte> buffer_v, WHV_CACHE_TYPE cache_control_v=WHvCacheTypeUncached) const -> void;
-		template <typename T> requires (std::is_trivially_copyable_v<T>)
-			auto ReadPhysical(std::uint32_t index_v, std::uint64_t address_v, 
-				WHV_CACHE_TYPE cache_control_v = WHvCacheTypeUncached) const -> T {
-			T buffer_v { };
-			ReadPhysical(index_v, address_v, utils::as_mutable_bytes(buffer_v), cache_control_v);
-			return buffer_v;
-		}	
 		template <typename... T>
 		auto InitializeMemory(T&&...args_v) -> std::size_t {
 			auto const index_v = m_Memories.size();
 			m_Memories.emplace_back(
 				std::forward<T>(args_v)...);
 			return index_v;
+		}
+		auto MapMemory (std::size_t index_v, std::uint64_t base_v, std::uint64_t size_v=0u, std::uint32_t flags_v=kMemoryFlagsRAM, std::size_t offset_v=0u) -> void;
+		auto UnmapMemory (std::uint64_t base_v, std::uint64_t size_v=0u) -> void;
+		auto TranslateVirtualAddress (std::uint32_t index_v, std::uint64_t& inout_address_v, WHV_TRANSLATE_GVA_FLAGS flags_v = WHvTranslateGvaFlagNone) const -> WHV_TRANSLATE_GVA_RESULT_CODE;
+
+		auto ReadPhysical(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte> buffer_v, WHV_CACHE_TYPE cache_control_v=WHvCacheTypeUncached) const -> void;
+		auto WritePhysical(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte const> buffer_v, WHV_CACHE_TYPE cache_control_v=WHvCacheTypeWriteThrough) const -> void;
+
+		template <typename T> requires (std::is_trivially_copyable_v<T>)
+		auto ReadPhysical(std::uint32_t index_v, std::uint64_t address_v, 
+			WHV_CACHE_TYPE cache_control_v = WHvCacheTypeUncached) const -> T {
+			T buffer_v { };
+			ReadPhysical(index_v, address_v, utils::as_mutable_bytes(buffer_v), cache_control_v);
+			return buffer_v;
+		}	
+
+		template <typename T> requires (std::is_trivially_copyable_v<T>)
+		auto WritePhysical(std::uint32_t index_v, std::uint64_t address_v, T const& buffer_v,
+			WHV_CACHE_TYPE cache_control_v = WHvCacheTypeUncached) const -> void {
+			return WritePhysical(index_v, address_v, utils::as_bytes(buffer_v), cache_control_v);
 		}
 		
 		/****************************
@@ -132,6 +141,11 @@ namespace core
 		auto HandleIoOperation(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
 		auto HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
 		auto HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
+
+		/***************************
+		 *  Debuging support methods
+		 ***************************/
+    auto Disassemble(std::ostream& output_v, std::uint32_t index_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void;
 
 		/**********************************
 		 *  Partition configuration methods

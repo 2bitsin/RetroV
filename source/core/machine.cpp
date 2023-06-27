@@ -1,9 +1,12 @@
 #include <win32/error.hpp>
 #include <utils/bitmanip.hpp>
+#include <utils/capstone.hpp>
 
 #include <stop_token>
 #include <stdexcept>
 #include <algorithm>
+#include <iostream>
+#include <format>
 #include <vector>
 #include <ranges>
 #include <thread>
@@ -146,8 +149,17 @@ auto Machine::TranslateVirtualAddress(std::uint32_t index_v, std::uint64_t& inou
 	return result_v.ResultCode;
 }
 
-auto Machine::ReadPhysical(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte> buffer_v, WHV_CACHE_TYPE cache_control_v) const -> void {	
-	WIN32_ERROR_ASSERT(WHvReadGpaRange(m_Partition, index_v, address_v, WHV_ACCESS_GPA_CONTROLS{ 
+auto Machine::ReadPhysical(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte> buffer_v, 
+	WHV_CACHE_TYPE cache_control_v) const -> void 
+{	
+	WIN32_ERROR_ASSERT(::WHvReadGpaRange(m_Partition, index_v, address_v, WHV_ACCESS_GPA_CONTROLS{ 
+		.CacheType = cache_control_v }, buffer_v.data(), buffer_v.size()));
+}
+
+auto core::Machine::WritePhysical(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte const> buffer_v, 
+	WHV_CACHE_TYPE cache_control_v) const -> void 
+{
+	WIN32_ERROR_ASSERT(::WHvWriteGpaRange(m_Partition, index_v, address_v, WHV_ACCESS_GPA_CONTROLS{
 		.CacheType = cache_control_v }, buffer_v.data(), buffer_v.size()));
 }
 
@@ -211,18 +223,27 @@ auto Machine::HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& ex
 		index_v, push_address_v); 
 		push_v.icode == 0x68u) 
 	{
-		if(push_v.value >= m_VmmCall.size())
+		if (push_v.value >= m_VmmCall.size() || m_VmmCall[push_v.value].empty()) {
+			std::cerr << std::format("WARNING! No handler for VMCall({:#x})\n", push_v.value);
+			__debugbreak();
 			return false;
-		auto& handlers_v = m_VmmCall[push_v.value];
-		if (handlers_v.empty())
+		}
+		bool was_handled_v = false;
+		for (auto& handler_v : m_VmmCall[push_v.value]) {
+			if (handler_v->VMCall (*this, index_v, registers_v, push_v.value)) {
+				was_handled_v = true;
+				break; 
+			}
+		}
+		if (!was_handled_v) {
+			std::cerr << std::format("WARNING! None of the VMCall({:#x}) handlers handled the call!\n", push_v.value);
+			__debugbreak();
 			return false;
-		for (auto& handler_v : handlers_v) {
-			if (!handler_v->VMCall (*this, index_v, registers_v)) 
-				break; }
+		}
 		SetRegisters(index_v, registers_v);		
 		return true;
 	} else {
-		// Handle generic VMCall
+		std::cerr << std::format("WARNING! Weren't able to determine the VMCall number!\n", push_v.value);
 		__debugbreak();
 	}
 
@@ -239,6 +260,57 @@ auto Machine::HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTE
 	return false;
 }
 
+auto Machine::Disassemble(std::ostream& output_v, std::uint32_t index_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void {
+	capstone::instance capstone_v { cs_arch::CS_ARCH_X86, cs_mode::CS_MODE_16, {
+		{ CS_OPT_SYNTAX, CS_OPT_SYNTAX_INTEL }, 
+		{ CS_OPT_DETAIL, CS_OPT_ON } 
+	}};
+
+	
+	std::uint8_t bytes_v[64];
+	std::size_t remaining_bytes_v = std::size(bytes_v);
+
+	while (count_v > 0u)
+	{
+		std::size_t next_byte_v { 0 };
+		for (auto i = 0u; i < remaining_bytes_v; ++i) 
+		{
+			std::uint64_t address_v { virtual_address_v + i };
+			if (WHvTranslateGvaResultSuccess!=
+				TranslateVirtualAddress(index_v, address_v))
+			{
+				throw std::runtime_error("Unable to disassemble: TranslateVirtualAddress failed.");
+			}
+			bytes_v[next_byte_v] = ReadPhysical<std::uint8_t>(index_v, address_v);
+			next_byte_v+=1u;
+		}
+
+		auto disassembly_v = capstone_v.disasm(bytes_v, virtual_address_v, count_v);
+
+		for (auto&& instruction_v : disassembly_v)
+		{
+			std::string bytes_string_v;
+			for (auto&& ibyte_v : bytes_v) {
+				bytes_string_v += std::format("{:02x} ", ibyte_v);
+			}
+
+			std::cerr << std::format("{:08x} ({:08x}) : {:>20} : {:>9} {:>9}\n", 
+				virtual_address_v, instruction_v.address(), bytes_string_v,
+				instruction_v.mnemonic_string(), 
+				instruction_v.operands_string());
+				
+			virtual_address_v += instruction_v.bytes().size();
+			remaining_bytes_v -= instruction_v.bytes().size();
+			count_v -= 1u;
+		}
+
+		if (remaining_bytes_v > 0u) {
+			std::memcpy(&bytes_v[0], &bytes_v[std::size(bytes_v) - remaining_bytes_v], remaining_bytes_v);
+			remaining_bytes_v = std::size(bytes_v);
+		}
+	}
+}
+
 auto Machine::HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool {
 	switch (exit_v.ExitReason) {
 	case WHvRunVpExitReasonX64IoPortAccess: 
@@ -252,6 +324,7 @@ auto Machine::HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v)
 		__debugbreak();
 		return false;
 	default:
+		Disassemble(std::cerr, index_v, exit_v.VpContext.Rip+exit_v.VpContext.Cs.Base, 20u);
 		__debugbreak();
 		return false;
 	}
@@ -378,8 +451,8 @@ auto core::Machine::GetRegisters(std::uint32_t index_v) const -> RegisterFile
 	std::vector<WHV_REGISTER_VALUE> values_v;
 	values_v.resize(std::size(RegisterFile::Layout));
 	WIN32_ERROR_ASSERT(::WHvGetVirtualProcessorRegisters(m_Partition, index_v,
-		RegisterFile::Layout, std::size(RegisterFile::Layout), values_v.data()));
-	RegisterFile registers_v 
+		RegisterFile::Layout, std::size(RegisterFile::Layout), values_v.data()));	
+	return RegisterFile 
 	{ 
 		.rax			= values_v[0].Reg64,
 		.rbx			= values_v[1].Reg64,
@@ -430,15 +503,12 @@ auto core::Machine::GetRegisters(std::uint32_t index_v) const -> RegisterFile
 		.ss				= values_v[23].Segment.Selector,
 		.ss_attr	= values_v[23].Segment.Attributes	
 	};
-	
-	return registers_v;
 }
 
 auto core::Machine::SetRegisters(std::uint32_t index_v, RegisterFile const& registers_v) -> void
 {
 	std::vector<WHV_REGISTER_VALUE> values_v;
 	values_v.resize(std::size(RegisterFile::Layout));
-
 	values_v[ 0].Reg64 = registers_v.rax;
 	values_v[ 1].Reg64 = registers_v.rbx;
 	values_v[ 2].Reg64 = registers_v.rcx;
@@ -462,8 +532,7 @@ auto core::Machine::SetRegisters(std::uint32_t index_v, RegisterFile const& regi
 	values_v[20].Segment = { registers_v.es_base, registers_v.es_size, registers_v.es, registers_v.es_attr };
 	values_v[21].Segment = { registers_v.fs_base, registers_v.fs_size, registers_v.fs, registers_v.fs_attr };
 	values_v[22].Segment = { registers_v.gs_base, registers_v.gs_size, registers_v.gs, registers_v.gs_attr };
-	values_v[23].Segment = { registers_v.ss_base, registers_v.ss_size, registers_v.ss, registers_v.ss_attr };
-	
+	values_v[23].Segment = { registers_v.ss_base, registers_v.ss_size, registers_v.ss, registers_v.ss_attr };	
 	WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(m_Partition, index_v, RegisterFile::Layout, std::size(RegisterFile::Layout), values_v.data()));
 }
 

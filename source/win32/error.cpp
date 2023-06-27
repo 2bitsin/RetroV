@@ -19,7 +19,7 @@ auto error::to_string(std::uint32_t result) -> std::string
 	return string_v;
 }
 
-auto error::assert(std::uint32_t errvalue_v, std::source_location location_v, std::string_view code_v) -> void
+auto error::__assert__(std::uint32_t errvalue_v, std::source_location location_v, std::string_view code_v) -> void
 {
 	if (errvalue_v != ERROR_SUCCESS) {		
 		throw error(errvalue_v, std::move(location_v), code_v);
