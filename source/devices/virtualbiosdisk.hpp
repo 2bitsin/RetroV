@@ -32,7 +32,7 @@ namespace core
 			std::uint64_t SectorLBA;
 		};
 
-		VirtualBiosDisk(Machine& machine_v, std::uint8_t drive_id_v);
+		VirtualBiosDisk(Hypervisor& hypervisor_v, std::uint8_t drive_id_v);
 		~VirtualBiosDisk() = default;
 
 		VirtualBiosDisk(VirtualBiosDisk&&) = delete;
@@ -46,11 +46,11 @@ namespace core
 		auto Write(std::span<std::byte const>& buffer_v, Index const& index_v, bool uselba_v = true) -> std::size_t;
 		auto Unmount() -> void;
 
-		auto VMCall(Machine& machine_v, std::uint32_t cpuindex_v, RegisterFile& registers_v, 
+		auto VMCall(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v, RegisterFile& registers_v, 
 			std::uint16_t callno_v = VCHandler::kLastCall) -> bool;
 
-		auto Int13h(Machine& machine_v, std::uint32_t cpuindex_v, RegisterFile& registers_v) -> bool;
-		auto Int19h(Machine& machine_v, std::uint32_t cpuindex_v, RegisterFile& registers_v) -> bool;
+		auto Int13h(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v, RegisterFile& registers_v) -> bool;
+		auto Int19h(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v, RegisterFile& registers_v) -> bool;
 
 	private:
 		VCHandlerBridge<VirtualBiosDisk&> m_Bridge13h;

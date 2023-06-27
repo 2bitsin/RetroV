@@ -98,9 +98,9 @@ static inline auto CalculateOffset(VirtualBiosDisk::Geometry const& geom_v,
 	return lba_v * VirtualBiosDisk::kSectorSize;
 }
 
-VirtualBiosDisk::VirtualBiosDisk(Machine& machine_v, std::uint8_t drive_id_v)
-	: m_Bridge13h(machine_v, 0x13u, 0x1u, *this)
-	, m_Bridge19h(machine_v, 0x19u, 0x1u, *this)
+VirtualBiosDisk::VirtualBiosDisk(Hypervisor& hypervisor_v, std::uint8_t drive_id_v)
+	: m_Bridge13h(hypervisor_v, 0x13u, 0x1u, *this)
+	, m_Bridge19h(hypervisor_v, 0x19u, 0x1u, *this)
 	, m_DriveID(drive_id_v)
 {}
 
@@ -161,17 +161,17 @@ auto VirtualBiosDisk::Unmount() -> void
 	m_UseLBA = true;
 }
 
-auto core::VirtualBiosDisk::VMCall(Machine& machine_v, std::uint32_t cpuindex_v, RegisterFile& R, std::uint16_t callno_v) -> bool
+auto core::VirtualBiosDisk::VMCall(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v, RegisterFile& R, std::uint16_t callno_v) -> bool
 {
 	switch (callno_v) {
-	case 0x13u: return Int13h(machine_v, cpuindex_v, R);
-	case 0x19u: return Int19h(machine_v, cpuindex_v, R);
+	case 0x13u: return Int13h(hypervisor_v, cpuindex_v, R);
+	case 0x19u: return Int19h(hypervisor_v, cpuindex_v, R);
 	default:
 		return false;
 	}
 }
 
-auto VirtualBiosDisk::Int13h(Machine& machine_v, std::uint32_t cpuindex_v, RegisterFile& R) -> bool 
+auto VirtualBiosDisk::Int13h(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v, RegisterFile& R) -> bool 
 {
 	switch (R.ah) {
 	case 0x00u:
@@ -190,28 +190,25 @@ auto VirtualBiosDisk::Int13h(Machine& machine_v, std::uint32_t cpuindex_v, Regis
 	return false;
 }
 
-auto VirtualBiosDisk::Int19h(Machine& machine_v, std::uint32_t cpuindex_v, RegisterFile& R) -> bool 
+auto VirtualBiosDisk::Int19h(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v, RegisterFile& R) -> bool 
 {
 	if (!m_File.is_open()) {
 		throw std::runtime_error("Unable to boot, no boot disk mounted.");
 	}
 
-	std::uint64_t address_v { 0x7C00u };
 	std::vector<std::byte> buffer_v (kSectorSize);
 	std::span<std::byte> buffer_s{ buffer_v };
 
 	if (Fetch(buffer_s, Index{ .SectorLBA = 0u }) < kSectorSize) {
 		throw std::runtime_error("Unable to boot, I/O error.");
 	}
-	if (WHvTranslateGvaResultSuccess!=
-		machine_v.TranslateVirtualAddress(cpuindex_v, address_v)) {
-		throw std::runtime_error("Unable to locate address 0x7C00u");
-	}
-	machine_v.WritePhysical(cpuindex_v, address_v, buffer_s);	
-	R.cs = 0x0000u;
-	R.cs_base = 0x0000u;
+	auto& memory_v = hypervisor_v.GetMemoryManager();
+	memory_v.Write(cpuindex_v, 0x7C00u, buffer_s, memory_v.kVirtualAddress);
+
 	R.cs_size = 0xFFFFu;
-	R.rip = 0x7c00u;
+	R.cs_base = 0x0000u;
+	R.rip	= 0x7c00u;
+	R.cs = 0x0000u;
 	R.dh = m_DriveID;
 	return true;
 }

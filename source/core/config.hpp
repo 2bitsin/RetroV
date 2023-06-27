@@ -10,7 +10,7 @@
 
 namespace core
 {
-	struct Machine;
+	struct Hypervisor;
 	using namespace size_literals;
 
 	struct Config 
@@ -21,9 +21,9 @@ namespace core
 		auto AddProcessor(std::uint32_t processor_v) -> void;
 
 	protected:
-		friend struct Machine;
-		void ApplyBeforeSetup(Machine& machine_v) const;
-		void ApplyAfterSetup(Machine& machine_v) const;
+		friend struct Hypervisor;
+		void ApplyBeforeSetup(Hypervisor& hypervisor_v) const;
+		void ApplyAfterSetup(Hypervisor& hypervisor_v) const;
 	private:
 		std::vector<std::uint32_t> m_Processors;
 		std::size_t m_MemorySize { 640_KiB };

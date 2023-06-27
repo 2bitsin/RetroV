@@ -5,19 +5,22 @@
 #include <cstddef>
 #include <vector>
 #include <array>
+#include <mutex>
 
 #include <utils/as_bytes.hpp>
 #include <win32/error.hpp>
 #include <win32/winhvpx.hpp>
-#include <core/memory.hpp>
+#include <core/memory/block.hpp>
+#include <core/memory/pool.hpp>
+#include <core/memory/manager.hpp>
+#include <core/io/manager.hpp>
 #include <core/config.hpp>
-#include <core/iohandler.hpp>
 #include <core/vchandler.hpp>
 #include <core/registerfile.hpp>
 
 namespace core
 { 
-	struct Machine
+	struct Hypervisor
 	{
 		/*********************************
 		 * Constants and type definitions
@@ -25,62 +28,25 @@ namespace core
 
 		static inline constexpr auto kAccessWrite = 1u;
 		static inline constexpr auto kAccessFetch = 2u;
-
-		static inline constexpr auto kMemoryFlagsAll = WHvMapGpaRangeFlagRead|WHvMapGpaRangeFlagWrite|WHvMapGpaRangeFlagExecute;
-		static inline constexpr auto kMemoryFlagsROM = WHvMapGpaRangeFlagRead|WHvMapGpaRangeFlagExecute;
-		static inline constexpr auto kMemoryFlagsRAM = WHvMapGpaRangeFlagRead|WHvMapGpaRangeFlagWrite|WHvMapGpaRangeFlagExecute;
-		static inline constexpr auto kMemoryFlagsDevice = WHvMapGpaRangeFlagRead|WHvMapGpaRangeFlagWrite|WHvMapGpaRangeFlagTrackDirtyPages;
 		
 		/*********************************
 		 *  Constructors and destructors
 		 *********************************/
 
-		Machine(Machine const&) = delete;
-		auto operator = (Machine const&)->Machine & = delete;
-		Machine(Machine&&) = delete;
-		auto operator = (Machine&&)->Machine & = delete;
+		Hypervisor(Hypervisor const&) = delete;
+		auto operator = (Hypervisor const&)->Hypervisor & = delete;
+		Hypervisor(Hypervisor&&) = delete;
+		auto operator = (Hypervisor&&)->Hypervisor & = delete;
 
-		Machine (Config const&);
-	  ~Machine ();
+		Hypervisor (Config const&);
+	  ~Hypervisor ();
+
+		auto GetMemoryPool() -> memory::Pool&;
+		auto GetParitionHandle() -> WHV_PARTITION_HANDLE;
+		auto GetCpuIndexes() -> std::span<std::uint32_t const>;
+		auto GetMemoryManager() -> memory::Manager&;
+		auto GetIoManager() -> io::Manager&;
 	
-		/*********************************
-		 *  Memory configuration methods
-		 *********************************/
-
-		template <typename... T>
-		auto InitializeMemory(T&&...args_v) -> std::size_t {
-			auto const index_v = m_Memories.size();
-			m_Memories.emplace_back(
-				std::forward<T>(args_v)...);
-			return index_v;
-		}
-		auto MapMemory (std::size_t index_v, std::uint64_t base_v, std::uint64_t size_v=0u, std::uint32_t flags_v=kMemoryFlagsRAM, std::size_t offset_v=0u) -> void;
-		auto UnmapMemory (std::uint64_t base_v, std::uint64_t size_v=0u) -> void;
-		auto TranslateVirtualAddress (std::uint32_t index_v, std::uint64_t& inout_address_v, WHV_TRANSLATE_GVA_FLAGS flags_v = WHvTranslateGvaFlagNone) const -> WHV_TRANSLATE_GVA_RESULT_CODE;
-
-		auto ReadPhysical(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte> buffer_v, WHV_CACHE_TYPE cache_control_v=WHvCacheTypeUncached) const -> void;
-		auto WritePhysical(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte const> buffer_v, WHV_CACHE_TYPE cache_control_v=WHvCacheTypeWriteThrough) const -> void;
-
-		template <typename T> requires (std::is_trivially_copyable_v<T>)
-		auto ReadPhysical(std::uint32_t index_v, std::uint64_t address_v, 
-			WHV_CACHE_TYPE cache_control_v = WHvCacheTypeUncached) const -> T {
-			T buffer_v { };
-			ReadPhysical(index_v, address_v, utils::as_mutable_bytes(buffer_v), cache_control_v);
-			return buffer_v;
-		}	
-
-		template <typename T> requires (std::is_trivially_copyable_v<T>)
-		auto WritePhysical(std::uint32_t index_v, std::uint64_t address_v, T const& buffer_v,
-			WHV_CACHE_TYPE cache_control_v = WHvCacheTypeUncached) const -> void {
-			return WritePhysical(index_v, address_v, utils::as_bytes(buffer_v), cache_control_v);
-		}
-		
-		/****************************
-		 *  I/O configuration methods
-		 ****************************/
-		auto MapIoRange(IOHandler& handler_v, std::uint16_t base_v, std::uint16_t size_v, std::uint32_t flags_v = kAccessFetch | kAccessWrite) -> void;
-		auto UnmapIoRange(std::uint16_t base_v, std::uint16_t size_v, std::uint32_t flags_v = kAccessFetch | kAccessWrite) -> void;
-
 		/*******************************
 		 *  VMCALL configuration methods
 		 *******************************/
@@ -138,13 +104,13 @@ namespace core
 		 *  Exit handling methods
 		 **********************************/
 		auto HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
-		auto HandleIoOperation(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
 		auto HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
 		auto HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
 
 		/***************************
 		 *  Debuging support methods
 		 ***************************/
+    auto PrintRegisters(std::ostream& output_v, core::RegisterFile const& R) -> void;
     auto Disassemble(std::ostream& output_v, std::uint32_t index_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void;
 
 		/**********************************
@@ -170,11 +136,11 @@ namespace core
 		 * Internal state
 		 **********************************/
 	private:
+		memory::Pool m_MemoryPool;
+		memory::Manager m_MemoryManager;
+		io::Manager m_IoManager;
 		WHV_PARTITION_HANDLE m_Partition{ nullptr };
-		std::vector<Memory> m_Memories; 
 		std::vector<std::uint32_t> m_Processors;
-		std::vector<IOHandler*> m_IoWrite{ 0x10000u, nullptr };
-		std::vector<IOHandler*> m_IoFetch{ 0x10000u, nullptr };
 		std::vector<std::vector<VCHandler*>> m_VmmCall{ };
 		std::stop_source m_ProcessorBreak;
 	};

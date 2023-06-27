@@ -211,12 +211,12 @@ namespace capstone
 
 	  auto value () const noexcept { return m_value ; }
 
-		auto disasm(std::span<const uint8_t> code, std::uint64_t base = 0u, std::size_t count = 0u)
+		auto disasm(std::span<const std::byte> code, std::uint64_t base = 0u, std::size_t count = 0u)
 			-> assembly
 		{
 			cs_insn* insn_ptr { nullptr };
 
-			const auto length = cs_disasm (value (), code.data (), code.size (), base, count, &insn_ptr);
+			const auto length = cs_disasm (value (), (std::uint8_t const*)code.data (), code.size (), base, count, &insn_ptr);
 			if (length < 1) 
 			{
 				throw capstone::error (value(), "Unable to disassemble code.");

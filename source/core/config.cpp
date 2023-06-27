@@ -1,5 +1,5 @@
 #include <core/config.hpp>
-#include <core/machine.hpp>
+#include <core/hypervisor.hpp>
 
 using core::Config;
 
@@ -27,49 +27,45 @@ auto core::Config::AddProcessor(std::uint32_t processor_v) -> void
 	m_Processors.push_back(processor_v);
 }
 
-void Config::ApplyBeforeSetup(Machine& machine_v) const
+void Config::ApplyBeforeSetup(Hypervisor& hypervisor_v) const
 {
 	auto const processor_count_v = std::max<std::uint32_t>(1u, m_Processors.size());
-	machine_v.SetProperty(WHvPartitionPropertyCodeProcessorCount, processor_count_v);
+	hypervisor_v.SetProperty(WHvPartitionPropertyCodeProcessorCount, processor_count_v);
 }
 
-void Config::ApplyAfterSetup(Machine& machine_v) const
+void Config::ApplyAfterSetup(Hypervisor& hypervisor_v) const
 {
 	// Concifure Memory
-	auto base_memory_size_v = std::max<std::size_t>(640u * 1024u, m_MemorySize);
-	auto index_v = machine_v.InitializeMemory(m_MemorySize);
-	machine_v.MapMemory(index_v, 0, base_memory_size_v, machine_v.kMemoryFlagsRAM, 0u);
-	if (m_MemorySize > base_memory_size_v) {
-		auto extended_memory_size_v = m_MemorySize - base_memory_size_v;
-		machine_v.MapMemory(index_v, 1024u * 1024u, extended_memory_size_v,
-			machine_v.kMemoryFlagsRAM, base_memory_size_v);
+	auto base_memory_size_v = std::min<std::size_t>(640u * 1024u, m_MemorySize);
+	auto& pool_v = hypervisor_v.GetMemoryPool();
+	auto index_v = pool_v.AllocateBlock(m_MemorySize);
+	auto& memory_v = hypervisor_v.GetMemoryManager();
+	memory_v.MapPhysical(index_v, 0, base_memory_size_v, memory_v.kMemoryFlagsRAM, 0u);
+	auto extended_memory_size_v = m_MemorySize - base_memory_size_v;
+	if (m_MemorySize > base_memory_size_v) {		
+		memory_v.MapPhysical(index_v, 1024u * 1024u, extended_memory_size_v,
+			memory_v.kMemoryFlagsRAM, base_memory_size_v);
 	}
 
 	// Configure BIOS
 	auto [boot_base_v, boot_path_v] = m_BootROM;
-	index_v = machine_v.InitializeMemory(boot_path_v);
-	machine_v.MapMemory(index_v, boot_base_v, 0u, machine_v.kMemoryFlagsROM, 0u);
+	memory_v.MapPhysical(pool_v.AllocateBlock(boot_path_v), boot_base_v, 0u, memory_v.kMemoryFlagsROM, 0u);
 
 	// Configure Option ROMs
 	for (auto const& [base_v, path_v] : m_OptionROMs) {
-		index_v = machine_v.InitializeMemory(path_v);
-		machine_v.MapMemory(index_v, base_v, 0u, machine_v.kMemoryFlagsROM, 0u);
+		memory_v.MapPhysical(pool_v.AllocateBlock(path_v), base_v, 0u, memory_v.kMemoryFlagsROM, 0u);
 	}
-
 	// Configure Graphics Video Memory
-	index_v = machine_v.InitializeMemory(64_KiB);
-	machine_v.MapMemory(index_v, 0xA0000u, 0u, machine_v.kMemoryFlagsRAM, 0u);
-
-	// Configure Text Video Memory
-	index_v = machine_v.InitializeMemory(32_KiB);
-	machine_v.MapMemory(index_v, 0xB8000u, 0u, machine_v.kMemoryFlagsRAM, 0u);
+	memory_v.MapPhysical(pool_v.AllocateBlock(64_KiB), 0xA0000u, 0u, memory_v.kMemoryFlagsRAM, 0u);
+	// Configure Text Video Memory	
+	memory_v.MapPhysical(pool_v.AllocateBlock(32_KiB), 0xB8000u, 0u, memory_v.kMemoryFlagsRAM, 0u);
 
 	// Configure Processors
 	if (!m_Processors.empty()) {
 		for (auto processor_v : m_Processors) {
-			machine_v.InitializeProcessor(processor_v);
+			hypervisor_v.InitializeProcessor(processor_v);
 		}
 	} else {
-		machine_v.InitializeProcessor(0u);
+		hypervisor_v.InitializeProcessor(0u);
 	}
 }

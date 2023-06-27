@@ -3,8 +3,8 @@
 #include <iostream>
 #include <filesystem>
 
-#include <core/machine.hpp>
-#include <devices/porte9handler.hpp>
+#include <core/hypervisor.hpp>
+#include <devices/porte9.hpp>
 #include <devices/virtualbiosdisk.hpp>
 
 struct HvDosMachine
@@ -21,7 +21,7 @@ struct HvDosMachine
 		return disk0_v->Unmount();
 	}
 private:
-	std::optional<core::Machine> machine_v;
-	std::optional<core::PortE9Handler> porte9_v;
+	std::optional<core::Hypervisor> hypervisor_v;
+	std::optional<core::PortE9> porte9_v;
 	std::optional<core::VirtualBiosDisk> disk0_v;
 };

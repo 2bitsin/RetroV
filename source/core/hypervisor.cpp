@@ -15,9 +15,9 @@
 #include <mutex>
 #include <array>
 
-#include <core/machine.hpp>
+#include <core/hypervisor.hpp>
 
-using core::Machine;
+using core::Hypervisor;
 
 struct InitialProcessorState
 {
@@ -91,11 +91,13 @@ struct InitialProcessorState
 	static constexpr const std::size_t Count = std::min(std::size(Names), std::size(Values));
 };
 
-Machine::Machine(Config const& config_v)
+Hypervisor::Hypervisor(Config const& config_v)
+	:	m_MemoryPool{ }
+	,	m_MemoryManager{ *this }
+	, m_IoManager{ *this }
+	,	m_Processors{ }
+	,	m_Partition{ nullptr }
 {
-	std::fill(std::begin(m_IoWrite), std::end(m_IoWrite), nullptr);
-	std::fill(std::begin(m_IoFetch), std::end(m_IoFetch), nullptr);
-
 	WIN32_ERROR_ASSERT(::WHvCreatePartition(&m_Partition));
 	InitializePartitionProperties();
 	config_v.ApplyBeforeSetup(*this);
@@ -103,112 +105,60 @@ Machine::Machine(Config const& config_v)
 	config_v.ApplyAfterSetup(*this);
 }
 
-Machine::~Machine()
-{
+Hypervisor::~Hypervisor()
+{	
 	if (m_Partition) {
 		WHvDeletePartition(m_Partition);
 		m_Partition = nullptr;
 	}
-	m_Memories.clear();
 }
 
-auto Machine::MapMemory(std::size_t index_v, std::uint64_t base_v, std::uint64_t size_v, std::uint32_t flags_v, std::uint64_t offset_v) -> void
+auto Hypervisor::GetParitionHandle() -> WHV_PARTITION_HANDLE
 {
-	if (index_v >= m_Memories.size()) {
-		throw std::invalid_argument("Invalid memory index");
-	}
-
-	auto address_v = m_Memories[index_v].Data() + offset_v;
-
-	if (0u == size_v) {
-		if (offset_v >= m_Memories[index_v].Size()) {
-			throw std::invalid_argument("Invalid memory offset");
-		}
-		size_v = m_Memories[index_v].Size() - offset_v;
-	}
-
-	WIN32_ERROR_ASSERT(::WHvMapGpaRange(m_Partition, address_v, base_v, size_v, (WHV_MAP_GPA_RANGE_FLAGS)flags_v));
+	return m_Partition;
 }
 
-void Machine::UnmapMemory(std::uint64_t base_v, std::uint64_t size_v)
+auto Hypervisor::GetCpuIndexes() -> std::span<std::uint32_t const>
 {
-	WIN32_ERROR_ASSERT(::WHvUnmapGpaRange(m_Partition, base_v, size_v));
+	return m_Processors;
 }
 
-auto Machine::TranslateVirtualAddress(std::uint32_t index_v, std::uint64_t& inout_address_v, 
-	WHV_TRANSLATE_GVA_FLAGS flags_v) const -> WHV_TRANSLATE_GVA_RESULT_CODE
+auto Hypervisor::GetMemoryPool() -> memory::Pool&
 {
-	WHV_TRANSLATE_GVA_RESULT result_v { };
-	auto const control0_v = GetRegister<std::uint64_t>(index_v, WHvX64RegisterCr0);
-	static constexpr const std::uint64_t kPagingEnabled = 0x80000000u;
-	if (!(control0_v & kPagingEnabled)) {
-		return WHvTranslateGvaResultSuccess;
-	}
-	WIN32_ERROR_ASSERT(::WHvTranslateGva(m_Partition, index_v, 
-		inout_address_v, flags_v, &result_v, &inout_address_v));
-	return result_v.ResultCode;
+	return m_MemoryPool;
 }
 
-auto Machine::ReadPhysical(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte> buffer_v, 
-	WHV_CACHE_TYPE cache_control_v) const -> void 
-{	
-	WIN32_ERROR_ASSERT(::WHvReadGpaRange(m_Partition, index_v, address_v, WHV_ACCESS_GPA_CONTROLS{ 
-		.CacheType = cache_control_v }, buffer_v.data(), buffer_v.size()));
-}
-
-auto core::Machine::WritePhysical(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte const> buffer_v, 
-	WHV_CACHE_TYPE cache_control_v) const -> void 
+auto core::Hypervisor::GetMemoryManager() -> memory::Manager&
 {
-	WIN32_ERROR_ASSERT(::WHvWriteGpaRange(m_Partition, index_v, address_v, WHV_ACCESS_GPA_CONTROLS{
-		.CacheType = cache_control_v }, buffer_v.data(), buffer_v.size()));
+	return m_MemoryManager;
 }
 
-auto Machine::InitializeProcessor(std::uint32_t index_v) -> void
+auto core::Hypervisor::GetIoManager() -> io::Manager&
+{
+	return m_IoManager;
+}
+
+auto Hypervisor::InitializeProcessor(std::uint32_t index_v) -> void
 {
 	WIN32_ERROR_ASSERT(::WHvCreateVirtualProcessor(m_Partition, index_v, 0u));
 	WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(m_Partition, index_v,
 		InitialProcessorState::Names, 
 		InitialProcessorState::Count, 
 		InitialProcessorState::Values));
-	auto const hypercall_v = IsVendorIntel() * 1u + IsVendorAMD() * 2u;
-	SetRegister (index_v, WHvX64RegisterRax, WHV_REGISTER_VALUE{ .Reg64 = hypercall_v });
 	m_Processors.emplace_back(index_v);
 }
 
-auto Machine::HandleIoOperation(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool {
-	auto const& access_v = exit_v.IoPortAccess;
-	auto rip_v = exit_v.VpContext.Rip + exit_v.VpContext.InstructionLength;
-	SetRegister(index_v, WHvX64RegisterRip, rip_v);
-	if (access_v.AccessInfo.IsWrite) {
-		if (!m_IoWrite[access_v.PortNumber])
-			return false;
-		auto& device_v = *m_IoWrite[access_v.PortNumber];
-		return device_v.PortWrite(access_v.PortNumber, 
-			access_v.Rax, access_v.AccessInfo.AccessSize);		
-	}
-	else {
-		if (!m_IoFetch[access_v.PortNumber])
-			return false;
-		auto& device_v = *m_IoFetch[access_v.PortNumber];
-		auto value_v = (std::uint64_t)(- 1ull);
-		auto const result_v = device_v.PortFetch(access_v.PortNumber, 
-			value_v, access_v.AccessInfo.AccessSize);
-		value_v = utils::crossover_bits(value_v, access_v.Rax, 
-			access_v.AccessInfo.AccessSize*8u);
-		SetRegister(index_v, WHvX64RegisterRax, value_v);
-		return result_v;
-	}
-}
 
-auto Machine::HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool 
+auto Hypervisor::HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool 
 {	
 	// Continue after VMCall when we return from the handler
 	SetRegister(index_v, WHvX64RegisterRip, std::uint64_t(exit_v.VpContext.Rip + 
 		exit_v.VpContext.InstructionLength));
 
+	auto& memory_v = GetMemoryManager();
 	// Now we want to read 3 bytes directly preceding the VMCall instruction
 	std::uint64_t push_address_v { exit_v.VpContext.Rip + exit_v.VpContext.Cs.Base - 3u };
-	if (WHvTranslateGvaResultSuccess != TranslateVirtualAddress(index_v, push_address_v)) {
+	if (WHvTranslateGvaResultSuccess != memory_v.VirtualToPhysical(index_v, push_address_v)) {
 		// Can't translate the address ? something is very wrong here
 		return false;
 	}
@@ -219,7 +169,7 @@ auto Machine::HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& ex
 #pragma pack(pop)
 	
 	auto registers_v = GetRegisters(index_v);
-	if (auto const push_v = ReadPhysical<push16_type>(
+	if (auto const push_v = memory_v.FetchValue<push16_type>(
 		index_v, push_address_v); 
 		push_v.icode == 0x68u) 
 	{
@@ -250,7 +200,8 @@ auto Machine::HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& ex
 	return false;
 }
 
-auto Machine::HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool {
+auto Hypervisor::HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool 
+{
 	if (exit_v.VpContext.Rflags & 0x200u) {
 		// Interrupts enabled
 		__debugbreak();
@@ -260,41 +211,62 @@ auto Machine::HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTE
 	return false;
 }
 
-auto Machine::Disassemble(std::ostream& output_v, std::uint32_t index_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void {
+auto Hypervisor::PrintRegisters(std::ostream& output_v, core::RegisterFile const& R) -> void {
+	// Print the registers in a nice table
+	output_v 
+		<< std::format("RAX: {:#018x}\n", R.rax)
+		<< std::format("RBX: {:#018x}\n", R.rbx)
+		<< std::format("RCX: {:#018x}\n", R.rcx)
+		<< std::format("RDX: {:#018x}\n", R.rdx)
+		<< std::format("RSI: {:#018x}\n", R.rsi)
+		<< std::format("RDI: {:#018x}\n", R.rdi)
+		<< std::format("RBP: {:#018x}\n", R.rbp)
+		<< std::format("RSP: {:#018x}\n", R.rsp)
+		<< std::format("R8:  {:#018x}\n", R.r8)
+		<< std::format("R9:  {:#018x}\n", R.r9)
+		<< std::format("R10: {:#018x}\n", R.r10)
+		<< std::format("R11: {:#018x}\n", R.r11)
+		<< std::format("R12: {:#018x}\n", R.r12)
+		<< std::format("R13: {:#018x}\n", R.r13)
+		<< std::format("R14: {:#018x}\n", R.r14)
+		<< std::format("R15: {:#018x}\n", R.r15)
+		<< std::format("RIP: {:#018x}\n", R.rip)
+		<< std::format("RFLAGS: {:#016x}\n", R.rflags)
+		<< std::format("CS: {:#06x} LIMIT:{:#010x} BASE:{:#018x} ATTR:{:#06x}\n", R.cs, R.cs_size, R.cs_base, R.cs_attr)
+		<< std::format("DS: {:#06x} LIMIT:{:#010x} BASE:{:#018x} ATTR:{:#06x}\n", R.ds, R.ds_size, R.ds_base, R.ds_attr)
+		<< std::format("ES: {:#06x} LIMIT:{:#010x} BASE:{:#018x} ATTR:{:#06x}\n", R.es, R.es_size, R.es_base, R.es_attr)
+		<< std::format("FS: {:#06x} LIMIT:{:#010x} BASE:{:#018x} ATTR:{:#06x}\n", R.fs, R.fs_size, R.fs_base, R.fs_attr)
+		<< std::format("GS: {:#06x} LIMIT:{:#010x} BASE:{:#018x} ATTR:{:#06x}\n", R.gs, R.gs_size, R.gs_base, R.gs_attr)
+		<< std::format("SS: {:#06x} LIMIT:{:#010x} BASE:{:#018x} ATTR:{:#06x}\n", R.ss, R.ss_size, R.ss_base, R.ss_attr);
+}
+
+auto Hypervisor::Disassemble(std::ostream& output_v, std::uint32_t index_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void 
+{
 	capstone::instance capstone_v { cs_arch::CS_ARCH_X86, cs_mode::CS_MODE_16, {
 		{ CS_OPT_SYNTAX, CS_OPT_SYNTAX_INTEL }, 
 		{ CS_OPT_DETAIL, CS_OPT_ON } 
 	}};
 
-	
-	std::uint8_t bytes_v[64];
+	auto& memory_v = GetMemoryManager();		
+	std::byte bytes_v[64];
 	std::size_t remaining_bytes_v = std::size(bytes_v);
 
 	while (count_v > 0u)
 	{
-		std::size_t next_byte_v { 0 };
-		for (auto i = 0u; i < remaining_bytes_v; ++i) 
-		{
-			std::uint64_t address_v { virtual_address_v + i };
-			if (WHvTranslateGvaResultSuccess!=
-				TranslateVirtualAddress(index_v, address_v))
-			{
-				throw std::runtime_error("Unable to disassemble: TranslateVirtualAddress failed.");
-			}
-			bytes_v[next_byte_v] = ReadPhysical<std::uint8_t>(index_v, address_v);
-			next_byte_v+=1u;
-		}
+		auto& memory_v = GetMemoryManager();
+		auto next_buffer_v = std::span<std::byte>{ bytes_v }.first(remaining_bytes_v);
+		memory_v.Fetch(index_v, virtual_address_v, next_buffer_v, memory_v.kVirtualAddress);
 
 		auto disassembly_v = capstone_v.disasm(bytes_v, virtual_address_v, count_v);
 
 		for (auto&& instruction_v : disassembly_v)
 		{
 			std::string bytes_string_v;
-			for (auto&& ibyte_v : bytes_v) {
-				bytes_string_v += std::format("{:02x} ", ibyte_v);
+			for (auto&& ibyte_v : instruction_v.bytes()) {
+				bytes_string_v += std::format("{:02x} ", (std::uint8_t)ibyte_v);
 			}
 
-			std::cerr << std::format("{:08x} ({:08x}) : {:>20} : {:>9} {:>9}\n", 
+			std::cerr << std::format("{:08x} ({:08x}) : {:<20} : {:<9} {:<9}\n", 
 				virtual_address_v, instruction_v.address(), bytes_string_v,
 				instruction_v.mnemonic_string(), 
 				instruction_v.operands_string());
@@ -311,19 +283,17 @@ auto Machine::Disassemble(std::ostream& output_v, std::uint32_t index_v, std::ui
 	}
 }
 
-auto Machine::HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool {
+auto Hypervisor::HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool 
+{
 	switch (exit_v.ExitReason) {
-	case WHvRunVpExitReasonX64IoPortAccess: 
-		HandleIoOperation(index_v, exit_v);		
-		break;
 	case WHvRunVpExitReasonX64Halt:
 		return HandleHaltInstruction(index_v, exit_v);
+	case WHvRunVpExitReasonX64IoPortAccess:
+		return m_IoManager.DispatchIoExit(index_v, exit_v);
 	case WHvRunVpExitReasonHypercall:	
 		return HandleHypercall(index_v, exit_v);
-	case WHvRunVpExitReasonMemoryAccess: 
-		__debugbreak();
-		return false;
 	default:
+		PrintRegisters(std::cerr, GetRegisters(index_v));
 		Disassemble(std::cerr, index_v, exit_v.VpContext.Rip+exit_v.VpContext.Cs.Base, 20u);
 		__debugbreak();
 		return false;
@@ -331,70 +301,53 @@ auto Machine::HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v)
 	return true;
 }
 
-auto Machine::RunVirtualProcessor(std::uint32_t index_v, std::stop_token token_v) -> void {
-	WHV_RUN_VP_EXIT_CONTEXT exit_v;
-	while (!token_v.stop_requested()) {
-		std::memset(&exit_v, 0, sizeof(exit_v));
-		WIN32_ERROR_ASSERT(::WHvRunVirtualProcessor(m_Partition, 
-			index_v, &exit_v, sizeof(exit_v)));
-		if (!HandleExit(index_v, exit_v)) {
-			break;
+auto Hypervisor::RunVirtualProcessor(std::uint32_t index_v, std::stop_token token_v) -> void {
+	try
+	{
+		WHV_RUN_VP_EXIT_CONTEXT exit_v;
+		while (!token_v.stop_requested()) {
+			std::memset(&exit_v, 0, sizeof(exit_v));
+			WIN32_ERROR_ASSERT(::WHvRunVirtualProcessor(m_Partition, 
+				index_v, &exit_v, sizeof(exit_v)));
+			if (!HandleExit(index_v, exit_v)) {
+				break;
+			}
 		}
+	} catch (std::exception const& ex) {
+		std::cerr << __func__ << ": " << ex.what() << "\n";
+		throw;
 	}
 }
 
-auto Machine::Run() -> void
+auto Hypervisor::Run() -> void
 {
 	std::vector<std::future<void>> futures_v;
 	futures_v.reserve(m_Processors.size());
-	for(auto&& processor_v : m_Processors) {		
-		futures_v.emplace_back(std::async(std::launch::async,
+	auto launch_v = std::launch::deferred;
+	for(auto&& processor_v : m_Processors) {
+		futures_v.emplace_back(std::async(launch_v,
 			[this, processor_v, token_v = m_ProcessorBreak.get_token()] () mutable -> void {
 				RunVirtualProcessor(processor_v, std::move(token_v));
 			}));		
+		launch_v = std::launch::async;
 	}
 	for(auto&& future_v : futures_v) {
 		future_v.get();
 	}
 }
 
-auto Machine::SetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void const* data_v, std::uint32_t size_v) -> void
+auto Hypervisor::SetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void const* data_v, std::uint32_t size_v) -> void
 {
 	WIN32_ERROR_ASSERT(::WHvSetPartitionProperty(m_Partition, code_v, data_v, size_v));
 }
 
-auto Machine::GetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void* data_v, std::uint32_t& size_v) -> void
+auto Hypervisor::GetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void* data_v, std::uint32_t& size_v) -> void
 {
 	WIN32_ERROR_ASSERT(::WHvGetPartitionProperty(m_Partition, code_v, data_v, size_v, &size_v));
 }
 
-auto core::Machine::MapIoRange(IOHandler& device_v, std::uint16_t base_v, std::uint16_t size_v, std::uint32_t flags_v) -> void {
-	auto const end_v = base_v + size_v;
-	for (auto port_v = base_v; port_v < end_v; port_v += 1u) {
-		if (flags_v & kAccessWrite) {
-			if (m_IoWrite[port_v]) 
-				throw std::invalid_argument("Port already mapped");			
-			m_IoWrite[port_v] = &device_v;
-		}
-		if (flags_v & kAccessFetch) {
-			if (m_IoFetch[port_v])
-				throw std::invalid_argument("Port already mapped");			
-			m_IoFetch[port_v] = &device_v;
-		}
-	}
-}
 
-auto core::Machine::UnmapIoRange(std::uint16_t base_v, std::uint16_t size_v, std::uint32_t flags_v) -> void {
-	auto const end_v = base_v + size_v;
-	for (auto port_v = base_v; port_v < end_v; port_v += 1u) {
-		if (flags_v & kAccessWrite) 
-			m_IoWrite[port_v] = nullptr;
-		if (flags_v & kAccessFetch) 
-			m_IoFetch[port_v] = nullptr;
-	}
-}
-
-auto core::Machine::MapVcRange(VCHandler& handler_v, std::uint16_t base_v, std::uint16_t size_v) -> void
+auto core::Hypervisor::MapVcRange(VCHandler& handler_v, std::uint16_t base_v, std::uint16_t size_v) -> void
 {
 	auto const end_v = base_v + size_v;
 	if (end_v > 0x10000u) {
@@ -415,7 +368,7 @@ auto core::Machine::MapVcRange(VCHandler& handler_v, std::uint16_t base_v, std::
 	}
 }
 
-auto core::Machine::UnmapVcRange(VCHandler& handler_v, std::uint16_t base_v, std::uint16_t size_v) -> void
+auto core::Hypervisor::UnmapVcRange(VCHandler& handler_v, std::uint16_t base_v, std::uint16_t size_v) -> void
 {
 	auto const end_v = base_v + size_v;
 	if (end_v > 0x10000u) {
@@ -432,7 +385,7 @@ auto core::Machine::UnmapVcRange(VCHandler& handler_v, std::uint16_t base_v, std
 	}
 }
 
-auto core::Machine::UnmapVcRange(std::uint16_t base_v, std::uint16_t size_v) -> void
+auto core::Hypervisor::UnmapVcRange(std::uint16_t base_v, std::uint16_t size_v) -> void
 {
 	auto const end_v = base_v + size_v;
 	if (end_v > 0x10000u) {
@@ -446,7 +399,7 @@ auto core::Machine::UnmapVcRange(std::uint16_t base_v, std::uint16_t size_v) -> 
 	}
 }
 
-auto core::Machine::GetRegisters(std::uint32_t index_v) const -> RegisterFile
+auto core::Hypervisor::GetRegisters(std::uint32_t index_v) const -> RegisterFile
 {
 	std::vector<WHV_REGISTER_VALUE> values_v;
 	values_v.resize(std::size(RegisterFile::Layout));
@@ -505,7 +458,7 @@ auto core::Machine::GetRegisters(std::uint32_t index_v) const -> RegisterFile
 	};
 }
 
-auto core::Machine::SetRegisters(std::uint32_t index_v, RegisterFile const& registers_v) -> void
+auto core::Hypervisor::SetRegisters(std::uint32_t index_v, RegisterFile const& registers_v) -> void
 {
 	std::vector<WHV_REGISTER_VALUE> values_v;
 	values_v.resize(std::size(RegisterFile::Layout));
@@ -527,34 +480,35 @@ auto core::Machine::SetRegisters(std::uint32_t index_v, RegisterFile const& regi
 	values_v[15].Reg64 = registers_v.r15;
 	values_v[16].Reg64 = registers_v.rip;
 	values_v[17].Reg64 = registers_v.rflags;
-	values_v[18].Segment = { registers_v.cs_base, registers_v.cs_size, registers_v.cs, registers_v.cs_attr };
-	values_v[19].Segment = { registers_v.ds_base, registers_v.ds_size, registers_v.ds, registers_v.ds_attr };
-	values_v[20].Segment = { registers_v.es_base, registers_v.es_size, registers_v.es, registers_v.es_attr };
-	values_v[21].Segment = { registers_v.fs_base, registers_v.fs_size, registers_v.fs, registers_v.fs_attr };
-	values_v[22].Segment = { registers_v.gs_base, registers_v.gs_size, registers_v.gs, registers_v.gs_attr };
-	values_v[23].Segment = { registers_v.ss_base, registers_v.ss_size, registers_v.ss, registers_v.ss_attr };	
+	values_v[18].Segment = { .Base=registers_v.cs_base, .Limit=registers_v.cs_size, .Selector=registers_v.cs, .Attributes=registers_v.cs_attr };
+	values_v[19].Segment = { .Base=registers_v.ds_base, .Limit=registers_v.ds_size, .Selector=registers_v.ds, .Attributes=registers_v.ds_attr };
+	values_v[20].Segment = { .Base=registers_v.es_base, .Limit=registers_v.es_size, .Selector=registers_v.es, .Attributes=registers_v.es_attr };
+	values_v[21].Segment = { .Base=registers_v.fs_base, .Limit=registers_v.fs_size, .Selector=registers_v.fs, .Attributes=registers_v.fs_attr };
+	values_v[22].Segment = { .Base=registers_v.gs_base, .Limit=registers_v.gs_size, .Selector=registers_v.gs, .Attributes=registers_v.gs_attr };
+	values_v[23].Segment = { .Base=registers_v.ss_base, .Limit=registers_v.ss_size, .Selector=registers_v.ss, .Attributes=registers_v.ss_attr };	
 	WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(m_Partition, index_v, RegisterFile::Layout, std::size(RegisterFile::Layout), values_v.data()));
 }
 
-auto core::Machine::IsVendorIntel() -> bool
+auto Hypervisor::IsVendorIntel() -> bool
 {
 	auto const vendor_v = GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
 	return vendor_v == WHvProcessorVendorIntel;
 }
 
-auto core::Machine::IsVendorAMD() -> bool
+auto Hypervisor::IsVendorAMD() -> bool
 {
 	auto const vendor_v = GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
 	return vendor_v == WHvProcessorVendorAmd || vendor_v == WHvProcessorVendorHygon;
 }
 
-auto core::Machine::GetCapability(WHV_CAPABILITY_CODE code_v, void* buffer_v, std::uint32_t length_v) -> std::uint32_t
+auto Hypervisor::GetCapability(WHV_CAPABILITY_CODE code_v, void* buffer_v, std::uint32_t length_v) -> std::uint32_t
 {
 	WIN32_ERROR_ASSERT(WHvGetCapability(code_v, buffer_v, length_v, &length_v));
 	return length_v;
 }
 
-auto Machine::InitializePartitionProperties() -> void {
+auto Hypervisor::InitializePartitionProperties() -> void 
+{
 	SetProperty(WHvPartitionPropertyCodeExceptionExitBitmap, std::uint64_t{ 0 });
 	SetProperty(WHvPartitionPropertyCodeExtendedVmExits, WHV_EXTENDED_VM_EXITS{ .HypercallExit = 1 });
 	SetProperty(WHvPartitionPropertyCodeProcessorFeatures, WHV_PROCESSOR_FEATURES{ .LahfSahfSupport = 1 });

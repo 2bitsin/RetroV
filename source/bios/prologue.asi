@@ -3,6 +3,9 @@ Prologue:
     mov         sp,     STACK_SEGMENT
     mov         ss,     sp
     mov         sp,     STACK_OFFSSET
+    
+    push        ss
+    pop         ss
 
     mov         ax,     cs
     mov         ds,     ax
