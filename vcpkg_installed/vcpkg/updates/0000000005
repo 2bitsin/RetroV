@@ -1,6 +1,0 @@
-Package: capstone
-Feature: x86
-Architecture: x64-windows-static
-Multi-Arch: same
-Description: Capstone disassembly support for x86
-Status: install ok half-installed

@@ -1,3 +1,5 @@
 build/
 .vs/
 workspace/
+vcpkg_installed/
+_vcpkg_installed/
