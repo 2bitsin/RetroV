@@ -34,7 +34,7 @@ namespace core::io
 		auto DispatchWrite(std::uint32_t index_v, std::uint16_t port_v, std::uint32_t data_v, std::uint8_t size_v) -> bool;
 		auto DispatchFetch(std::uint32_t index_v, std::uint16_t port_v, std::uint32_t& data_v, std::uint8_t size_v) -> bool;
 
-		auto DispatchIoExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool;
+		auto DispatchExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool;
 
 	private:
 		Hypervisor& m_Hypervisor;

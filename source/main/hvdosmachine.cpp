@@ -23,7 +23,8 @@ HvDosMachine::HvDosMachine(int argc, char** argv)
 
 	hypervisor_v.emplace(config_v);
 	porte9_v.emplace(*hypervisor_v);
-	disk0_v.emplace(*hypervisor_v, 0x00u);
+	disk0_v.emplace(*hypervisor_v, 0x00u);	
+	video_v.emplace(*hypervisor_v);
 }
 
 auto HvDosMachine::Run() -> int try {

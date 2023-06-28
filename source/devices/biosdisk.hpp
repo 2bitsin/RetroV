@@ -1,16 +1,16 @@
 #pragma once
 
+#include <core/hypervisor.hpp>
+
 #include <filesystem>
 #include <fstream>
 #include <cstdint>
 #include <cstddef>
 #include <span>
 
-#include <core/vchandlerbridge.hpp>
-
 namespace core
 {
-	struct VirtualBiosDisk
+	struct BiosDisk
 	{
 		static inline constexpr auto kSectorSize = 512u;
 		struct Geometry
@@ -32,13 +32,13 @@ namespace core
 			std::uint64_t SectorLBA;
 		};
 
-		VirtualBiosDisk(Hypervisor& hypervisor_v, std::uint8_t drive_id_v);
-		~VirtualBiosDisk() = default;
+		BiosDisk(Hypervisor& hypervisor_v, std::uint8_t drive_id_v);
+		~BiosDisk();
 
-		VirtualBiosDisk(VirtualBiosDisk&&) = delete;
-		VirtualBiosDisk(VirtualBiosDisk const&) = delete;
-		auto operator = (VirtualBiosDisk&&) -> VirtualBiosDisk& = delete;
-		auto operator = (VirtualBiosDisk const&) -> VirtualBiosDisk& = delete;
+		BiosDisk(BiosDisk&&) = delete;
+		BiosDisk(BiosDisk const&) = delete;
+		auto operator = (BiosDisk&&) -> BiosDisk& = delete;
+		auto operator = (BiosDisk const&) -> BiosDisk& = delete;
 
 		auto MountImage(std::filesystem::path const& path_v, Geometry const& geometry_v, bool use_chs_v = true) -> void;
 		auto MountImage(std::filesystem::path const& path_v, bool use_chs_v = false) -> void;
@@ -46,17 +46,15 @@ namespace core
 		auto Write(std::span<std::byte const>& buffer_v, Index const& index_v, bool uselba_v = true) -> std::size_t;
 		auto Unmount() -> void;
 
-		auto VMCall(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v, RegisterFile& registers_v, 
-			std::uint16_t callno_v = VCHandler::kLastCall) -> bool;
-
-		auto Int13h(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v, RegisterFile& registers_v) -> bool;
-		auto Int19h(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v, RegisterFile& registers_v) -> bool;
+		auto Int13h(core::Hypervisor& hypervisor_v, core::RegisterFile& registers_v, std::uint32_t cpuindex_v) -> bool;
+		auto Int19h(core::Hypervisor& hypervisor_v, core::RegisterFile& registers_v, std::uint32_t cpuindex_v) -> bool;
 
 	private:
-		VCHandlerBridge<VirtualBiosDisk&> m_Bridge13h;
-		VCHandlerBridge<VirtualBiosDisk&> m_Bridge19h;
-		bool m_UseLBA { true };
+		core::Hypervisor& m_Hypervisor;
 		std::uint8_t m_DriveID { 0u };
+		std::uint32_t m_Int13h { 0u };
+		std::uint32_t m_Int19h { 0u };
+		bool m_UseLBA { true };
 		Geometry m_Geometry { 0, 0, 0, 0 };
 		std::fstream m_File;
 		std::uint8_t m_LastError { 0u };

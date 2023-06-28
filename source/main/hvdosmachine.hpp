@@ -5,7 +5,8 @@
 
 #include <core/hypervisor.hpp>
 #include <devices/porte9.hpp>
-#include <devices/virtualbiosdisk.hpp>
+#include <devices/biosdisk.hpp>
+#include <devices/biosvideo.hpp>
 
 struct HvDosMachine
 {
@@ -23,5 +24,6 @@ struct HvDosMachine
 private:
 	std::optional<core::Hypervisor> hypervisor_v;
 	std::optional<core::PortE9> porte9_v;
-	std::optional<core::VirtualBiosDisk> disk0_v;
+	std::optional<core::BiosDisk> disk0_v;
+	std::optional<core::BiosVideo> video_v;
 };

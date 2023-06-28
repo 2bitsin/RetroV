@@ -10,12 +10,12 @@
 #include <utils/as_bytes.hpp>
 #include <win32/error.hpp>
 #include <win32/winhvpx.hpp>
+#include <core/vmcall/manager.hpp>
 #include <core/memory/block.hpp>
 #include <core/memory/pool.hpp>
 #include <core/memory/manager.hpp>
 #include <core/io/manager.hpp>
 #include <core/config.hpp>
-#include <core/vchandler.hpp>
 #include <core/registerfile.hpp>
 
 namespace core
@@ -46,13 +46,7 @@ namespace core
 		auto GetCpuIndexes() -> std::span<std::uint32_t const>;
 		auto GetMemoryManager() -> memory::Manager&;
 		auto GetIoManager() -> io::Manager&;
-	
-		/*******************************
-		 *  VMCALL configuration methods
-		 *******************************/
-		auto MapVcRange(VCHandler& handler_v, std::uint16_t base_v, std::uint16_t size_v) -> void;
-		auto UnmapVcRange(VCHandler& handler_v, std::uint16_t base_v, std::uint16_t size_v) -> void;
-		auto UnmapVcRange(std::uint16_t base_v, std::uint16_t size_v) -> void;
+		auto GetVcManager() -> vmcall::Manager&;
 
 		/**********************************
 		 *  Processor configuration methods
@@ -103,9 +97,9 @@ namespace core
 		/**********************************
 		 *  Exit handling methods
 		 **********************************/
-		auto HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
-		auto HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
-		auto HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool;
+		auto DispatchExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool;
+    auto StepOverOffendingInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> void;
+		auto HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool;
 
 		/***************************
 		 *  Debuging support methods
@@ -136,12 +130,14 @@ namespace core
 		 * Internal state
 		 **********************************/
 	private:
-		memory::Pool m_MemoryPool;
-		memory::Manager m_MemoryManager;
-		io::Manager m_IoManager;
 		WHV_PARTITION_HANDLE m_Partition{ nullptr };
+
+		memory::Pool		m_MemoryPool;
+		memory::Manager m_MemoryManager;
+		io::Manager			m_IoManager;
+		vmcall::Manager m_VMCallManager;
+
 		std::vector<std::uint32_t> m_Processors;
-		std::vector<std::vector<VCHandler*>> m_VmmCall{ };
 		std::stop_source m_ProcessorBreak;
 	};
 }

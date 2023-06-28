@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 project(HvDOS)
 
-set (VCPKG_TARGET_TRIPLET "x64-windows-static")
+set (VCPKG_TARGET_TRIPLET "x64-windows")
 
 # include some misc fucntionality
 include(${CMAKE_SOURCE_DIR}/cmake/stack.cmake)
@@ -27,3 +27,5 @@ add_fasm_target(BiosAMD "source/bios/amd.asm" ${SOURCE_FILES_ASI})
 add_fasm_target(BiosIntel "source/bios/intel.asm" ${SOURCE_FILES_ASI})
 
 install (TARGETS HvDOS DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install (FILES ${CMAKE_CURRENT_BINARY_DIR}/SDL2d.dll DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install (FILES ${CMAKE_CURRENT_BINARY_DIR}/capstone.dll DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

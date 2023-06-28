@@ -43,7 +43,7 @@ auto Manager::Write(std::uint32_t index_v, std::uint64_t address_v, std::span<st
 	while (!data_v.empty()) 
 	{
 		static constexpr auto M = kPageSize - 1u;
-		auto const next_page_v = (address_v + M) & ~M;
+		auto const next_page_v = (address_v + M + 1u) & ~M;
 		auto const ammount_v = std::min<std::uint64_t>(kMaxGpaReadWriteSize, next_page_v - address_v);
 		auto next_bits_v = utils::take_span(data_v, ammount_v);
 		WriteSome(index_v, address_v, next_bits_v, flags_v, chache_v);

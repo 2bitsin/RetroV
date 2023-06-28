@@ -95,6 +95,7 @@ Hypervisor::Hypervisor(Config const& config_v)
 	:	m_MemoryPool{ }
 	,	m_MemoryManager{ *this }
 	, m_IoManager{ *this }
+	,	m_VMCallManager { *this }
 	,	m_Processors{ }
 	,	m_Partition{ nullptr }
 {
@@ -138,6 +139,11 @@ auto core::Hypervisor::GetIoManager() -> io::Manager&
 	return m_IoManager;
 }
 
+auto core::Hypervisor::GetVcManager() -> vmcall::Manager&
+{
+	return m_VMCallManager;
+}
+
 auto Hypervisor::InitializeProcessor(std::uint32_t index_v) -> void
 {
 	WIN32_ERROR_ASSERT(::WHvCreateVirtualProcessor(m_Partition, index_v, 0u));
@@ -148,59 +154,7 @@ auto Hypervisor::InitializeProcessor(std::uint32_t index_v) -> void
 	m_Processors.emplace_back(index_v);
 }
 
-
-auto Hypervisor::HandleHypercall(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool 
-{	
-	// Continue after VMCall when we return from the handler
-	SetRegister(index_v, WHvX64RegisterRip, std::uint64_t(exit_v.VpContext.Rip + 
-		exit_v.VpContext.InstructionLength));
-
-	auto& memory_v = GetMemoryManager();
-	// Now we want to read 3 bytes directly preceding the VMCall instruction
-	std::uint64_t push_address_v { exit_v.VpContext.Rip + exit_v.VpContext.Cs.Base - 3u };
-	if (WHvTranslateGvaResultSuccess != memory_v.VirtualToPhysical(index_v, push_address_v)) {
-		// Can't translate the address ? something is very wrong here
-		return false;
-	}
-	
-	// Read the instruction
-#pragma pack(push, 1)
-	struct push16_type {	std::uint8_t icode; std::uint16_t value; };
-#pragma pack(pop)
-	
-	auto registers_v = GetRegisters(index_v);
-	if (auto const push_v = memory_v.FetchValue<push16_type>(
-		index_v, push_address_v); 
-		push_v.icode == 0x68u) 
-	{
-		if (push_v.value >= m_VmmCall.size() || m_VmmCall[push_v.value].empty()) {
-			std::cerr << std::format("WARNING! No handler for VMCall({:#x})\n", push_v.value);
-			__debugbreak();
-			return false;
-		}
-		bool was_handled_v = false;
-		for (auto& handler_v : m_VmmCall[push_v.value]) {
-			if (handler_v->VMCall (*this, index_v, registers_v, push_v.value)) {
-				was_handled_v = true;
-				break; 
-			}
-		}
-		if (!was_handled_v) {
-			std::cerr << std::format("WARNING! None of the VMCall({:#x}) handlers handled the call!\n", push_v.value);
-			__debugbreak();
-			return false;
-		}
-		SetRegisters(index_v, registers_v);		
-		return true;
-	} else {
-		std::cerr << std::format("WARNING! Weren't able to determine the VMCall number!\n", push_v.value);
-		__debugbreak();
-	}
-
-	return false;
-}
-
-auto Hypervisor::HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool 
+auto Hypervisor::HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool 
 {
 	if (exit_v.VpContext.Rflags & 0x200u) {
 		// Interrupts enabled
@@ -283,16 +237,17 @@ auto Hypervisor::Disassemble(std::ostream& output_v, std::uint32_t index_v, std:
 	}
 }
 
-auto Hypervisor::HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit_v) -> bool 
+auto Hypervisor::DispatchExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool 
 {
 	switch (exit_v.ExitReason) {
 	case WHvRunVpExitReasonX64Halt:
 		return HandleHaltInstruction(index_v, exit_v);
 	case WHvRunVpExitReasonX64IoPortAccess:
-		return m_IoManager.DispatchIoExit(index_v, exit_v);
+		return m_IoManager.DispatchExit(index_v, exit_v);
 	case WHvRunVpExitReasonHypercall:	
-		return HandleHypercall(index_v, exit_v);
+		return m_VMCallManager.DispatchExit(index_v, exit_v);
 	default:
+		__debugbreak();
 		PrintRegisters(std::cerr, GetRegisters(index_v));
 		Disassemble(std::cerr, index_v, exit_v.VpContext.Rip+exit_v.VpContext.Cs.Base, 20u);
 		__debugbreak();
@@ -301,16 +256,20 @@ auto Hypervisor::HandleExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT& exit
 	return true;
 }
 
+auto Hypervisor::StepOverOffendingInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> void {
+	SetRegister(index_v, WHvX64RegisterRip, exit_v.VpContext.Rip + exit_v.VpContext.InstructionLength);
+}
+
 auto Hypervisor::RunVirtualProcessor(std::uint32_t index_v, std::stop_token token_v) -> void {
 	try
 	{
 		WHV_RUN_VP_EXIT_CONTEXT exit_v;
 		while (!token_v.stop_requested()) {
 			std::memset(&exit_v, 0, sizeof(exit_v));
-			WIN32_ERROR_ASSERT(::WHvRunVirtualProcessor(m_Partition, 
-				index_v, &exit_v, sizeof(exit_v)));
-			if (!HandleExit(index_v, exit_v)) {
-				break;
+			WIN32_ERROR_ASSERT(::WHvRunVirtualProcessor(
+				m_Partition, index_v, &exit_v, sizeof(exit_v)));
+			if (DispatchExit(index_v, exit_v)) {
+				StepOverOffendingInstruction(index_v, exit_v);
 			}
 		}
 	} catch (std::exception const& ex) {
@@ -344,59 +303,6 @@ auto Hypervisor::SetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void const* dat
 auto Hypervisor::GetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void* data_v, std::uint32_t& size_v) -> void
 {
 	WIN32_ERROR_ASSERT(::WHvGetPartitionProperty(m_Partition, code_v, data_v, size_v, &size_v));
-}
-
-
-auto core::Hypervisor::MapVcRange(VCHandler& handler_v, std::uint16_t base_v, std::uint16_t size_v) -> void
-{
-	auto const end_v = base_v + size_v;
-	if (end_v > 0x10000u) {
-		throw std::invalid_argument("Invalid range");
-	}
-	if (end_v >= m_VmmCall.size()) {
-		m_VmmCall.resize(end_v);
-	}
-
-	for (auto index_v = base_v; index_v < end_v; index_v += 1u) 
-	{
-		auto& slot_v = m_VmmCall[index_v];
-		auto offset_v = std::ranges::find(slot_v, &handler_v);
-		if (offset_v != slot_v.end()) {
-			throw std::invalid_argument("Handler already mapped");
-		}
-		slot_v.emplace(slot_v.begin(), &handler_v);
-	}
-}
-
-auto core::Hypervisor::UnmapVcRange(VCHandler& handler_v, std::uint16_t base_v, std::uint16_t size_v) -> void
-{
-	auto const end_v = base_v + size_v;
-	if (end_v > 0x10000u) {
-		throw std::invalid_argument("Invalid range");
-	}
-	auto const last_slot_v = std::min<std::size_t>(end_v, m_VmmCall.size());
-	for (auto index_v = base_v; index_v < last_slot_v; index_v += 1u) 
-	{
-		auto& slot_v = m_VmmCall[index_v];
-		auto offset_v = std::ranges::find(slot_v, &handler_v);
-		if (offset_v == slot_v.end())
-			continue;		
-		slot_v.erase(offset_v);
-	}
-}
-
-auto core::Hypervisor::UnmapVcRange(std::uint16_t base_v, std::uint16_t size_v) -> void
-{
-	auto const end_v = base_v + size_v;
-	if (end_v > 0x10000u) {
-		throw std::invalid_argument("Invalid range");
-	}
-	auto const last_slot_v = std::min<std::size_t>(end_v, m_VmmCall.size());
-	for (auto index_v = base_v; index_v < last_slot_v; index_v += 1u) 
-	{
-		auto& slot_v = m_VmmCall[index_v];
-		slot_v.clear();
-	}
 }
 
 auto core::Hypervisor::GetRegisters(std::uint32_t index_v) const -> RegisterFile
@@ -509,7 +415,7 @@ auto Hypervisor::GetCapability(WHV_CAPABILITY_CODE code_v, void* buffer_v, std::
 
 auto Hypervisor::InitializePartitionProperties() -> void 
 {
-	SetProperty(WHvPartitionPropertyCodeExceptionExitBitmap, std::uint64_t{ 0 });
-	SetProperty(WHvPartitionPropertyCodeExtendedVmExits, WHV_EXTENDED_VM_EXITS{ .HypercallExit = 1 });
+	SetProperty(WHvPartitionPropertyCodeExceptionExitBitmap, std::uint64_t{ 0x40u });
+	SetProperty(WHvPartitionPropertyCodeExtendedVmExits, WHV_EXTENDED_VM_EXITS{ .ExceptionExit = 1, .HypercallExit = 1 });
 	SetProperty(WHvPartitionPropertyCodeProcessorFeatures, WHV_PROCESSOR_FEATURES{ .LahfSahfSupport = 1 });
 }

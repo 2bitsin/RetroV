@@ -50,17 +50,25 @@ namespace core::memory
 			std::uint32_t flags_v = kVirtualAddress, WHV_CACHE_TYPE chache_v = WHvCacheTypeUncached) -> void;
 
 		template <typename T> requires (std::is_trivial_v<T>) 
-			auto FetchValue(std::uint32_t index_v, std::uint64_t address_v, std::uint32_t flags_v = kVirtualAddress,
-				WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) -> T
+		auto FetchValue(std::uint32_t index_v, std::uint64_t address_v, std::uint32_t flags_v = kVirtualAddress,
+			WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) -> T
 		{
 			T value_v { }; 
 			Fetch(index_v, address_v, utils::as_mutable_bytes(value_v), flags_v, cache_v);
 			return value_v;
 		}
 
+		template <typename... T> requires (sizeof...(T) > 1u && (std::is_trivial_v<T> && ...))
+		auto FetchValue(std::uint32_t index_v, std::uint64_t address_v, std::uint32_t flags_v = kVirtualAddress,
+			WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) -> std::tuple<T...>
+		{
+			return std::tuple{ FetchValue<T>(index_v, std::exchange(address_v, address_v + sizeof(T)), flags_v, cache_v)... };
+		}
+
+
 		template <typename T> requires (std::is_trivial_v<T>)
-			auto WriteValue(std::uint32_t index_v, std::uint64_t address_v, T const& value_v, 
-				std::uint32_t flags_v = kVirtualAddress, WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) -> void
+		auto WriteValue(std::uint32_t index_v, std::uint64_t address_v, T const& value_v, 
+			std::uint32_t flags_v = kVirtualAddress, WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) -> void
 		{
 			Write(index_v, address_v, utils::as_bytes(value_v), flags_v, cache_v);			
 		}
@@ -71,5 +79,6 @@ namespace core::memory
 
 	private:
 		core::Hypervisor& m_Hypervisor;
+		std::uint32_t m_LastID { 0u };
 	};
 }

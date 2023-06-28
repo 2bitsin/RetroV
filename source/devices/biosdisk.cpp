@@ -1,9 +1,12 @@
-#include "virtualbiosdisk.hpp"
+#include <core/memory/block.hpp>
+#include <core/hypervisor.hpp>
+#include <devices/biosdisk.hpp>
+
 
 #include <format>
 #include <system_error>
 
-using core::VirtualBiosDisk;
+using core::BiosDisk;
 
 enum DiskStatusCode : std::uint8_t
 {
@@ -46,9 +49,9 @@ enum DiskStatusCode : std::uint8_t
 };
 
 static inline auto DetectGeometry(std::uint64_t sectors_v)
--> VirtualBiosDisk::Geometry const&
+-> BiosDisk::Geometry const&
 {
-	using G = VirtualBiosDisk::Geometry;
+	using G = BiosDisk::Geometry;
 	static constexpr const G table_s[] = {
 		/* 160K  */ {  320u, 40u, 1u,  8u },
 		/* 180K  */ {  360u, 40u, 1u,  9u },
@@ -75,8 +78,8 @@ static inline auto DetectGeometry(std::uint64_t sectors_v)
 	return *iterator_v;
 }
 
-static inline auto CalculateOffset(VirtualBiosDisk::Geometry const& geom_v,
-	VirtualBiosDisk::Index const& index_v, bool uselba_v) -> std::uintmax_t
+static inline auto CalculateOffset(BiosDisk::Geometry const& geom_v,
+	BiosDisk::Index const& index_v, bool uselba_v) -> std::uintmax_t
 {
 	std::uintmax_t lba_v { index_v.SectorLBA };
 	if (!uselba_v)
@@ -95,16 +98,30 @@ static inline auto CalculateOffset(VirtualBiosDisk::Geometry const& geom_v,
 		throw std::out_of_range(std::format(
 			"Index out of range of geometry"));
 	}
-	return lba_v * VirtualBiosDisk::kSectorSize;
+	return lba_v * BiosDisk::kSectorSize;
 }
 
-VirtualBiosDisk::VirtualBiosDisk(Hypervisor& hypervisor_v, std::uint8_t drive_id_v)
-	: m_Bridge13h(hypervisor_v, 0x13u, 0x1u, *this)
-	, m_Bridge19h(hypervisor_v, 0x19u, 0x1u, *this)
+BiosDisk::BiosDisk(core::Hypervisor& hypervisor_v, std::uint8_t drive_id_v)
+	: m_Hypervisor(hypervisor_v)
 	, m_DriveID(drive_id_v)
+	, m_Int13h(hypervisor_v.GetVcManager().RegisterCallback(0x13u,
+		[this](auto& hypervisor_v, auto& registers_v, auto index_v, auto callno_v) {
+			return Int13h(hypervisor_v, registers_v, index_v);
+		}))
+	, m_Int19h(hypervisor_v.GetVcManager().RegisterCallback(0x19u,
+		[this](auto& hypervisor_v, auto& registers_v, auto index_v, auto callno_v) {
+			return Int19h(hypervisor_v, registers_v, index_v);
+		}))
 {}
 
-auto VirtualBiosDisk::MountImage(std::filesystem::path const& path_v, Geometry const& geometry_v, bool use_chs_v) -> void
+BiosDisk::~BiosDisk()
+{
+	auto& vcm_v = m_Hypervisor.GetVcManager();
+	vcm_v.UnregisterCallback(0x13u, m_Int13h);
+	vcm_v.UnregisterCallback(0x19u, m_Int19h);
+}
+
+auto BiosDisk::MountImage(std::filesystem::path const& path_v, Geometry const& geometry_v, bool use_chs_v) -> void
 {
 	using namespace std::filesystem;
 	if (!exists(path_v) || file_size(path_v) == 0u) {
@@ -140,41 +157,31 @@ auto VirtualBiosDisk::MountImage(std::filesystem::path const& path_v, Geometry c
 	m_UseLBA = use_lba_v;
 }
 
-auto VirtualBiosDisk::MountImage(std::filesystem::path const& path_v, bool use_chs_v) -> void
+auto BiosDisk::MountImage(std::filesystem::path const& path_v, bool use_chs_v) -> void
 {
-	if (!exists(path_v) || file_size(path_v) < VirtualBiosDisk::kSectorSize) {
+	if (!exists(path_v) || file_size(path_v) < BiosDisk::kSectorSize) {
 		throw std::system_error(std::make_error_code(
 			std::errc::no_such_file_or_directory)),
 			std::format("File {} - not found or empty.", path_v.string());
 	}
 	std::uint64_t number_of_sectors_v = file_size(path_v);
-	number_of_sectors_v /= VirtualBiosDisk::kSectorSize;
-	VirtualBiosDisk::Geometry geometry_v { number_of_sectors_v, 0, 0, 0 };
+	number_of_sectors_v /= BiosDisk::kSectorSize;
+	BiosDisk::Geometry geometry_v { number_of_sectors_v, 0, 0, 0 };
 	if (true == use_chs_v) geometry_v = DetectGeometry(number_of_sectors_v);
-	return VirtualBiosDisk::MountImage(path_v, geometry_v, use_chs_v);
+	return BiosDisk::MountImage(path_v, geometry_v, use_chs_v);
 }
 
-auto VirtualBiosDisk::Unmount() -> void
+auto BiosDisk::Unmount() -> void
 {
 	m_File.close();
 	m_Geometry = { 0, 0, 0, 0 };
 	m_UseLBA = true;
 }
 
-auto core::VirtualBiosDisk::VMCall(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v, RegisterFile& R, std::uint16_t callno_v) -> bool
-{
-	switch (callno_v) {
-	case 0x13u: return Int13h(hypervisor_v, cpuindex_v, R);
-	case 0x19u: return Int19h(hypervisor_v, cpuindex_v, R);
-	default:
-		return false;
-	}
-}
-
-auto VirtualBiosDisk::Int13h(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v, RegisterFile& R) -> bool 
+auto BiosDisk::Int13h(Hypervisor& hypervisor_v, RegisterFile& R, std::uint32_t cpuindex_v) -> bool
 {
 	switch (R.ah) {
-	case 0x00u:
+	case 0x00u: // Reset Disk System
 		if (R.dl != m_DriveID)
 		{
 			R.flags |= 0x1u;
@@ -182,7 +189,50 @@ auto VirtualBiosDisk::Int13h(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v,
 		}
 		R.flags &= ~0x1u;
 		return true;
-	case 0x01u:
+	case 0x01u: // Get Status of Last Operation
+		if (R.dl != m_DriveID)
+		{
+			R.flags |= 0x1u;
+			return true;
+		}
+		R.flags &= ~0x1u;
+		R.ah = m_LastError;
+		return true;
+	case 0x02u: // Read Sectors From Drive
+		if (R.dl == m_DriveID)
+		{
+			using core::memory::Block;
+
+			std::vector<std::byte> buffer_v (R.al*kSectorSize);
+			std::span buffer_s { buffer_v };
+
+			Index address_v { };
+			address_v.Head = R.dh;
+			address_v.Track = R.cl * 0x4u + R.ch;
+			address_v.Sector = R.cl&0x3Fu;
+
+			try {
+				Fetch(buffer_s, address_v, false);
+			} catch (std::exception const& e) {
+				R.ah = m_LastError = SECTOR_NOT_FOUND_OR_READ_ERROR;
+				R.flags |= 0x1u;
+				return true;
+			}
+
+			auto& memory_v=m_Hypervisor.GetMemoryManager();
+			memory_v.Write(cpuindex_v, R.es_base + R.bx, buffer_s, memory_v.kVirtualAddress);
+			auto const sectors_read_v = buffer_s.size() / kSectorSize;
+			if (sectors_read_v != R.al) {
+				R.ah = m_LastError = SECTOR_NOT_FOUND_OR_READ_ERROR;
+				R.flags |= 0x1u;
+				return true;
+			}
+			R.ah = m_LastError = SUCCESSFUL_COMPLETION;
+			R.al = sectors_read_v;			
+			return true;
+		} 
+		R.flags |= 0x1u;
+		return true;
 	default:
 		__debugbreak();
 		break;
@@ -190,30 +240,28 @@ auto VirtualBiosDisk::Int13h(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v,
 	return false;
 }
 
-auto VirtualBiosDisk::Int19h(Hypervisor& hypervisor_v, std::uint32_t cpuindex_v, RegisterFile& R) -> bool 
+auto BiosDisk::Int19h(Hypervisor& hypervisor_v, RegisterFile& R, std::uint32_t cpuindex_v) -> bool
 {
 	if (!m_File.is_open()) {
 		throw std::runtime_error("Unable to boot, no boot disk mounted.");
 	}
 
 	std::vector<std::byte> buffer_v (kSectorSize);
-	std::span<std::byte> buffer_s{ buffer_v };
-
+	std::span<std::byte> buffer_s (buffer_v);
 	if (Fetch(buffer_s, Index{ .SectorLBA = 0u }) < kSectorSize) {
 		throw std::runtime_error("Unable to boot, I/O error.");
 	}
 	auto& memory_v = hypervisor_v.GetMemoryManager();
 	memory_v.Write(cpuindex_v, 0x7C00u, buffer_s, memory_v.kVirtualAddress);
 
-	R.cs_size = 0xFFFFu;
-	R.cs_base = 0x0000u;
-	R.rip	= 0x7c00u;
 	R.cs = 0x0000u;
+	R.cs_base = 0x0000u;
+	R.rip = 0x7c00u; 
 	R.dh = m_DriveID;
 	return true;
 }
 
-auto VirtualBiosDisk::Fetch(std::span<std::byte>& buffer_v, Index const& index_v, bool uselba_v) -> std::size_t {
+auto BiosDisk::Fetch(std::span<std::byte>& buffer_v, Index const& index_v, bool uselba_v) -> std::size_t {
 	auto offset_v = CalculateOffset(m_Geometry, index_v, uselba_v);
 	m_File.seekg(offset_v);
 	m_File.read((char*)buffer_v.data(), buffer_v.size());
@@ -222,7 +270,7 @@ auto VirtualBiosDisk::Fetch(std::span<std::byte>& buffer_v, Index const& index_v
 	return bytes_consumed_v;
 }
 
-auto VirtualBiosDisk::Write(std::span<std::byte const>& buffer_v, Index const& index_v, bool uselba_v) -> std::size_t {
+auto BiosDisk::Write(std::span<std::byte const>& buffer_v, Index const& index_v, bool uselba_v) -> std::size_t {
 	auto offset_v = CalculateOffset(m_Geometry, index_v, uselba_v);
 	m_File.seekp(offset_v);
 	m_File.write((char const*)buffer_v.data(), buffer_v.size());

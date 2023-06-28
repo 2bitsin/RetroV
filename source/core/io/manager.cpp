@@ -1,6 +1,7 @@
 #include <core/io/manager.hpp>
 #include <core/hypervisor.hpp>
 #include <utils/bitmanip.hpp>
+#include "manager.hpp"
 
 using core::io::Manager;
 
@@ -68,16 +69,7 @@ auto Manager::DispatchFetch(std::uint32_t index_v, std::uint16_t port_v, std::ui
 	return false;
 }
 
-
-//std::uint64_t address_v = cs_base_v + pip_v - 3u;
-//auto& memory_v = m_Hypervisor.GetMemoryManager();
-//auto push_opcode_v = memory_v.FetchValue<std::uint8_t>(index_v, address_v+0u, memory_v.kValidatedAddress);
-//auto call_number_v = memory_v.FetchValue<std::uint16_t>(index_v, address_v+1u, memory_v.kValidatedAddress);
-//
-//if (0x68u != push_opcode_v) 
-//{}
-
-auto Manager::DispatchIoExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool
+auto Manager::DispatchExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool
 {
 	auto &access_v = exit_v.IoPortAccess;
 	auto port_v = (std::uint16_t)access_v.PortNumber;
@@ -91,9 +83,6 @@ auto Manager::DispatchIoExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT cons
 	} else {
 		DispatchWrite(index_v, port_v, data_v, size_v);
 	}
-
-	m_Hypervisor.SetRegister(index_v, WHvX64RegisterRip, 
-		exit_v.VpContext.InstructionLength + exit_v.VpContext.Rip);
 
 	return true;
 }
