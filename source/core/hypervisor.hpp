@@ -24,12 +24,6 @@ namespace core
 { 
 	struct Hypervisor
 	{
-		/*********************************
-		 * Constants and type definitions
-		 *********************************/
-
-		static inline constexpr auto kAccessWrite = 1u;
-		static inline constexpr auto kAccessFetch = 2u;
 		
 		/*********************************
 		 *  Constructors and destructors
@@ -55,9 +49,9 @@ namespace core
 		 **********************************/
 		auto Run() -> void;
 
-		/*************************************
+		/****************
 		 *  Utility stuff
-		 *************************************/
+		 ****************/
 		static auto GetCapability(WHV_CAPABILITY_CODE, void* buffer_v, std::uint32_t length_v) -> std::uint32_t;
 		template <typename T>
 		static inline auto GetCapability(WHV_CAPABILITY_CODE code_v) -> T {
@@ -71,25 +65,24 @@ namespace core
 		friend struct Config;
 
 
-		/*************************************
+		/************************
 		 *  Misc internal methods
-		 *************************************/
-		auto InitializePartitionProperties() -> void;
+		 ************************/
+		auto InitializePartition() -> void;
 		auto InitializeProcessor(std::uint32_t index_v) -> void;
-		auto RunVirtualProcessor(cpu::Processor& processor_v, std::stop_token token_v) -> void;
 
-		/**********************************
+		/************************
 		 *  Exit handling methods
-		 **********************************/
-		auto DispatchExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool;
-    auto StepOverOffendingInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> void;
-		auto HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool;
+		 ************************/
+		auto DispatchExit(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool;
+    auto NextInstruction(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> void;
+		auto DispatchHalt(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool;
 
 		/***************************
 		 *  Debuging support methods
 		 ***************************/
     auto PrintRegisters(std::ostream& output_v, core::RegisterFile const& R) -> void;
-    auto Disassemble(std::ostream& output_v, std::uint32_t index_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void;
+    auto Disassemble(std::ostream& output_v, cpu::Processor& processor_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void;
 
 		/**********************************
 		 *  Partition configuration methods
@@ -110,9 +103,9 @@ namespace core
 			return GetProperty(code_v, &data_v, size_v);
 		}
 
-		/**********************************
+		/****************
 		 * Internal state
-		 **********************************/
+		 ****************/
 	private:
 		WHV_PARTITION_HANDLE m_Partition{ nullptr };
 
@@ -120,8 +113,6 @@ namespace core
 		mem::Manager m_MemManager;
 		io::Manager m_IoManager;
 		vmc::Manager m_VcManager;
-
 		std::vector<cpu::Processor> m_Processors;
-		std::stop_source m_ProcessorBreak;
 	};
 }

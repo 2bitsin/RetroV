@@ -28,7 +28,7 @@ Hypervisor::Hypervisor(Config const& config_v)
 	,	m_Partition{ nullptr }
 {
 	WIN32_ERROR_ASSERT(::WHvCreatePartition(&m_Partition));
-	InitializePartitionProperties();
+	InitializePartition();
 	config_v.ApplyBeforeSetup(*this);
 	WIN32_ERROR_ASSERT(::WHvSetupPartition(m_Partition));
 	config_v.ApplyAfterSetup(*this);
@@ -72,7 +72,7 @@ auto Hypervisor::GetProcessor(std::uint32_t index_v)->cpu::Processor&
 	return m_Processors.at(index_v);
 }
 
-auto Hypervisor::HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool 
+auto Hypervisor::DispatchHalt(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool 
 {
 	if (exit_v.VpContext.Rflags & 0x200u) {
 		// Interrupts enabled
@@ -112,7 +112,7 @@ auto Hypervisor::PrintRegisters(std::ostream& output_v, core::RegisterFile const
 		<< std::format("SS: {:#06x} LIMIT:{:#010x} BASE:{:#018x} ATTR:{:#06x}\n", R.ss, R.ss_size, R.ss_base, R.ss_attr);
 }
 
-auto Hypervisor::Disassemble(std::ostream& output_v, std::uint32_t index_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void 
+auto Hypervisor::Disassemble(std::ostream& output_v, cpu::Processor& processor_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void
 {
 	capstone::instance capstone_v { cs_arch::CS_ARCH_X86, cs_mode::CS_MODE_16, {
 		{ CS_OPT_SYNTAX, CS_OPT_SYNTAX_INTEL }, 
@@ -127,7 +127,7 @@ auto Hypervisor::Disassemble(std::ostream& output_v, std::uint32_t index_v, std:
 	{
 		auto& memory_v = GetMemoryManager();
 		auto next_buffer_v = std::span<std::byte>{ bytes_v }.first(remaining_bytes_v);
-		memory_v.Fetch(index_v, virtual_address_v, next_buffer_v, memory_v.kVirtualAddress);
+		memory_v.Fetch(processor_v.GetIndex(), virtual_address_v, next_buffer_v, memory_v.kVirtualAddress);
 
 		auto disassembly_v = capstone_v.disasm(bytes_v, virtual_address_v, count_v);
 
@@ -155,64 +155,45 @@ auto Hypervisor::Disassemble(std::ostream& output_v, std::uint32_t index_v, std:
 	}
 }
 
-auto Hypervisor::DispatchExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool 
-{
-	auto& processor_v = GetProcessor(index_v);
+auto Hypervisor::DispatchExit(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool
+{	
 	switch (exit_v.ExitReason) 
 	{
 	case WHvRunVpExitReasonX64Halt:
-		return HandleHaltInstruction(index_v, exit_v);
+		return DispatchHalt(processor_v, exit_v);
 	case WHvRunVpExitReasonX64IoPortAccess:
-		return m_IoManager.DispatchExit(index_v, exit_v);
+		return m_IoManager.DispatchExit(processor_v, exit_v);
 	case WHvRunVpExitReasonHypercall:	
-		return m_VcManager.DispatchExit(index_v, exit_v);
+		return m_VcManager.DispatchExit(processor_v, exit_v);
 	default:
 		__debugbreak();
 		PrintRegisters(std::cerr, processor_v.GetRegisters());
-		Disassemble(std::cerr, index_v, exit_v.VpContext.Rip+exit_v.VpContext.Cs.Base, 20u);
+		Disassemble(std::cerr, processor_v, exit_v.VpContext.Rip+exit_v.VpContext.Cs.Base, 20u);
 		__debugbreak();
 		return false;
 	}
 	return true;
 }
 
-auto Hypervisor::StepOverOffendingInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> void {
-	auto& processor_v = GetProcessor(index_v);
+auto Hypervisor::NextInstruction(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> void {	
 	processor_v.SetRegister(WHvX64RegisterRip, exit_v.VpContext.Rip + exit_v.VpContext.InstructionLength);
 }
 
-auto Hypervisor::RunVirtualProcessor(cpu::Processor& processor_v, std::stop_token token_v) -> void {
-	try
-	{
-		WHV_RUN_VP_EXIT_CONTEXT exit_v;
-		while (!token_v.stop_requested()) {			
-			auto const exit_v = processor_v.Run();
-			auto const index_v = processor_v.GetIndex();
-			if (DispatchExit(index_v, exit_v)) {
-				StepOverOffendingInstruction(index_v, exit_v);
-			}
-		}
-	} catch (std::exception const& ex) {
-		std::cerr << __func__ << ": " << ex.what() << "\n";
-		throw;
-	}
-}
 
 auto Hypervisor::Run() -> void
 {
-	std::vector<std::future<void>> futures_v;
-	futures_v.reserve(m_Processors.size());
-	auto launch_v = std::launch::deferred;
-	for(auto& processor_v : m_Processors) {
-		futures_v.emplace_back(std::async(launch_v,
-			[this, &processor_v, token_v = m_ProcessorBreak.get_token()] () mutable -> void {
-				RunVirtualProcessor(processor_v, std::move(token_v));
-			}));		
-		launch_v = std::launch::async;
-	}
-	for(auto&& future_v : futures_v) {
-		future_v.get();
-	}
+	auto& processor_v = m_Processors[0];
+	auto exit_v = processor_v.Run();
+		
+}
+
+auto Hypervisor::InitializePartition() -> void
+{
+	auto scheduler_features_v = GetCapability<WHV_CAPABILITY_PROCESSOR_FREQUENCY_CAP>(WHvCapabilityCodeProcessorFrequencyCap);
+
+	SetProperty(WHvPartitionPropertyCodeExceptionExitBitmap, std::uint64_t{ 0x40u });
+	SetProperty(WHvPartitionPropertyCodeExtendedVmExits, WHV_EXTENDED_VM_EXITS{ .ExceptionExit = 1, .HypercallExit = 1 });
+	SetProperty(WHvPartitionPropertyCodeProcessorFeatures, WHV_PROCESSOR_FEATURES{ .LahfSahfSupport = 1 });
 }
 
 auto Hypervisor::SetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void const* data_v, std::uint32_t size_v) -> void
@@ -229,13 +210,6 @@ auto Hypervisor::GetCapability(WHV_CAPABILITY_CODE code_v, void* buffer_v, std::
 {
 	WIN32_ERROR_ASSERT(WHvGetCapability(code_v, buffer_v, length_v, &length_v));
 	return length_v;
-}
-
-auto Hypervisor::InitializePartitionProperties() -> void 
-{
-	SetProperty(WHvPartitionPropertyCodeExceptionExitBitmap, std::uint64_t{ 0x40u });
-	SetProperty(WHvPartitionPropertyCodeExtendedVmExits, WHV_EXTENDED_VM_EXITS{ .ExceptionExit = 1, .HypercallExit = 1 });
-	SetProperty(WHvPartitionPropertyCodeProcessorFeatures, WHV_PROCESSOR_FEATURES{ .LahfSahfSupport = 1 });
 }
 
 auto Hypervisor::InitializeProcessor(std::uint32_t index_v) -> void

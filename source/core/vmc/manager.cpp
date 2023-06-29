@@ -31,19 +31,17 @@ auto Manager::UnregisterCallback(std::uint16_t callno_v, std::uint32_t target_v)
 			break; }}
 }
 
-#include <iostream>
-auto Manager::DispatchCallback(std::uint32_t index_v, std::uint16_t callno_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool
+auto Manager::DispatchCallback(cpu::Processor& processor_v, std::uint16_t callno_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool
 {
 	//std::cerr << "Dispatching callback " << std::hex << callno_v << std::endl;
 	if (callno_v >= m_Callbacks.size() || m_Callbacks[callno_v].empty())
-		return true;
-	auto& processor_v = m_Hypervisor.GetProcessor(index_v);
+		return true;	
 	auto registers_v = processor_v.GetRegisters();
 	registers_v.rip = exit_v.VpContext.InstructionLength + exit_v.VpContext.Rip;
 	auto ishandled_v = false;
 	for (auto&& [_, callback_v] : m_Callbacks[callno_v]) {
 		ishandled_v = true;
-		if (callback_v(m_Hypervisor, registers_v, index_v, callno_v)) {			
+		if (callback_v(m_Hypervisor, registers_v, processor_v, callno_v)) {			
 			break; }}
 	if (ishandled_v) {
 		processor_v.SetRegisters(registers_v);
@@ -53,12 +51,12 @@ auto Manager::DispatchCallback(std::uint32_t index_v, std::uint16_t callno_v, WH
 	return true;
 }
 
-auto Manager::DispatchExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool
+auto Manager::DispatchExit(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool
 {
 	auto& memory_v = m_Hypervisor.GetMemoryManager();
 	auto cs_base_v = exit_v.VpContext.Cs.Base;
 	auto pip_v = exit_v.VpContext.Rip;
 	auto [opcode_v, number_v] = memory_v.FetchValue<std::uint8_t, std::uint16_t>(
-		index_v, cs_base_v + pip_v - 3u, memory_v.kValidatedAddress);		
-	return DispatchCallback(index_v, 0x68u != opcode_v ? kLastCallNumber : number_v, exit_v);
+		processor_v.GetIndex(), cs_base_v + pip_v - 3u, memory_v.kValidatedAddress);
+	return DispatchCallback(processor_v, 0x68u != opcode_v ? kLastCallNumber : number_v, exit_v);
 }

@@ -1,3 +1,4 @@
 
 Strings:
     .Hello: db "Booting HvDOS ...", 13, 10, 0
+    .Delay: db "Spinning for a while ...", 13, 10, 0

@@ -15,21 +15,26 @@ namespace core
 	struct Hypervisor;
 }
 
+namespace core::cpu
+{
+	struct Processor;
+}
+
 namespace core::vmc
 {
 	struct Manager
 	{
 		static inline constexpr const auto kLastCallNumber = 0xFFFFu;
 
-		using vmcall_callback = bool(core::Hypervisor& hypervisor_v, core::RegisterFile& registers_v, std::uint32_t index_v, std::uint16_t vmcallno_v);
+		using vmcall_callback = bool(core::Hypervisor& hypervisor_v, core::RegisterFile& registers_v, cpu::Processor& processor_v, std::uint16_t vmcallno_v);
 
 		Manager(core::Hypervisor&);
 		~Manager();
 		
 		auto RegisterCallback(std::uint16_t callno_v, std::function<vmcall_callback> callback_v) -> std::uint32_t;
 		auto UnregisterCallback(std::uint16_t callno_v, std::uint32_t slot_v) -> void;
-		auto DispatchCallback(std::uint32_t index_v, std::uint16_t callno_v, WHV_RUN_VP_EXIT_CONTEXT const&) -> bool;
-		auto DispatchExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const&) -> bool;
+		auto DispatchCallback(cpu::Processor& processor_v, std::uint16_t callno_v, WHV_RUN_VP_EXIT_CONTEXT const&) -> bool;
+		auto DispatchExit(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const&) -> bool;
 
 	private:
 		core::Hypervisor& m_Hypervisor;

@@ -28,7 +28,7 @@ auto Manager::VirtualToPhysical(std::uint32_t index_v, std::uint64_t& inout_addr
 {
 	WHV_TRANSLATE_GVA_RESULT result_v{ };
 	auto& processor_v = m_Hypervisor.GetProcessor(index_v);
-	auto const control0_v = processor_v.GetRegister<std::uint64_t>( WHvX64RegisterCr0);
+	auto const control0_v = processor_v.GetRegister<std::uint64_t>(WHvX64RegisterCr0);
 	static constexpr const std::uint64_t kPagingEnabled = 0x80000000u;
 	if (!(control0_v & kPagingEnabled)) {
 		return WHvTranslateGvaResultSuccess;

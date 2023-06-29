@@ -22,7 +22,7 @@ namespace core
 		auto operator = (BiosVideo&&) -> BiosVideo& = delete;
 		auto operator = (BiosVideo const&) -> BiosVideo& = delete;
 
-		auto Int10h(core::Hypervisor& hypervisor_v, core::RegisterFile& registers_v, std::uint32_t cpuindex_v) -> bool;
+		auto Int10h(core::Hypervisor& hypervisor_v, core::RegisterFile& registers_v, cpu::Processor& processor_v) -> bool;
 
 	private:
 		Hypervisor& m_Hypervisor;

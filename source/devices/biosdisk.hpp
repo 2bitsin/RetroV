@@ -46,8 +46,8 @@ namespace core
 		auto Write(std::span<std::byte const>& buffer_v, Index const& index_v, bool uselba_v = true) -> std::size_t;
 		auto Unmount() -> void;
 
-		auto Int13h(core::Hypervisor& hypervisor_v, core::RegisterFile& registers_v, std::uint32_t cpuindex_v) -> bool;
-		auto Int19h(core::Hypervisor& hypervisor_v, core::RegisterFile& registers_v, std::uint32_t cpuindex_v) -> bool;
+		auto Int13h(core::Hypervisor& hypervisor_v, core::RegisterFile& registers_v, cpu::Processor& processor_v) -> bool;
+		auto Int19h(core::Hypervisor& hypervisor_v, core::RegisterFile& registers_v, cpu::Processor& processor_v) -> bool;
 
 	private:
 		core::Hypervisor& m_Hypervisor;

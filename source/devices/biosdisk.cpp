@@ -105,12 +105,12 @@ BiosDisk::BiosDisk(core::Hypervisor& hypervisor_v, std::uint8_t drive_id_v)
 	: m_Hypervisor(hypervisor_v)
 	, m_DriveID(drive_id_v)
 	, m_Int13h(hypervisor_v.GetVcManager().RegisterCallback(0x13u,
-		[this](auto& hypervisor_v, auto& registers_v, auto index_v, auto callno_v) {
-			return Int13h(hypervisor_v, registers_v, index_v);
+		[this](auto& hypervisor_v, auto& registers_v, auto& processor_v, auto callno_v) {
+			return Int13h(hypervisor_v, registers_v, processor_v);
 		}))
 	, m_Int19h(hypervisor_v.GetVcManager().RegisterCallback(0x19u,
-		[this](auto& hypervisor_v, auto& registers_v, auto index_v, auto callno_v) {
-			return Int19h(hypervisor_v, registers_v, index_v);
+		[this](auto& hypervisor_v, auto& registers_v, auto& processor_v, auto callno_v) {
+			return Int19h(hypervisor_v, registers_v, processor_v);
 		}))
 {}
 
@@ -178,7 +178,7 @@ auto BiosDisk::Unmount() -> void
 	m_UseLBA = true;
 }
 
-auto BiosDisk::Int13h(Hypervisor& hypervisor_v, RegisterFile& R, std::uint32_t cpuindex_v) -> bool
+auto BiosDisk::Int13h(Hypervisor& hypervisor_v, RegisterFile& R, cpu::Processor& processor_v) -> bool
 {
 	switch (R.ah) {
 	case 0x00u: // Reset Disk System
@@ -218,7 +218,7 @@ auto BiosDisk::Int13h(Hypervisor& hypervisor_v, RegisterFile& R, std::uint32_t c
 			}
 
 			auto& memory_v=m_Hypervisor.GetMemoryManager();
-			memory_v.Write(cpuindex_v, R.es_base + R.bx, buffer_s, memory_v.kVirtualAddress);
+			memory_v.Write(processor_v.GetIndex(), R.es_base + R.bx, buffer_s, memory_v.kVirtualAddress);
 			auto const sectors_read_v = buffer_s.size() / kSectorSize;
 			if (sectors_read_v != R.al) {
 				R.ah = m_LastError = SECTOR_NOT_FOUND_OR_READ_ERROR;
@@ -238,7 +238,7 @@ auto BiosDisk::Int13h(Hypervisor& hypervisor_v, RegisterFile& R, std::uint32_t c
 	return false;
 }
 
-auto BiosDisk::Int19h(Hypervisor& hypervisor_v, RegisterFile& R, std::uint32_t cpuindex_v) -> bool
+auto BiosDisk::Int19h(Hypervisor& hypervisor_v, RegisterFile& R, cpu::Processor& processor_v) -> bool
 {
 	if (!m_File.is_open()) {
 		throw std::runtime_error("Unable to boot, no boot disk mounted.");
@@ -250,7 +250,7 @@ auto BiosDisk::Int19h(Hypervisor& hypervisor_v, RegisterFile& R, std::uint32_t c
 		throw std::runtime_error("Unable to boot, I/O error.");
 	}
 	auto& memory_v = hypervisor_v.GetMemoryManager();
-	memory_v.Write(cpuindex_v, 0x7C00u, buffer_s, memory_v.kVirtualAddress);
+	memory_v.Write(processor_v.GetIndex(), 0x7C00u, buffer_s, memory_v.kVirtualAddress);
 
 	R.cs = 0x0000u;
 	R.cs_base = 0x0000u;

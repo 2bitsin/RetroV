@@ -38,7 +38,7 @@ struct InitialProcessorState
 
 	static constexpr const WHV_REGISTER_VALUE Values[] =
 	{
-		/* FLAGS */ {.Reg64 = 0x0000000000000002u },
+		/* FLAGS */ {.Reg64 = 0x0000000000000002u + 0x0200u },
 		/* RIP   */ {.Reg64 = 0x000000000000FFF0u },
 		/* CS    */ {.Segment = {.Base = 0xf0000u, .Limit = 0xFFFFu, .Selector = 0xF000u, .Attributes = 0x009Eu } },
 		/* DS    */ {.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
@@ -220,10 +220,38 @@ auto Processor::IsVendorAMD() -> bool {
 	return vendor_v == WHvProcessorVendorAmd || vendor_v == WHvProcessorVendorHygon;
 }
 
+#include <iostream>
+#include <fstream>
 auto core::cpu::Processor::Run() -> WHV_RUN_VP_EXIT_CONTEXT {
 	WHV_RUN_VP_EXIT_CONTEXT exit_v;
 	std::memset(&exit_v, 0, sizeof(exit_v));
 	auto handle_v = (*m_Hypervisor).GetParitionHandle();
+
+	/*
+	SetRegister(WHvRegisterPendingInterruption, WHV_X64_PENDING_INTERRUPTION_REGISTER{
+		.InterruptionPending = 1,
+		.InterruptionType = WHvX64PendingInterrupt,
+		.DeliverErrorCode = 0,
+		.InstructionLength = 0,
+		.NestedEvent = 0,
+		.Reserved = 0,
+		.InterruptionVector = 0x1,
+		.ErrorCode = 0
+	});
+	*/
+
+	SetRegister(WHvRegisterPendingInterruption, WHV_X64_PENDING_INTERRUPTION_REGISTER{
+		.InterruptionPending = 1,
+		.InterruptionType = WHvX64PendingInterrupt,
+		.DeliverErrorCode = 0,
+		.InstructionLength = 0,
+		.NestedEvent = 0,
+		.Reserved = 0,
+		.InterruptionVector = 0x2,
+		.ErrorCode = 0
+	});
+		
+	
 	WIN32_ERROR_ASSERT(::WHvRunVirtualProcessor(handle_v, m_Index, &exit_v, sizeof(exit_v)));
 	return exit_v;
 }
