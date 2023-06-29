@@ -1,13 +1,13 @@
-#include <core/memory/pool.hpp>
+#include <core/mem/pool.hpp>
 #include <format>
 
-using core::memory::Pool;
+using core::mem::Pool;
 
-auto Pool::GetBlock(std::size_t index_v) -> core::memory::Block& {
+auto Pool::GetBlock(std::size_t index_v) -> core::mem::Block& {
 	return m_Blocks[index_v];
 }
 
-auto Pool::GetBlock(std::size_t index_v) const -> core::memory::Block const& {
+auto Pool::GetBlock(std::size_t index_v) const -> core::mem::Block const& {
 	if (index_v >= m_Blocks.size()) {
 		throw std::out_of_range{ std::format(
 			"{} : Block index out of range.", __func__) };

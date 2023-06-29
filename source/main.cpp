@@ -21,3 +21,8 @@ catch (std::exception const& ex)
 	std::cerr << ex.what() << "\n";
 	return -1;
 }
+catch (...)
+{
+	std::cerr << "Unknown exception\n";
+	return -1;
+}

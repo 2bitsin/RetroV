@@ -1,7 +1,7 @@
-#include <core/vmcall/manager.hpp>
+#include <core/vmc/manager.hpp>
 #include <core/hypervisor.hpp>
 
-using core::vmcall::Manager;
+using core::vmc::Manager;
 
 Manager::Manager(core::Hypervisor& hypervisor_v)
 	: m_Hypervisor(hypervisor_v)
@@ -37,7 +37,8 @@ auto Manager::DispatchCallback(std::uint32_t index_v, std::uint16_t callno_v, WH
 	//std::cerr << "Dispatching callback " << std::hex << callno_v << std::endl;
 	if (callno_v >= m_Callbacks.size() || m_Callbacks[callno_v].empty())
 		return true;
-	auto registers_v = m_Hypervisor.GetRegisters(index_v);
+	auto& processor_v = m_Hypervisor.GetProcessor(index_v);
+	auto registers_v = processor_v.GetRegisters();
 	registers_v.rip = exit_v.VpContext.InstructionLength + exit_v.VpContext.Rip;
 	auto ishandled_v = false;
 	for (auto&& [_, callback_v] : m_Callbacks[callno_v]) {
@@ -45,7 +46,7 @@ auto Manager::DispatchCallback(std::uint32_t index_v, std::uint16_t callno_v, WH
 		if (callback_v(m_Hypervisor, registers_v, index_v, callno_v)) {			
 			break; }}
 	if (ishandled_v) {
-		m_Hypervisor.SetRegisters(index_v, registers_v);
+		processor_v.SetRegisters(registers_v);
 		return false;
 	} 	
 	__debugbreak();

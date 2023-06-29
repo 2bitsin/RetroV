@@ -16,7 +16,7 @@ namespace core
 	struct Hypervisor;
 }
 
-namespace core::memory
+namespace core::mem
 {
 	struct Manager 
 	{

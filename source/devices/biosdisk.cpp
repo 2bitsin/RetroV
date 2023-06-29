@@ -1,4 +1,4 @@
-#include <core/memory/block.hpp>
+#include <core/mem/block.hpp>
 #include <core/hypervisor.hpp>
 #include <devices/biosdisk.hpp>
 
@@ -201,8 +201,6 @@ auto BiosDisk::Int13h(Hypervisor& hypervisor_v, RegisterFile& R, std::uint32_t c
 	case 0x02u: // Read Sectors From Drive
 		if (R.dl == m_DriveID)
 		{
-			using core::memory::Block;
-
 			std::vector<std::byte> buffer_v (R.al*kSectorSize);
 			std::span buffer_s { buffer_v };
 

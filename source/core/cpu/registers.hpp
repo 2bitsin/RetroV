@@ -6,7 +6,7 @@
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
 
-namespace core
+namespace core::cpu
 {
 
 	struct RegisterFile
@@ -65,4 +65,9 @@ namespace core
 
 	};
 
+}
+
+namespace core
+{
+	using RegisterFile = cpu::RegisterFile;
 }

@@ -1,13 +1,13 @@
 #pragma once
 
-#include <core/memory/block.hpp>
+#include <core/mem/block.hpp>
 
 #include <cstdint>
 #include <cstddef>
 #include <vector>
 #include <mutex>
 
-namespace core::memory
+namespace core::mem
 {
 	struct Pool
 	{

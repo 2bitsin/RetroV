@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <span>
 
-namespace core::memory
+namespace core::mem
 {
 	struct Block
 	{

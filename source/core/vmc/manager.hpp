@@ -3,7 +3,7 @@
 #include <win32/error.hpp>
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
-#include <core/registerfile.hpp>
+#include <core/cpu/registers.hpp>
 
 #include <functional>
 #include <cstdint>
@@ -15,7 +15,7 @@ namespace core
 	struct Hypervisor;
 }
 
-namespace core::vmcall
+namespace core::vmc
 {
 	struct Manager
 	{

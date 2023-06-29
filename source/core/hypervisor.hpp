@@ -10,13 +10,15 @@
 #include <utils/as_bytes.hpp>
 #include <win32/error.hpp>
 #include <win32/winhvpx.hpp>
-#include <core/vmcall/manager.hpp>
-#include <core/memory/block.hpp>
-#include <core/memory/pool.hpp>
-#include <core/memory/manager.hpp>
-#include <core/io/manager.hpp>
 #include <core/config.hpp>
-#include <core/registerfile.hpp>
+#include <core/vmc/manager.hpp>
+#include <core/mem/block.hpp>
+#include <core/mem/pool.hpp>
+#include <core/mem/manager.hpp>
+#include <core/io/manager.hpp>
+#include <core/cpu/registers.hpp>
+#include <core/cpu/processor.hpp>
+
 
 namespace core
 { 
@@ -41,36 +43,17 @@ namespace core
 		Hypervisor (Config const&);
 	  ~Hypervisor ();
 
-		auto GetMemoryPool() -> memory::Pool&;
-		auto GetParitionHandle() -> WHV_PARTITION_HANDLE;
-		auto GetCpuIndexes() -> std::span<std::uint32_t const>;
-		auto GetMemoryManager() -> memory::Manager&;
+		auto GetMemoryPool() -> mem::Pool&;
+		auto GetParitionHandle() -> WHV_PARTITION_HANDLE;		
+		auto GetMemoryManager() -> mem::Manager&;
 		auto GetIoManager() -> io::Manager&;
-		auto GetVcManager() -> vmcall::Manager&;
+		auto GetVcManager() -> vmc::Manager&;
+		auto GetProcessor(std::uint32_t index_v) -> cpu::Processor&;
 
 		/**********************************
 		 *  Processor configuration methods
 		 **********************************/
-		auto InitializeProcessor(std::uint32_t index) -> void;
 		auto Run() -> void;
-		template <typename T>
-		auto SetRegister(std::uint32_t index_v, WHV_REGISTER_NAME name_v, T const& value_v) -> void {
-			WHV_REGISTER_VALUE value_s { 0 };
-			std::memcpy(&value_s, &value_v, std::min(sizeof(value_s), sizeof(value_v)));
-			WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(m_Partition, index_v, &name_v, 1u, &value_s));
-		}
-		template <typename T>
-		auto GetRegister(std::uint32_t index_v, WHV_REGISTER_NAME name_v) const -> T {
-			WHV_REGISTER_VALUE value_s { 0 };
-			WIN32_ERROR_ASSERT(::WHvGetVirtualProcessorRegisters(m_Partition, index_v, &name_v, 1u, &value_s));
-			T value_v { 0 };
-			std::memcpy(&value_v, &value_s, std::min(sizeof(value_s), sizeof(value_v)));
-			return value_v;
-		}
-		auto GetRegisters(std::uint32_t index_v) const -> RegisterFile;
-		auto SetRegisters(std::uint32_t index_v, RegisterFile const&) -> void;
-		static auto IsVendorIntel() -> bool;
-		static auto IsVendorAMD() -> bool;
 
 		/*************************************
 		 *  Utility stuff
@@ -92,7 +75,8 @@ namespace core
 		 *  Misc internal methods
 		 *************************************/
 		auto InitializePartitionProperties() -> void;
-		auto RunVirtualProcessor(std::uint32_t index_v, std::stop_token token_v) -> void;
+		auto InitializeProcessor(std::uint32_t index_v) -> void;
+		auto RunVirtualProcessor(cpu::Processor& processor_v, std::stop_token token_v) -> void;
 
 		/**********************************
 		 *  Exit handling methods
@@ -132,12 +116,12 @@ namespace core
 	private:
 		WHV_PARTITION_HANDLE m_Partition{ nullptr };
 
-		memory::Pool		m_MemoryPool;
-		memory::Manager m_MemoryManager;
-		io::Manager			m_IoManager;
-		vmcall::Manager m_VMCallManager;
+		mem::Pool m_MemPool;
+		mem::Manager m_MemManager;
+		io::Manager m_IoManager;
+		vmc::Manager m_VcManager;
 
-		std::vector<std::uint32_t> m_Processors;
+		std::vector<cpu::Processor> m_Processors;
 		std::stop_source m_ProcessorBreak;
 	};
 }

@@ -1,4 +1,4 @@
-#include <core/memory/block.hpp>
+#include <core/mem/block.hpp>
 #include <win32/error.hpp>
 
 #include <system_error>
@@ -6,7 +6,7 @@
 #include <iostream>
 #include <fstream>
 
-using core::memory::Block;
+using core::mem::Block;
 
 Block::Block()
 	: m_Data(nullptr)

@@ -19,83 +19,11 @@
 
 using core::Hypervisor;
 
-struct InitialProcessorState
-{
-	static constexpr const WHV_REGISTER_NAME Names[] = {
-		/*  0 */ WHvX64RegisterRflags,
-		/*  1 */ WHvX64RegisterRip,
-		/*  2 */ WHvX64RegisterCs,
-		/*  3 */ WHvX64RegisterDs,
-		/*  4 */ WHvX64RegisterEs,
-		/*  5 */ WHvX64RegisterSs,
-		/*  6 */ WHvX64RegisterFs,
-		/*  7 */ WHvX64RegisterGs,
-		/*  8 */ WHvX64RegisterIdtr,
-		/*  9 */ WHvX64RegisterGdtr,
-		/*  A */ WHvX64RegisterRax,
-		/*  B */ WHvX64RegisterRbx,
-		/*  C */ WHvX64RegisterRcx,
-		/*  D */ WHvX64RegisterRdx,
-		/*  E */ WHvX64RegisterRsi,
-		/*  F */ WHvX64RegisterRdi,
-		/* 10 */ WHvX64RegisterRbp,
-		/* 11 */ WHvX64RegisterRsp,
-		/* 12 */ WHvX64RegisterR8,
-		/* 13 */ WHvX64RegisterR9,
-		/* 14 */ WHvX64RegisterR10,
-		/* 15 */ WHvX64RegisterR11,
-		/* 16 */ WHvX64RegisterR12,
-		/* 17 */ WHvX64RegisterR13,
-		/* 18 */ WHvX64RegisterR14,
-		/* 19 */ WHvX64RegisterR15,
-		/* 1A */ WHvX64RegisterCr0,
-		/* 1B */ WHvX64RegisterCr2,
-		/* 1C */ WHvX64RegisterCr3,
-		/* 1D */ WHvX64RegisterCr4,
-	};
-
-	static constexpr const WHV_REGISTER_VALUE Values[] =
-	{
-		/* FLAGS */ {.Reg64 = 0x0000000000000002u },
-		/* RIP   */ {.Reg64 = 0x000000000000FFF0u },
-		/* CS    */ {.Segment = {.Base = 0xf0000u, .Limit = 0xFFFFu, .Selector = 0xF000u, .Attributes = 0x009Eu } },
-		/* DS    */ {.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
-		/* ES    */ {.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
-		/* SS    */ {.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
-		/* FS    */ {.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
-		/* GS    */ {.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
-		/* GDTR  */ {.Table = {.Limit = 0x03FFu, .Base = 0x00000000u  } },
-		/* IDTR  */ {.Table = {.Limit = 0x0000u, .Base = 0x00000000u  } },
-		/* RAX   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* RBX   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* RCX   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* RDX   */ {.Reg64 = 0x0000'0000'0000'0000u},		
-		/* RSI   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* RDI   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* RSP   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* RBP   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* R8    */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* R9    */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* R10   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* R11   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* R12   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* R13   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* R14   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* R15   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* CR0   */ {.Reg64 = 0x0000'0000'6000'0010u},
-		/* CR2   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* CR3   */ {.Reg64 = 0x0000'0000'0000'0000u},
-		/* CR4   */ {.Reg64 = 0x0000'0000'0000'0000u}
-	};
-
-	static constexpr const std::size_t Count = std::min(std::size(Names), std::size(Values));
-};
-
 Hypervisor::Hypervisor(Config const& config_v)
-	:	m_MemoryPool{ }
-	,	m_MemoryManager{ *this }
+	:	m_MemPool{ }
+	,	m_MemManager{ *this }
 	, m_IoManager{ *this }
-	,	m_VMCallManager { *this }
+	,	m_VcManager { *this }
 	,	m_Processors{ }
 	,	m_Partition{ nullptr }
 {
@@ -119,39 +47,29 @@ auto Hypervisor::GetParitionHandle() -> WHV_PARTITION_HANDLE
 	return m_Partition;
 }
 
-auto Hypervisor::GetCpuIndexes() -> std::span<std::uint32_t const>
+auto Hypervisor::GetMemoryPool() -> mem::Pool&
 {
-	return m_Processors;
+	return m_MemPool;
 }
 
-auto Hypervisor::GetMemoryPool() -> memory::Pool&
+auto Hypervisor::GetMemoryManager() -> mem::Manager&
 {
-	return m_MemoryPool;
+	return m_MemManager;
 }
 
-auto core::Hypervisor::GetMemoryManager() -> memory::Manager&
-{
-	return m_MemoryManager;
-}
-
-auto core::Hypervisor::GetIoManager() -> io::Manager&
+auto Hypervisor::GetIoManager() -> io::Manager&
 {
 	return m_IoManager;
 }
 
-auto core::Hypervisor::GetVcManager() -> vmcall::Manager&
+auto Hypervisor::GetVcManager() -> vmc::Manager&
 {
-	return m_VMCallManager;
+	return m_VcManager;
 }
 
-auto Hypervisor::InitializeProcessor(std::uint32_t index_v) -> void
+auto Hypervisor::GetProcessor(std::uint32_t index_v)->cpu::Processor&
 {
-	WIN32_ERROR_ASSERT(::WHvCreateVirtualProcessor(m_Partition, index_v, 0u));
-	WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(m_Partition, index_v,
-		InitialProcessorState::Names, 
-		InitialProcessorState::Count, 
-		InitialProcessorState::Values));
-	m_Processors.emplace_back(index_v);
+	return m_Processors.at(index_v);
 }
 
 auto Hypervisor::HandleHaltInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool 
@@ -239,16 +157,18 @@ auto Hypervisor::Disassemble(std::ostream& output_v, std::uint32_t index_v, std:
 
 auto Hypervisor::DispatchExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool 
 {
-	switch (exit_v.ExitReason) {
+	auto& processor_v = GetProcessor(index_v);
+	switch (exit_v.ExitReason) 
+	{
 	case WHvRunVpExitReasonX64Halt:
 		return HandleHaltInstruction(index_v, exit_v);
 	case WHvRunVpExitReasonX64IoPortAccess:
 		return m_IoManager.DispatchExit(index_v, exit_v);
 	case WHvRunVpExitReasonHypercall:	
-		return m_VMCallManager.DispatchExit(index_v, exit_v);
+		return m_VcManager.DispatchExit(index_v, exit_v);
 	default:
 		__debugbreak();
-		PrintRegisters(std::cerr, GetRegisters(index_v));
+		PrintRegisters(std::cerr, processor_v.GetRegisters());
 		Disassemble(std::cerr, index_v, exit_v.VpContext.Rip+exit_v.VpContext.Cs.Base, 20u);
 		__debugbreak();
 		return false;
@@ -257,17 +177,17 @@ auto Hypervisor::DispatchExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT con
 }
 
 auto Hypervisor::StepOverOffendingInstruction(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> void {
-	SetRegister(index_v, WHvX64RegisterRip, exit_v.VpContext.Rip + exit_v.VpContext.InstructionLength);
+	auto& processor_v = GetProcessor(index_v);
+	processor_v.SetRegister(WHvX64RegisterRip, exit_v.VpContext.Rip + exit_v.VpContext.InstructionLength);
 }
 
-auto Hypervisor::RunVirtualProcessor(std::uint32_t index_v, std::stop_token token_v) -> void {
+auto Hypervisor::RunVirtualProcessor(cpu::Processor& processor_v, std::stop_token token_v) -> void {
 	try
 	{
 		WHV_RUN_VP_EXIT_CONTEXT exit_v;
-		while (!token_v.stop_requested()) {
-			std::memset(&exit_v, 0, sizeof(exit_v));
-			WIN32_ERROR_ASSERT(::WHvRunVirtualProcessor(
-				m_Partition, index_v, &exit_v, sizeof(exit_v)));
+		while (!token_v.stop_requested()) {			
+			auto const exit_v = processor_v.Run();
+			auto const index_v = processor_v.GetIndex();
 			if (DispatchExit(index_v, exit_v)) {
 				StepOverOffendingInstruction(index_v, exit_v);
 			}
@@ -283,9 +203,9 @@ auto Hypervisor::Run() -> void
 	std::vector<std::future<void>> futures_v;
 	futures_v.reserve(m_Processors.size());
 	auto launch_v = std::launch::deferred;
-	for(auto&& processor_v : m_Processors) {
+	for(auto& processor_v : m_Processors) {
 		futures_v.emplace_back(std::async(launch_v,
-			[this, processor_v, token_v = m_ProcessorBreak.get_token()] () mutable -> void {
+			[this, &processor_v, token_v = m_ProcessorBreak.get_token()] () mutable -> void {
 				RunVirtualProcessor(processor_v, std::move(token_v));
 			}));		
 		launch_v = std::launch::async;
@@ -305,108 +225,6 @@ auto Hypervisor::GetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void* data_v, s
 	WIN32_ERROR_ASSERT(::WHvGetPartitionProperty(m_Partition, code_v, data_v, size_v, &size_v));
 }
 
-auto core::Hypervisor::GetRegisters(std::uint32_t index_v) const -> RegisterFile
-{
-	std::vector<WHV_REGISTER_VALUE> values_v;
-	values_v.resize(std::size(RegisterFile::Layout));
-	WIN32_ERROR_ASSERT(::WHvGetVirtualProcessorRegisters(m_Partition, index_v,
-		RegisterFile::Layout, std::size(RegisterFile::Layout), values_v.data()));	
-	return RegisterFile 
-	{ 
-		.rax			= values_v[0].Reg64,
-		.rbx			= values_v[1].Reg64,
-		.rcx			= values_v[2].Reg64,
-		.rdx			= values_v[3].Reg64,	
-		.rsi			= values_v[4].Reg64,
-		.rdi			= values_v[5].Reg64,
-		.rbp			= values_v[6].Reg64,
-		.rsp			= values_v[7].Reg64,
-		.r8				= values_v[8].Reg64,
-		.r9				= values_v[9].Reg64,
-		.r10			= values_v[10].Reg64,
-		.r11			= values_v[11].Reg64,
-		.r12			= values_v[12].Reg64,
-		.r13			= values_v[13].Reg64,
-		.r14			= values_v[14].Reg64,
-		.r15			= values_v[15].Reg64,
-		.rip			= values_v[16].Reg64,
-		.rflags		= values_v[17].Reg64,
-
-		.cs_base	= values_v[18].Segment.Base,
-		.cs_size	= values_v[18].Segment.Limit,
-		.cs				= values_v[18].Segment.Selector,
-		.cs_attr	= values_v[18].Segment.Attributes,
-
-		.ds_base	= values_v[19].Segment.Base,
-		.ds_size	= values_v[19].Segment.Limit,
-		.ds				= values_v[19].Segment.Selector,
-		.ds_attr	= values_v[19].Segment.Attributes,
-
-		.es_base	= values_v[20].Segment.Base,
-		.es_size	= values_v[20].Segment.Limit,
-		.es				= values_v[20].Segment.Selector,
-		.es_attr	= values_v[20].Segment.Attributes,
-
-		.fs_base	= values_v[21].Segment.Base,
-		.fs_size	= values_v[21].Segment.Limit,
-		.fs				= values_v[21].Segment.Selector,
-		.fs_attr	= values_v[21].Segment.Attributes,
-
-		.gs_base	= values_v[22].Segment.Base,
-		.gs_size	= values_v[22].Segment.Limit,
-		.gs				= values_v[22].Segment.Selector,
-		.gs_attr	= values_v[22].Segment.Attributes,
-
-		.ss_base	= values_v[23].Segment.Base,
-		.ss_size	= values_v[23].Segment.Limit,
-		.ss				= values_v[23].Segment.Selector,
-		.ss_attr	= values_v[23].Segment.Attributes	
-	};
-}
-
-auto core::Hypervisor::SetRegisters(std::uint32_t index_v, RegisterFile const& registers_v) -> void
-{
-	std::vector<WHV_REGISTER_VALUE> values_v;
-	values_v.resize(std::size(RegisterFile::Layout));
-	values_v[ 0].Reg64 = registers_v.rax;
-	values_v[ 1].Reg64 = registers_v.rbx;
-	values_v[ 2].Reg64 = registers_v.rcx;
-	values_v[ 3].Reg64 = registers_v.rdx;
-	values_v[ 4].Reg64 = registers_v.rsi;
-	values_v[ 5].Reg64 = registers_v.rdi;
-	values_v[ 6].Reg64 = registers_v.rbp;
-	values_v[ 7].Reg64 = registers_v.rsp;
-	values_v[ 8].Reg64 = registers_v.r8;
-	values_v[ 9].Reg64 = registers_v.r9;
-	values_v[10].Reg64 = registers_v.r10;
-	values_v[11].Reg64 = registers_v.r11;
-	values_v[12].Reg64 = registers_v.r12;
-	values_v[13].Reg64 = registers_v.r13;
-	values_v[14].Reg64 = registers_v.r14;
-	values_v[15].Reg64 = registers_v.r15;
-	values_v[16].Reg64 = registers_v.rip;
-	values_v[17].Reg64 = registers_v.rflags;
-	values_v[18].Segment = { .Base=registers_v.cs_base, .Limit=registers_v.cs_size, .Selector=registers_v.cs, .Attributes=registers_v.cs_attr };
-	values_v[19].Segment = { .Base=registers_v.ds_base, .Limit=registers_v.ds_size, .Selector=registers_v.ds, .Attributes=registers_v.ds_attr };
-	values_v[20].Segment = { .Base=registers_v.es_base, .Limit=registers_v.es_size, .Selector=registers_v.es, .Attributes=registers_v.es_attr };
-	values_v[21].Segment = { .Base=registers_v.fs_base, .Limit=registers_v.fs_size, .Selector=registers_v.fs, .Attributes=registers_v.fs_attr };
-	values_v[22].Segment = { .Base=registers_v.gs_base, .Limit=registers_v.gs_size, .Selector=registers_v.gs, .Attributes=registers_v.gs_attr };
-	values_v[23].Segment = { .Base=registers_v.ss_base, .Limit=registers_v.ss_size, .Selector=registers_v.ss, .Attributes=registers_v.ss_attr };	
-	WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(m_Partition, index_v, RegisterFile::Layout, std::size(RegisterFile::Layout), values_v.data()));
-}
-
-auto Hypervisor::IsVendorIntel() -> bool
-{
-	auto const vendor_v = GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
-	return vendor_v == WHvProcessorVendorIntel;
-}
-
-auto Hypervisor::IsVendorAMD() -> bool
-{
-	auto const vendor_v = GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
-	return vendor_v == WHvProcessorVendorAmd || vendor_v == WHvProcessorVendorHygon;
-}
-
 auto Hypervisor::GetCapability(WHV_CAPABILITY_CODE code_v, void* buffer_v, std::uint32_t length_v) -> std::uint32_t
 {
 	WIN32_ERROR_ASSERT(WHvGetCapability(code_v, buffer_v, length_v, &length_v));
@@ -418,4 +236,9 @@ auto Hypervisor::InitializePartitionProperties() -> void
 	SetProperty(WHvPartitionPropertyCodeExceptionExitBitmap, std::uint64_t{ 0x40u });
 	SetProperty(WHvPartitionPropertyCodeExtendedVmExits, WHV_EXTENDED_VM_EXITS{ .ExceptionExit = 1, .HypercallExit = 1 });
 	SetProperty(WHvPartitionPropertyCodeProcessorFeatures, WHV_PROCESSOR_FEATURES{ .LahfSahfSupport = 1 });
+}
+
+auto Hypervisor::InitializeProcessor(std::uint32_t index_v) -> void
+{
+	m_Processors.emplace_back(*this, index_v);
 }

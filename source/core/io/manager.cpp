@@ -78,7 +78,8 @@ auto Manager::DispatchExit(std::uint32_t index_v, WHV_RUN_VP_EXIT_CONTEXT const&
 	
 	if (!access_v.AccessInfo.IsWrite) {
 		DispatchFetch(index_v, port_v, data_v, size_v);
-		m_Hypervisor.SetRegister(index_v, WHvX64RegisterRax, utils::crossover_bits(
+		auto& processor_v = m_Hypervisor.GetProcessor(index_v);
+		processor_v.SetRegister(WHvX64RegisterRax, utils::crossover_bits(
 			(std::uint64_t)data_v, access_v.Rax, size_v * 8u));
 	} else {
 		DispatchWrite(index_v, port_v, data_v, size_v);

@@ -13,9 +13,9 @@ HvDosMachine::HvDosMachine(int argc, char** argv)
 	config_v.AddProcessor(0x0u);
 	config_v.SetMemorySize(32_MiB);
 
-	if (Hypervisor::IsVendorAMD()) {
+	if (cpu::Processor::IsVendorAMD()) {
 		config_v.SetBootROM(0xF0000u, path_v / "ROMs/BiosAMD.bin");
-	} else if (Hypervisor::IsVendorIntel()) {
+	} else if (cpu::Processor::IsVendorIntel()) {
 		config_v.SetBootROM(0xF0000u, path_v / "ROMs/BiosIntel.bin");
 	} else {
 		throw std::runtime_error("Unknown CPU vendor");

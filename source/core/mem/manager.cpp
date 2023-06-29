@@ -1,9 +1,9 @@
-#include <core/memory/manager.hpp>
+#include <core/mem/manager.hpp>
 #include <core/hypervisor.hpp>
 #include <utils/span.hpp>
 #include "manager.hpp"
 
-using core::memory::Manager;
+using core::mem::Manager;
 
 Manager::Manager(core::Hypervisor& hypervisor_v)
 	: m_Hypervisor(hypervisor_v) 
@@ -27,7 +27,8 @@ auto Manager::VirtualToPhysical(std::uint32_t index_v, std::uint64_t& inout_addr
 	WHV_TRANSLATE_GVA_FLAGS flags_v) const -> WHV_TRANSLATE_GVA_RESULT_CODE
 {
 	WHV_TRANSLATE_GVA_RESULT result_v{ };
-	auto const control0_v = m_Hypervisor.GetRegister<std::uint64_t>(index_v, WHvX64RegisterCr0);
+	auto& processor_v = m_Hypervisor.GetProcessor(index_v);
+	auto const control0_v = processor_v.GetRegister<std::uint64_t>( WHvX64RegisterCr0);
 	static constexpr const std::uint64_t kPagingEnabled = 0x80000000u;
 	if (!(control0_v & kPagingEnabled)) {
 		return WHvTranslateGvaResultSuccess;
