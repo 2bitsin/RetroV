@@ -97,5 +97,4 @@ auto Manager::FetchSome(std::uint32_t index_v, std::uint64_t address_v, std::spa
 	WHV_ACCESS_GPA_CONTROLS const access_v{ .CacheType = chache_v };
 	WIN32_ERROR_ASSERT(::WHvReadGpaRange(partition_v, index_v, address_v,
 		access_v, data_v.data(), data_v.size()));
-
 }

@@ -1,21 +1,19 @@
+#include <core/hypervisor.hpp>
+#include <core/cpu/flags.hpp>
 #include <win32/error.hpp>
 #include <utils/bitmanip.hpp>
 #include <utils/capstone.hpp>
 
-#include <stop_token>
 #include <stdexcept>
 #include <algorithm>
 #include <iostream>
 #include <format>
 #include <vector>
-#include <ranges>
 #include <thread>
 #include <future>
 #include <atomic>
 #include <mutex>
-#include <array>
 
-#include <core/hypervisor.hpp>
 
 using core::Hypervisor;
 
@@ -23,7 +21,7 @@ Hypervisor::Hypervisor(Config const& config_v)
 	:	m_MemPool{ }
 	,	m_MemManager{ *this }
 	, m_IoManager{ *this }
-	,	m_VcManager { *this }
+	,	m_VcManager{ *this }
 	,	m_Processors{ }
 	,	m_Partition{ nullptr }
 {
@@ -67,14 +65,19 @@ auto Hypervisor::GetVcManager() -> vmc::Manager&
 	return m_VcManager;
 }
 
-auto Hypervisor::GetProcessor(std::uint32_t index_v)->cpu::Processor&
+auto Hypervisor::GetProcessor(std::uint32_t index_v)->cpu::Processor& 
 {
-	return m_Processors.at(index_v);
+	auto position_v = std::lower_bound(m_Processors.begin(), m_Processors.end(), index_v, 
+		[](auto const& processor_v, auto const& index_v) {
+			return processor_v.GetIndex() < index_v; });
+	if (position_v == m_Processors.end() || position_v->GetIndex() != index_v) {
+		throw std::out_of_range{ "Invalid processor index" }; }
+	return *position_v;
 }
 
 auto Hypervisor::DispatchHalt(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool 
 {
-	if (exit_v.VpContext.Rflags & 0x200u) {
+	if (exit_v.VpContext.Rflags & cpu::kInterruptFlag) {
 		// Interrupts enabled
 		__debugbreak();
 		return true;
@@ -183,8 +186,16 @@ auto Hypervisor::NextInstruction(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CO
 auto Hypervisor::Run() -> void
 {
 	auto& processor_v = m_Processors[0];
-	auto exit_v = processor_v.Run();
+	auto future_v = processor_v.RunAsync();
 		
+	using namespace std::chrono_literals;
+	std::this_thread::sleep_for(10ms);
+
+	processor_v.CancelRunAsync();
+
+	auto exit_v = future_v.get();
+
+	__debugbreak();
 }
 
 auto Hypervisor::InitializePartition() -> void
@@ -214,5 +225,9 @@ auto Hypervisor::GetCapability(WHV_CAPABILITY_CODE code_v, void* buffer_v, std::
 
 auto Hypervisor::InitializeProcessor(std::uint32_t index_v) -> void
 {
-	m_Processors.emplace_back(*this, index_v);
+	auto position_v = std::lower_bound(m_Processors.begin(), m_Processors.end(), index_v, 
+		[](auto&& processor_v, auto&& index_v) {
+			return processor_v.GetIndex() < index_v;
+		});
+	m_Processors.emplace(position_v, *this, index_v);
 }

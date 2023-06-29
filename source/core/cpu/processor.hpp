@@ -8,6 +8,9 @@
 #include <type_traits>
 #include <cstdint>
 #include <cstddef>
+#include <future>
+#include <thread>
+#include <mutex>
 
 namespace core
 {
@@ -63,7 +66,11 @@ namespace core::cpu
 		static auto IsVendorIntel() -> bool;
 		static auto IsVendorAMD() -> bool;
 
-		auto Run () -> WHV_RUN_VP_EXIT_CONTEXT;
+		auto RunUntilExit () -> WHV_RUN_VP_EXIT_CONTEXT;
+		auto RunAsync() -> std::future<WHV_RUN_VP_EXIT_CONTEXT>;
+		auto CancelRunAsync() -> void;
+		auto RequestInterrupt(std::uint16_t vector_v, bool is_nmi_v = false) -> bool;
+		
 
 	private:
 		core::Hypervisor* m_Hypervisor{ nullptr };

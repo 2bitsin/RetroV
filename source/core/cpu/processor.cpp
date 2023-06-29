@@ -1,6 +1,11 @@
 #include <core/cpu/processor.hpp>
 #include <core/hypervisor.hpp>
 
+#include <stdexcept>
+#include <future>
+#include <thread>
+#include <mutex>
+
 struct InitialProcessorState
 {
 	static constexpr const WHV_REGISTER_NAME Names[] = {
@@ -215,48 +220,46 @@ auto Processor::SetRegisters(RegisterFile const& registers_v) -> void {
 		RegisterFile::Layout, std::size(RegisterFile::Layout), values_v.data()));
 }
 
-auto Processor::IsVendorAMD() -> bool {
-	auto const vendor_v = Hypervisor::GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
-	return vendor_v == WHvProcessorVendorAmd || vendor_v == WHvProcessorVendorHygon;
-}
-
-#include <iostream>
-#include <fstream>
-auto core::cpu::Processor::Run() -> WHV_RUN_VP_EXIT_CONTEXT {
+auto Processor::RunUntilExit() -> WHV_RUN_VP_EXIT_CONTEXT {
 	WHV_RUN_VP_EXIT_CONTEXT exit_v;
 	std::memset(&exit_v, 0, sizeof(exit_v));
 	auto handle_v = (*m_Hypervisor).GetParitionHandle();
-
-	/*
-	SetRegister(WHvRegisterPendingInterruption, WHV_X64_PENDING_INTERRUPTION_REGISTER{
-		.InterruptionPending = 1,
-		.InterruptionType = WHvX64PendingInterrupt,
-		.DeliverErrorCode = 0,
-		.InstructionLength = 0,
-		.NestedEvent = 0,
-		.Reserved = 0,
-		.InterruptionVector = 0x1,
-		.ErrorCode = 0
-	});
-	*/
-
-	SetRegister(WHvRegisterPendingInterruption, WHV_X64_PENDING_INTERRUPTION_REGISTER{
-		.InterruptionPending = 1,
-		.InterruptionType = WHvX64PendingInterrupt,
-		.DeliverErrorCode = 0,
-		.InstructionLength = 0,
-		.NestedEvent = 0,
-		.Reserved = 0,
-		.InterruptionVector = 0x2,
-		.ErrorCode = 0
-	});
-		
-	
 	WIN32_ERROR_ASSERT(::WHvRunVirtualProcessor(handle_v, m_Index, &exit_v, sizeof(exit_v)));
 	return exit_v;
+}
+
+auto Processor::RunAsync() -> std::future<WHV_RUN_VP_EXIT_CONTEXT> {
+	return std::async(std::launch::async, 
+		[this] () -> WHV_RUN_VP_EXIT_CONTEXT {
+			return RunUntilExit();
+		});
+}
+
+auto Processor::CancelRunAsync() -> void
+{
+	auto const handle_v = (*m_Hypervisor).GetParitionHandle();
+	WIN32_ERROR_ASSERT(::WHvCancelRunVirtualProcessor(handle_v, m_Index, 0u));
+}
+
+auto Processor::RequestInterrupt(std::uint16_t vector_v, bool is_nmi_v) -> bool
+{
+	auto const handle_v = (*m_Hypervisor).GetParitionHandle();
+	WHV_REGISTER_VALUE value_v;
+	value_v.PendingInterruption.InterruptionPending = 1;
+	value_v.PendingInterruption.InterruptionType = !is_nmi_v ? WHvX64PendingInterrupt : WHvX64PendingNmi;
+	value_v.PendingInterruption.DeliverErrorCode = 0;
+	value_v.PendingInterruption.InterruptionVector = vector_v;
+	WHV_REGISTER_NAME const pending_name_v = WHvRegisterPendingInterruption;
+	auto const result_v = ::WHvSetVirtualProcessorRegisters(handle_v, m_Index, &pending_name_v, 1u, &value_v);
+	return result_v == S_OK;
 }
 
 auto Processor::IsVendorIntel() -> bool {
 	auto const vendor_v = Hypervisor::GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
 	return vendor_v == WHvProcessorVendorIntel;
+}
+
+auto Processor::IsVendorAMD() -> bool {
+	auto const vendor_v = Hypervisor::GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
+	return vendor_v == WHvProcessorVendorAmd || vendor_v == WHvProcessorVendorHygon;
 }
