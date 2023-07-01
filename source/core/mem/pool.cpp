@@ -1,7 +1,11 @@
 #include <core/mem/pool.hpp>
+#include <core/hypervisor.hpp>
 #include <format>
 
 using core::mem::Pool;
+
+Pool::Pool(core::Hypervisor& hypervisor_v)
+{}
 
 auto Pool::GetBlock(std::size_t index_v) -> core::mem::Block& {
 	return m_Blocks[index_v];

@@ -30,6 +30,13 @@ namespace core::vmc
 
 		Manager(core::Hypervisor&);
 		~Manager();
+
+		Manager(Manager const&) = delete;
+		auto operator=(Manager const&) -> Manager& = delete;
+
+		Manager(Manager&&) noexcept;
+		auto operator=(Manager&&) noexcept -> Manager&;
+		auto Swap(Manager&) noexcept -> void;
 		
 		auto RegisterCallback(std::uint16_t callno_v, std::function<vmcall_callback> callback_v) -> std::uint32_t;
 		auto UnregisterCallback(std::uint16_t callno_v, std::uint32_t slot_v) -> void;
@@ -37,7 +44,7 @@ namespace core::vmc
 		auto DispatchExit(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const&) -> bool;
 
 	private:
-		core::Hypervisor& m_Hypervisor;
+		core::Hypervisor* m_Hypervisor;
 		std::uint32_t m_LastID { 1 };
 		std::vector<std::vector<std::tuple<std::int64_t, std::function<vmcall_callback>>>> m_Callbacks;
 	};

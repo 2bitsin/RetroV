@@ -30,16 +30,17 @@ auto core::Config::AddProcessor(std::uint32_t processor_v) -> void
 void Config::ApplyBeforeSetup(Hypervisor& hypervisor_v) const
 {
 	auto const processor_count_v = std::max<std::uint32_t>(1u, m_Processors.size());
-	hypervisor_v.SetProperty(WHvPartitionPropertyCodeProcessorCount, processor_count_v);
+	auto& partition_v = hypervisor_v.GetPartition();
+	partition_v.SetProperty(WHvPartitionPropertyCodeProcessorCount, processor_count_v);
 }
 
 void Config::ApplyAfterSetup(Hypervisor& hypervisor_v) const
 {
 	// Concifure Memory
 	auto base_memory_size_v = std::min<std::size_t>(640u * 1024u, m_MemorySize);
-	auto& pool_v = hypervisor_v.GetMemoryPool();
+	auto& pool_v = hypervisor_v.GetMemPool();
 	auto index_v = pool_v.AllocateBlock(m_MemorySize);
-	auto& memory_v = hypervisor_v.GetMemoryManager();
+	auto& memory_v = hypervisor_v.GetMemManager();
 	memory_v.MapPhysical(index_v, 0, base_memory_size_v, memory_v.kMemoryFlagsRAM, 0u);
 	auto extended_memory_size_v = m_MemorySize - base_memory_size_v;
 	if (m_MemorySize > base_memory_size_v) {		

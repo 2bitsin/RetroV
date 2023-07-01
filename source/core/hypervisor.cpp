@@ -18,39 +18,38 @@
 using core::Hypervisor;
 
 Hypervisor::Hypervisor(Config const& config_v)
-	:	m_MemPool{ }
-	,	m_MemManager{ *this }
-	, m_IoManager{ *this }
-	,	m_VcManager{ *this }
-	,	m_Processors{ }
-	,	m_Partition{ nullptr }
+	:	m_Partition  { *this }
+	,	m_MemPool    { *this }
+	,	m_MemManager { *this }
+	, m_IoManager  { *this }
+	,	m_VcManager  { *this }
+	,	m_Processors { }
 {
-	WIN32_ERROR_ASSERT(::WHvCreatePartition(&m_Partition));
 	InitializePartition();
 	config_v.ApplyBeforeSetup(*this);
-	WIN32_ERROR_ASSERT(::WHvSetupPartition(m_Partition));
+	m_Partition.Setup();
 	config_v.ApplyAfterSetup(*this);
 }
 
 Hypervisor::~Hypervisor()
-{	
-	if (m_Partition) {
-		WHvDeletePartition(m_Partition);
-		m_Partition = nullptr;
-	}
-}
+{}
 
 auto Hypervisor::GetParitionHandle() -> WHV_PARTITION_HANDLE
 {
-	return m_Partition;
+	return GetPartition().GetHandle();
 }
 
-auto Hypervisor::GetMemoryPool() -> mem::Pool&
+auto Hypervisor::GetPartition() -> core::Partition&
+{
+  return m_Partition;
+}
+
+auto Hypervisor::GetMemPool() -> mem::Pool&
 {
 	return m_MemPool;
 }
 
-auto Hypervisor::GetMemoryManager() -> mem::Manager&
+auto Hypervisor::GetMemManager() -> mem::Manager&
 {
 	return m_MemManager;
 }
@@ -122,13 +121,13 @@ auto Hypervisor::Disassemble(std::ostream& output_v, cpu::Processor& processor_v
 		{ CS_OPT_DETAIL, CS_OPT_ON } 
 	}};
 
-	auto& memory_v = GetMemoryManager();		
+	auto& memory_v = GetMemManager();		
 	std::byte bytes_v[64];
 	std::size_t remaining_bytes_v = std::size(bytes_v);
 
 	while (count_v > 0u)
 	{
-		auto& memory_v = GetMemoryManager();
+		auto& memory_v = GetMemManager();
 		auto next_buffer_v = std::span<std::byte>{ bytes_v }.first(remaining_bytes_v);
 		memory_v.Fetch(processor_v.GetIndex(), virtual_address_v, next_buffer_v, memory_v.kVirtualAddress);
 
@@ -191,7 +190,8 @@ auto Hypervisor::Run() -> void
 	using namespace std::chrono_literals;
 	std::this_thread::sleep_for(10ms);
 
-	processor_v.CancelRunAsync();
+		
+	processor_v.RequestInterrupt(0x10);
 
 	auto exit_v = future_v.get();
 
@@ -202,19 +202,10 @@ auto Hypervisor::InitializePartition() -> void
 {
 	auto scheduler_features_v = GetCapability<WHV_CAPABILITY_PROCESSOR_FREQUENCY_CAP>(WHvCapabilityCodeProcessorFrequencyCap);
 
-	SetProperty(WHvPartitionPropertyCodeExceptionExitBitmap, std::uint64_t{ 0x40u });
-	SetProperty(WHvPartitionPropertyCodeExtendedVmExits, WHV_EXTENDED_VM_EXITS{ .ExceptionExit = 1, .HypercallExit = 1 });
-	SetProperty(WHvPartitionPropertyCodeProcessorFeatures, WHV_PROCESSOR_FEATURES{ .LahfSahfSupport = 1 });
-}
-
-auto Hypervisor::SetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void const* data_v, std::uint32_t size_v) -> void
-{
-	WIN32_ERROR_ASSERT(::WHvSetPartitionProperty(m_Partition, code_v, data_v, size_v));
-}
-
-auto Hypervisor::GetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void* data_v, std::uint32_t& size_v) -> void
-{
-	WIN32_ERROR_ASSERT(::WHvGetPartitionProperty(m_Partition, code_v, data_v, size_v, &size_v));
+	auto& partition_v = GetPartition();
+	partition_v.SetProperty(WHvPartitionPropertyCodeExceptionExitBitmap, std::uint64_t{ 0x40u });
+	partition_v.SetProperty(WHvPartitionPropertyCodeExtendedVmExits, WHV_EXTENDED_VM_EXITS{ .ExceptionExit = 1, .HypercallExit = 1 });
+	partition_v.SetProperty(WHvPartitionPropertyCodeProcessorFeatures, WHV_PROCESSOR_FEATURES{ .LahfSahfSupport = 1 });
 }
 
 auto Hypervisor::GetCapability(WHV_CAPABILITY_CODE code_v, void* buffer_v, std::uint32_t length_v) -> std::uint32_t

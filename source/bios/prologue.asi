@@ -1,5 +1,6 @@
     
 Prologue:
+    cli
     mov         sp,     STACK_SEGMENT
     mov         ss,     sp
     mov         sp,     STACK_OFFSSET
@@ -13,6 +14,10 @@ Prologue:
     mov         fs,     ax
     mov         gs,     ax
 
+    cld
+    call        IVT.Initialize
+    sti
+    
     ; Make a big big loop
     mov         eax,    0xFFFFFFFF
   .L1:          
@@ -24,8 +29,6 @@ Prologue:
     jnz         .L1
     ; End of big big loop
 
-    cld
-    call        IVT.Initialize
 
     mov         si,     Strings.Hello
     call        Debug.Print    

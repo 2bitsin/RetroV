@@ -35,6 +35,14 @@ namespace core::mem
 
 		Manager(core::Hypervisor& hypervisor_v);
 
+		Manager(Manager const&) = delete;
+		Manager& operator=(Manager const&) = delete;
+
+		Manager(Manager&&) noexcept ;
+		auto operator=(Manager&&) noexcept -> Manager&;
+
+		auto Swap (Manager& other_v) noexcept -> void;
+
 		auto MapPhysical(std::size_t index_v, std::uint64_t base_v, std::uint64_t size_v = 0u, 
 			std::uint32_t flags_v = kMemoryFlagsRAM, std::uint64_t offset_v = 0u) -> void;
 
@@ -78,7 +86,7 @@ namespace core::mem
 		auto FetchSome(std::uint32_t index_v, std::uint64_t address_v, std::span<std::byte      > data_v, std::uint32_t flags_v = kVirtualAddress, WHV_CACHE_TYPE chache_v = WHvCacheTypeUncached) -> void;
 
 	private:
-		core::Hypervisor& m_Hypervisor;
+		core::Hypervisor* m_Hypervisor;
 		std::uint32_t m_LastID { 0u };
 	};
 }

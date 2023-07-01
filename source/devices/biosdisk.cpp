@@ -217,7 +217,7 @@ auto BiosDisk::Int13h(Hypervisor& hypervisor_v, RegisterFile& R, cpu::Processor&
 				return true;
 			}
 
-			auto& memory_v=m_Hypervisor.GetMemoryManager();
+			auto& memory_v=m_Hypervisor.GetMemManager();
 			memory_v.Write(processor_v.GetIndex(), R.es_base + R.bx, buffer_s, memory_v.kVirtualAddress);
 			auto const sectors_read_v = buffer_s.size() / kSectorSize;
 			if (sectors_read_v != R.al) {
@@ -249,7 +249,7 @@ auto BiosDisk::Int19h(Hypervisor& hypervisor_v, RegisterFile& R, cpu::Processor&
 	if (Fetch(buffer_s, Index{ .SectorLBA = 0u }) < kSectorSize) {
 		throw std::runtime_error("Unable to boot, I/O error.");
 	}
-	auto& memory_v = hypervisor_v.GetMemoryManager();
+	auto& memory_v = hypervisor_v.GetMemManager();
 	memory_v.Write(processor_v.GetIndex(), 0x7C00u, buffer_s, memory_v.kVirtualAddress);
 
 	R.cs = 0x0000u;

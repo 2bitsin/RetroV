@@ -7,11 +7,16 @@
 #include <vector>
 #include <mutex>
 
+namespace core
+{
+	struct Hypervisor;
+}
+
 namespace core::mem
 {
 	struct Pool
 	{
-		Pool () = default;
+		Pool (core::Hypervisor&);
 		~Pool () = default;
 
 		template <typename... T>

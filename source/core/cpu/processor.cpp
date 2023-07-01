@@ -245,13 +245,18 @@ auto Processor::RequestInterrupt(std::uint16_t vector_v, bool is_nmi_v) -> bool
 {
 	auto const handle_v = (*m_Hypervisor).GetParitionHandle();
 	WHV_REGISTER_VALUE value_v;
+	std::memset(&value_v, 0, sizeof(value_v));
 	value_v.PendingInterruption.InterruptionPending = 1;
 	value_v.PendingInterruption.InterruptionType = !is_nmi_v ? WHvX64PendingInterrupt : WHvX64PendingNmi;
 	value_v.PendingInterruption.DeliverErrorCode = 0;
 	value_v.PendingInterruption.InterruptionVector = vector_v;
 	WHV_REGISTER_NAME const pending_name_v = WHvRegisterPendingInterruption;
 	auto const result_v = ::WHvSetVirtualProcessorRegisters(handle_v, m_Index, &pending_name_v, 1u, &value_v);
-	return result_v == S_OK;
+	if (result_v != S_OK) {
+		throw std::system_error(result_v, std::system_category(), "WHvSetVirtualProcessorRegisters");
+		return false;
+	}
+	return true;
 }
 
 auto Processor::IsVendorIntel() -> bool {

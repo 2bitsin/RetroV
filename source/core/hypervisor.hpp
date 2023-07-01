@@ -18,7 +18,7 @@
 #include <core/io/manager.hpp>
 #include <core/cpu/registers.hpp>
 #include <core/cpu/processor.hpp>
-
+#include <core/partition.hpp>
 
 namespace core
 { 
@@ -37,9 +37,11 @@ namespace core
 		Hypervisor (Config const&);
 	  ~Hypervisor ();
 
-		auto GetMemoryPool() -> mem::Pool&;
 		auto GetParitionHandle() -> WHV_PARTITION_HANDLE;		
-		auto GetMemoryManager() -> mem::Manager&;
+
+		auto GetPartition() -> Partition&;
+		auto GetMemPool() -> mem::Pool&;
+		auto GetMemManager() -> mem::Manager&;
 		auto GetIoManager() -> io::Manager&;
 		auto GetVcManager() -> vmc::Manager&;
 		auto GetProcessor(std::uint32_t index_v) -> cpu::Processor&;
@@ -84,31 +86,12 @@ namespace core
     auto PrintRegisters(std::ostream& output_v, core::RegisterFile const& R) -> void;
     auto Disassemble(std::ostream& output_v, cpu::Processor& processor_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void;
 
-		/**********************************
-		 *  Partition configuration methods
-		 **********************************/
-		auto SetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void const* data_v, std::uint32_t size_v) -> void;
-		auto GetProperty(WHV_PARTITION_PROPERTY_CODE code_v, void* data_v, std::uint32_t& size_v) -> void;
-
-		template <typename T>
-		auto SetProperty(WHV_PARTITION_PROPERTY_CODE code_v, T const& data_v) -> void {
-			static_assert(std::is_trivially_copyable_v<T>);
-			return SetProperty(code_v, &data_v, sizeof(T));
-		}
-
-		template <typename T>
-		auto GetProperty(WHV_PARTITION_PROPERTY_CODE code_v, T& data_v) -> void {
-			static_assert(std::is_trivially_copyable_v<T>);
-			auto size_v = sizeof(T);
-			return GetProperty(code_v, &data_v, size_v);
-		}
 
 		/****************
 		 * Internal state
 		 ****************/
 	private:
-		WHV_PARTITION_HANDLE m_Partition{ nullptr };
-
+		Partition m_Partition;
 		mem::Pool m_MemPool;
 		mem::Manager m_MemManager;
 		io::Manager m_IoManager;

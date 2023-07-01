@@ -6,20 +6,40 @@
 using core::mem::Manager;
 
 Manager::Manager(core::Hypervisor& hypervisor_v)
-	: m_Hypervisor(hypervisor_v) 
+	: m_Hypervisor(&hypervisor_v) 
 {}
+
+Manager::Manager(Manager&& prev_v) noexcept
+	: m_Hypervisor(std::exchange(prev_v.m_Hypervisor, nullptr))
+	, m_LastID(std::exchange(prev_v.m_LastID, 0u))
+{}
+
+auto Manager::operator=(Manager&& prev_v) noexcept -> Manager&
+{
+	if (this != &prev_v) {
+		auto temp_v{ std::move(prev_v) };
+		temp_v.Swap(*this);
+	}
+	return *this;
+}
+
+auto Manager::Swap(Manager& other_v) noexcept -> void
+{
+	std::swap(m_Hypervisor, other_v.m_Hypervisor);
+	std::swap(m_LastID, other_v.m_LastID);
+}
 
 auto Manager::MapPhysical(std::size_t index_v, std::uint64_t base_v, std::uint64_t size_v, std::uint32_t flags_v, std::uint64_t offset_v) -> void
 {
-	auto block_s = m_Hypervisor.GetMemoryPool().GetBlockView(index_v);
+	auto block_s = m_Hypervisor->GetMemPool().GetBlockView(index_v);
 	block_s = block_s.subspan(offset_v, size_v > 0u ? size_v : block_s.size());
-	auto partition_v = m_Hypervisor.GetParitionHandle();
+	auto partition_v = m_Hypervisor->GetParitionHandle();
 	WIN32_ERROR_ASSERT(::WHvMapGpaRange(partition_v, block_s.data(), base_v, block_s.size(), (WHV_MAP_GPA_RANGE_FLAGS)flags_v));
 }
 
 void Manager::UnmapPhysical(std::uint64_t base_v, std::uint64_t size_v)
 {
-	auto partition_v = m_Hypervisor.GetParitionHandle();
+	auto partition_v = m_Hypervisor->GetParitionHandle();
 	WIN32_ERROR_ASSERT(::WHvUnmapGpaRange(partition_v, base_v, size_v));
 }
 
@@ -27,13 +47,13 @@ auto Manager::VirtualToPhysical(std::uint32_t index_v, std::uint64_t& inout_addr
 	WHV_TRANSLATE_GVA_FLAGS flags_v) const -> WHV_TRANSLATE_GVA_RESULT_CODE
 {
 	WHV_TRANSLATE_GVA_RESULT result_v{ };
-	auto& processor_v = m_Hypervisor.GetProcessor(index_v);
+	auto& processor_v = m_Hypervisor->GetProcessor(index_v);
 	auto const control0_v = processor_v.GetRegister<std::uint64_t>(WHvX64RegisterCr0);
 	static constexpr const std::uint64_t kPagingEnabled = 0x80000000u;
 	if (!(control0_v & kPagingEnabled)) {
 		return WHvTranslateGvaResultSuccess;
 	}
-	auto partition_v = m_Hypervisor.GetParitionHandle();
+	auto partition_v = m_Hypervisor->GetParitionHandle();
 	WIN32_ERROR_ASSERT(::WHvTranslateGva(partition_v, index_v,
 		inout_address_v, flags_v, &result_v, &inout_address_v));
 	return result_v.ResultCode;
@@ -76,7 +96,7 @@ auto Manager::WriteSome(std::uint32_t index_v, std::uint64_t address_v, std::spa
 		}		
 	}
 
-	auto partition_v = m_Hypervisor.GetParitionHandle();
+	auto partition_v = m_Hypervisor->GetParitionHandle();
 	WHV_ACCESS_GPA_CONTROLS const access_v{ .CacheType = chache_v };
 	WIN32_ERROR_ASSERT(::WHvWriteGpaRange(partition_v, index_v, address_v, 
 		access_v, data_v.data(), data_v.size()));
@@ -93,7 +113,7 @@ auto Manager::FetchSome(std::uint32_t index_v, std::uint64_t address_v, std::spa
 		}
 	}
 
-	auto partition_v = m_Hypervisor.GetParitionHandle();
+	auto partition_v = m_Hypervisor->GetParitionHandle();
 	WHV_ACCESS_GPA_CONTROLS const access_v{ .CacheType = chache_v };
 	WIN32_ERROR_ASSERT(::WHvReadGpaRange(partition_v, index_v, address_v,
 		access_v, data_v.data(), data_v.size()));
