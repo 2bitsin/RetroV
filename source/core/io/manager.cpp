@@ -13,7 +13,7 @@ Manager::Manager(core::Hypervisor& hypervisor_v)
 	m_IoWriteCallback.reserve(0x10000u);
 }
 
-auto Manager::RegisterWriteCallback(std::uint16_t port_v, write_callback callback_v) -> void
+auto Manager::RegisterWriteCallback(std::uint16_t port_v, std::function<write_callback> callback_v) -> void
 {
 	if (port_v >= m_IoWriteCallback.size()) {
 		m_IoWriteCallback.resize(port_v + 1);
@@ -24,7 +24,7 @@ auto Manager::RegisterWriteCallback(std::uint16_t port_v, write_callback callbac
 	m_IoWriteCallback[port_v] = std::move(callback_v);
 }
 
-auto Manager::RegisterFetchCallback(std::uint16_t port_v, fetch_callback callback_v) -> void
+auto Manager::RegisterFetchCallback(std::uint16_t port_v, std::function<fetch_callback> callback_v) -> void
 {
 	if (port_v >= m_IoFetchCallback.size()) {
 		m_IoFetchCallback.resize(port_v + 1);		

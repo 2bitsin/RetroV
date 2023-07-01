@@ -1,15 +1,15 @@
 #pragma once
 
-#include <core/hypervisor_fwd.hpp>>
+#include <device/interface.hpp>
 
 #include <cstdint>
 #include <cstddef>
 
-namespace core
+namespace device
 {
 	struct PortE9
 	{
-		PortE9 (Hypervisor&);
+		PortE9 (core::Hypervisor&);
 		~PortE9 ();
 		
 		PortE9 (const PortE9&) = delete;
@@ -18,6 +18,6 @@ namespace core
 		auto operator = (PortE9&&)-> PortE9& = delete;
 
 	private:
-		Hypervisor& m_Hypervisor;
+		core::Hypervisor* m_Hypervisor;
 	};
 }

@@ -25,8 +25,8 @@ namespace core::io
 
 		Manager(core::Hypervisor& hypervisor_v);
 
-		auto RegisterWriteCallback(std::uint16_t port_v, write_callback callback_v) -> void;
-		auto RegisterFetchCallback(std::uint16_t port_v, fetch_callback callback_v) -> void;
+		auto RegisterWriteCallback(std::uint16_t port_v, std::function<write_callback> callback_v) -> void;
+		auto RegisterFetchCallback(std::uint16_t port_v, std::function<fetch_callback> callback_v) -> void;
 
 		auto UnregisterWriteCallback(std::uint16_t port_v) -> void;
 		auto UnregisterFetchCallback(std::uint16_t port_v) -> void;

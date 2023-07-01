@@ -35,10 +35,16 @@ GenericVGA::GenericVGA(core::Hypervisor& hypervisor_v, SDL_Window* window_v)
 		}
 	}
 	auto& ioman_v = m_Hypervisor->GetIoManager();
-	for (auto const& port_v : kFetchPorts) 
-		ioman_v.RegisterFetchCallback(port_v, [this](auto&&...args){return IoFetch(args...);});
-	for (auto const& port_v : kWritePorts) 
-		ioman_v.RegisterWriteCallback(port_v, [this](auto&&...args){return IoWrite(args...);});
+	for (auto const& port_v : kFetchPorts) ioman_v.RegisterFetchCallback(port_v, 
+		[this] (auto& hypervisor_v, auto& processor_v, auto port_v, auto& data_v, auto size_v) -> bool {
+			//return IoFetch(hypervisor_v, processor_v, port_v, data_v, size_v);
+			return false;
+		});
+	for (auto const& port_v : kWritePorts) ioman_v.RegisterWriteCallback(port_v, 
+		[this] (auto& hypervisor_v, auto& processor_v, auto port_v, auto data_v, auto size_v) -> bool {
+			//return IoWrite(hypervisor_v, processor_v, port_v, data_v, size_v);
+			return false;
+		});
 	
 }
 
