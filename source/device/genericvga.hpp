@@ -5,6 +5,7 @@
 
 #include <SDL2/SDL.h>
 
+#include <stop_token>
 #include <cstdint>
 #include <cstddef>
 #include <thread>
@@ -17,19 +18,31 @@ namespace device
 	struct GenericVGA final:  
 		public device::Interface
 	{	
+		enum RenderingMode {
+			kTextMonochrome,
+			kTextColor,
+			kGraphics1BppLinearCGA,
+			kGraphics2BppLinearCGA,
+			kGraphics4BppCompositeCGA,
+			kGraphics4BppPlanarEGA,
+			kGraphics8BppLinearVGA,
+			kGraphics8BppPlanarVGA,
+			kGraphicsLinearSVGA
+		};
 
-		GenericVGA(core::Hypervisor& hypervisor_v, SDL_Window* window_v = nullptr);
+
+		GenericVGA(core::Hypervisor& hypervisor_v, Config const& config_v);
 
 		GenericVGA(GenericVGA const&) = delete;
 		GenericVGA(GenericVGA&&) = delete;
 		auto operator=(GenericVGA const&) -> GenericVGA& = delete;
 		auto operator=(GenericVGA&&) -> GenericVGA& = delete;
 
-		~GenericVGA () override = default;
+		~GenericVGA () override;
 
-		auto Emulate() -> void override final;
+		auto Emulate(std::stop_token const& token_v) -> void override final;
 
-		auto SetVideoMode(std::uint8_t mode_v) -> void;
+		auto SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::uint16_t height_v) -> void;
 
 	protected:
 		using Processor = core::cpu::Processor;
@@ -43,6 +56,9 @@ namespace device
 		SDL_Window* m_Window { nullptr };
 		std::size_t m_BiosBlock { 0 };
 		std::size_t m_VramBlock { 0 };
+		RenderingMode m_RenderingMode { kTextColor };
+		std::uint16_t m_Height { 0 };
+		std::uint16_t m_Width { 0 };
 	};
 
 }

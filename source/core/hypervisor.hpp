@@ -7,7 +7,7 @@
 #include <array>
 #include <mutex>
 
-#include <utils/as_bytes.hpp>
+#include <utils/span_as.hpp>
 #include <win32/error.hpp>
 #include <win32/winhvpx.hpp>
 #include <core/config.hpp>
@@ -18,6 +18,7 @@
 #include <core/io/manager.hpp>
 #include <core/cpu/registers.hpp>
 #include <core/cpu/processor.hpp>
+#include <core/debug/debugger.hpp>
 #include <core/partition.hpp>
 
 namespace core
@@ -80,13 +81,6 @@ namespace core
     auto NextInstruction(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> void;
 		auto DispatchHalt(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool;
 
-		/***************************
-		 *  Debuging support methods
-		 ***************************/
-    auto PrintRegisters(std::ostream& output_v, core::RegisterFile const& R) -> void;
-    auto Disassemble(std::ostream& output_v, cpu::Processor& processor_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void;
-
-
 		/****************
 		 * Internal state
 		 ****************/
@@ -97,5 +91,6 @@ namespace core
 		io::Manager m_IoManager;
 		vmc::Manager m_VcManager;
 		std::vector<cpu::Processor> m_Processors;
+		debug::Debugger m_Debugger;
 	};
 }

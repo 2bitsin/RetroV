@@ -4,7 +4,7 @@
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
 
-#include <utils/as_bytes.hpp>
+#include <utils/span_as.hpp>
 #include <core/hypervisor_fwd.hpp>
 
 #include <cstdint>
@@ -83,6 +83,6 @@ namespace core::mem
 
 	private:
 		core::Hypervisor* m_Hypervisor;
-		std::uint32_t m_LastID { 0u };
+		std::uint32_t m_LastID { 0u };		
 	};
 }

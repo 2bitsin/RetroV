@@ -6,7 +6,7 @@
 using device::PortE9;
 
 
-PortE9::PortE9(core::Hypervisor& hypervisor_v)
+PortE9::PortE9(core::Hypervisor& hypervisor_v, Config const&)
 	: m_Hypervisor { &hypervisor_v }	
 {
 	m_Hypervisor->GetIoManager().RegisterWriteCallback(0xe9, 
@@ -21,3 +21,6 @@ PortE9::~PortE9()
 {
 	m_Hypervisor->GetIoManager().UnregisterWriteCallback(0xe9);
 }
+
+auto device::PortE9::Emulate(std::stop_token const& token_v) -> void
+{}

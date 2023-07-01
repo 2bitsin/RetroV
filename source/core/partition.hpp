@@ -4,7 +4,7 @@
 #include <win32/winhvpx.hpp>
 #include <win32/error.hpp>
 
-#include <utils/as_bytes.hpp>
+#include <utils/span_as.hpp>
 #include <core/hypervisor_fwd.hpp>
 
 #include <type_traits>
