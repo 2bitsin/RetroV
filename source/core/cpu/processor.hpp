@@ -4,6 +4,7 @@
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
 #include <core/cpu/registers.hpp>
+#include <core/hypervisor_fwd.hpp>
 
 #include <type_traits>
 #include <cstdint>
@@ -12,10 +13,6 @@
 #include <thread>
 #include <mutex>
 
-namespace core
-{
-	struct Hypervisor;
-}
 
 namespace core::cpu
 {

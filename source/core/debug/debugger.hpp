@@ -5,12 +5,18 @@
 #include <win32/winhvpx.hpp>
 
 #include <utils/capstone.hpp>
+#include <core/hypervisor_fwd.hpp>
 
 #include <type_traits>
 #include <cstdint>
 #include <cstddef>
 
-namespace core
+namespace core::debug
 {
+	struct Debugger
+	{
+		Debugger (Hypervisor& hypervisor_v);
 
+
+	};
 } 

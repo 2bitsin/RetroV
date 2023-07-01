@@ -190,9 +190,6 @@ auto Hypervisor::Run() -> void
 	using namespace std::chrono_literals;
 	std::this_thread::sleep_for(10ms);
 
-		
-	processor_v.RequestInterrupt(0x10);
-
 	auto exit_v = future_v.get();
 
 	__debugbreak();

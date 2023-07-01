@@ -5,16 +5,12 @@
 #include <win32/winhvpx.hpp>
 
 #include <utils/as_bytes.hpp>
+#include <core/hypervisor_fwd.hpp>
 
 #include <cstdint>
 #include <cstddef>
 #include <mutex>
 #include <span>
-
-namespace core
-{
-	struct Hypervisor;
-}
 
 namespace core::mem
 {

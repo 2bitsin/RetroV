@@ -1,13 +1,12 @@
 #pragma once
 
+#include <core/hypervisor_fwd.hpp>>
+
 #include <cstdint>
 #include <cstddef>
 
-
 namespace core
 {
-	struct Hypervisor;
-
 	struct PortE9
 	{
 		PortE9 (Hypervisor&);

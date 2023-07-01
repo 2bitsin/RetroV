@@ -1,16 +1,17 @@
 #pragma once
 
+#include <utils/literals.hpp>
+#include <core/hypervisor_fwd.hpp>
+
 #include <filesystem>
 #include <functional>
 #include <cstdint>
 #include <cstddef>
 #include <vector>
-
-#include <utils/literals.hpp>
+#include <any>
 
 namespace core
 {
-	struct Hypervisor;
 	using namespace size_literals;
 
 	struct Config 
@@ -19,6 +20,7 @@ namespace core
 		auto SetBootROM(std::uint64_t base_v, std::filesystem::path const& path_v) -> void;
 		auto AddOptionROM(std::uint64_t base_v, std::filesystem::path const& path_v) -> void;
 		auto AddProcessor(std::uint32_t processor_v) -> void;
+		auto AddDevice(std::string_view name_v, std::any config_v);
 
 	protected:
 		friend struct Hypervisor;

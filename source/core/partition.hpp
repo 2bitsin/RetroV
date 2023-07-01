@@ -5,6 +5,7 @@
 #include <win32/error.hpp>
 
 #include <utils/as_bytes.hpp>
+#include <core/hypervisor_fwd.hpp>
 
 #include <type_traits>
 #include <cstdint>
@@ -12,7 +13,6 @@
 
 namespace core
 {
-	struct Hypervisor;
 
 	struct Partition
 	{

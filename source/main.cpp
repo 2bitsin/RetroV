@@ -1,7 +1,7 @@
-#include <main/hvdosmachine.hpp>
-
+#include <machine/genericisapc.hpp>
 #include <SDL2/SDL.h>
 
+#include <iostream>
 #include <filesystem>
 #include <cstdlib>
 #include <cassert>
@@ -12,9 +12,11 @@ int main(int argc, char** argv) try
 {
 	using namespace std::chrono_literals;
 	using namespace std::chrono;
+	std::filesystem::current_path(R"(F:\Archive\FloppyImages)");
 
 	SDL_Init(SDL_INIT_EVERYTHING);
 	std::atexit(SDL_Quit);
+	/*
 	SDL_LogSetAllPriority(SDL_LOG_PRIORITY_INFO);	
 	auto window_v = SDL_CreateWindow("Hypervisor", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_SHOWN);
 	
@@ -53,13 +55,9 @@ int main(int argc, char** argv) try
 	t.join();
 
 	SDL_DestroyWindow(window_v);
+	*/
 
-
-	//std::filesystem::current_path(R"(F:\Archive\FloppyImages)");
-	//HvDosMachine hypervisor_v { argc, argv };
-	//hypervisor_v.MountImage("DSKA0003.MS-DOS.622.Disk1.img", true);
-	//auto result_v = hypervisor_v.Run();
-  //return result_v;
+  return 0;
 }
 catch (std::exception const& ex) 
 {

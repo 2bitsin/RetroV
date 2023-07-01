@@ -1,16 +1,12 @@
 #pragma once
 
 #include <core/mem/block.hpp>
+#include <core/hypervisor_fwd.hpp>
 
 #include <cstdint>
 #include <cstddef>
 #include <vector>
 #include <mutex>
-
-namespace core
-{
-	struct Hypervisor;
-}
 
 namespace core::mem
 {

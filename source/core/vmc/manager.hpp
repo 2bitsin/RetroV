@@ -4,21 +4,13 @@
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
 #include <core/cpu/registers.hpp>
+#include <core/cpu/processor_fwd.hpp>
+#include <core/hypervisor_fwd.hpp>
 
 #include <functional>
 #include <cstdint>
 #include <cstddef>
 #include <vector>
-
-namespace core
-{
-	struct Hypervisor;
-}
-
-namespace core::cpu
-{
-	struct Processor;
-}
 
 namespace core::vmc
 {

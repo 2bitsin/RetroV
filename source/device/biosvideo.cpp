@@ -1,4 +1,4 @@
-#include <devices/biosvideo.hpp>
+#include <device/biosvideo.hpp>
 #include <iostream>
 
 using core::BiosVideo;

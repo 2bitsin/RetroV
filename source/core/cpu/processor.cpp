@@ -251,12 +251,7 @@ auto Processor::RequestInterrupt(std::uint16_t vector_v, bool is_nmi_v) -> bool
 	value_v.PendingInterruption.DeliverErrorCode = 0;
 	value_v.PendingInterruption.InterruptionVector = vector_v;
 	WHV_REGISTER_NAME const pending_name_v = WHvRegisterPendingInterruption;
-	auto const result_v = ::WHvSetVirtualProcessorRegisters(handle_v, m_Index, &pending_name_v, 1u, &value_v);
-	if (result_v != S_OK) {
-		throw std::system_error(result_v, std::system_category(), "WHvSetVirtualProcessorRegisters");
-		return false;
-	}
-	return true;
+	return S_OK == ::WHvSetVirtualProcessorRegisters(handle_v, m_Index, &pending_name_v, 1u, &value_v);
 }
 
 auto Processor::IsVendorIntel() -> bool {

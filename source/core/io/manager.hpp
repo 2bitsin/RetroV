@@ -11,15 +11,10 @@
 #include <array>
 #include <mutex>
 
-namespace core
-{
-	struct Hypervisor;
-}
+#include <core/hypervisor_fwd.hpp>
+#include <core/cpu/processor_fwd.hpp>
 
-namespace core::cpu
-{
-	struct Processor;
-}
+
 
 namespace core::io
 {

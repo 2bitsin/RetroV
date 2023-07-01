@@ -27,6 +27,10 @@ auto core::Config::AddProcessor(std::uint32_t processor_v) -> void
 	m_Processors.push_back(processor_v);
 }
 
+auto core::Config::AddDevice(std::string_view name_v, std::any config_v)
+{
+}
+
 void Config::ApplyBeforeSetup(Hypervisor& hypervisor_v) const
 {
 	auto const processor_count_v = std::max<std::uint32_t>(1u, m_Processors.size());
@@ -56,10 +60,6 @@ void Config::ApplyAfterSetup(Hypervisor& hypervisor_v) const
 	for (auto const& [base_v, path_v] : m_OptionROMs) {
 		memory_v.MapPhysical(pool_v.AllocateBlock(path_v), base_v, 0u, memory_v.kMemoryFlagsROM, 0u);
 	}
-	// Configure Graphics Video Memory
-	memory_v.MapPhysical(pool_v.AllocateBlock(64_KiB), 0xA0000u, 0u, memory_v.kMemoryFlagsRAM, 0u);
-	// Configure Text Video Memory	
-	memory_v.MapPhysical(pool_v.AllocateBlock(32_KiB), 0xB8000u, 0u, memory_v.kMemoryFlagsRAM, 0u);
 
 	// Configure Processors
 	if (!m_Processors.empty()) {
