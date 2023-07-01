@@ -35,6 +35,7 @@ namespace core::mem
 		auto Swap (Block& other_v) noexcept -> void;
 
 		auto Rellocate (std::size_t size_v) -> void;
+		auto Release () noexcept -> void;
 	
 	private:
 		std::byte* m_Data { nullptr };

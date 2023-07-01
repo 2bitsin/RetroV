@@ -83,13 +83,18 @@ Block::Block(std::filesystem::path const& path_v, std::size_t size_v, bool repea
 	}
 }
 
-Block::~Block() 
+auto Block::Release() noexcept -> void
 {
 	if (m_Data) {
 		VirtualFree(m_Data, 0, MEM_RELEASE);
 	}
 	m_Data = nullptr;
 	m_Size = 0;
+}
+
+Block::~Block() 
+{
+	Block::Release();
 }
 
 auto Block::operator=(Block&& prev_v) noexcept -> Block&
@@ -119,6 +124,7 @@ auto Block::Rellocate(std::size_t size_v) -> void
 	m_Data = (std::byte*)data_v;
 	m_Size = size_v;
 }
+
 
 Block::Block(Block&& prev_v) noexcept
 	: m_Data(std::exchange(prev_v.m_Data, nullptr))

@@ -7,6 +7,8 @@
 #include <cstddef>
 #include <vector>
 #include <mutex>
+#include <deque>
+#include <span>
 
 namespace core::mem
 {
@@ -17,12 +19,22 @@ namespace core::mem
 
 		template <typename... T>
 		auto AllocateBlock (T&& ... args_v) -> std::size_t {
+
+			if (!m_FreeBlocks.empty()) {
+				auto const index_v = m_FreeBlocks.back();
+				m_FreeBlocks.pop_front();
+				m_Blocks[index_v] = Block(std::forward<T>(args_v)...);
+				return index_v;
+			}
+
 			auto const index_v = m_Blocks.size();
 			m_Blocks.emplace_back(std::forward<T>(args_v)...);
 			return index_v;
 		}
 
-		auto GetBlock (std::size_t index_v) -> Block&;
+		auto FreeBlock(std::size_t index_v) -> void;
+
+		auto GetBlock(std::size_t index_v) -> Block&;
 		auto GetBlockData(std::size_t index_v) -> std::byte*;
 		auto GetBlockSize(std::size_t index_v) -> std::size_t;
 		auto GetBlockView(std::size_t index_v) -> std::span<std::byte>;
@@ -34,5 +46,6 @@ namespace core::mem
 
 	private:
 		std::vector<Block> m_Blocks;
+		std::deque<std::size_t> m_FreeBlocks;
 	};
 }

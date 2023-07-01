@@ -7,6 +7,16 @@ using core::mem::Pool;
 Pool::Pool(core::Hypervisor& hypervisor_v)
 {}
 
+auto Pool::FreeBlock(std::size_t index_v) -> void
+{
+	if (index_v >= m_Blocks.size()) {
+		throw std::out_of_range{ std::format(
+			"{} : Block index out of range.", __func__) };
+	}
+	m_Blocks[index_v].Release();
+	m_FreeBlocks.push_back(index_v);
+}
+
 auto Pool::GetBlock(std::size_t index_v) -> core::mem::Block& {
 	return m_Blocks[index_v];
 }
