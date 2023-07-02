@@ -37,7 +37,7 @@ SimpleVGA::SimpleVGA(core::Hypervisor& hypervisor_v, Config const& config_v)
 		m_Window = SDL_CreateWindow("SimpleVGA", 
 			SDL_WINDOWPOS_UNDEFINED, 
 			SDL_WINDOWPOS_UNDEFINED, 
-			640, 400, 
+			640*2u, 400 * 2u,
 			SDL_WINDOW_SHOWN);
 		if (nullptr == m_Window) {
 			throw std::runtime_error(std::format("{}: {}\n",
@@ -60,6 +60,23 @@ SimpleVGA::SimpleVGA(core::Hypervisor& hypervisor_v, Config const& config_v)
 
 SimpleVGA::~SimpleVGA()
 {
+	using namespace size_literals;
+
+	if (m_TaskIndex) {
+		auto& sched_v = m_Hypervisor->GetScheduler();
+		sched_v.DeviceStop(m_TaskIndex);
+		m_TaskIndex = 0u;
+	}
+
+	auto& mman_v = m_Hypervisor->GetMemManager();
+	mman_v.UnmapPhysical(0xA0000u, 64_KiB);
+	mman_v.UnmapPhysical(0xB0000u, 64_KiB);
+
+	if (m_VramBlock) {
+		auto& pool_v = m_Hypervisor->GetMemPool();
+		pool_v.FreeBlock(m_VramBlock);
+	}
+
 	if (nullptr != m_Window) {
 		SDL_DestroyWindow(m_Window);
 		m_Window = nullptr;
@@ -70,12 +87,19 @@ auto SimpleVGA::Emulate(std::stop_token const& token_v) -> void
 {
 	using namespace std::chrono_literals;
 	using namespace std::chrono;
+
+	auto ticks_next_v = high_resolution_clock::now();
+
 	while (!token_v.stop_requested()) 
 	{
+		ticks_next_v += 1000000us/60;
+		auto const ticks_now_v = high_resolution_clock::now();;
+		if (ticks_now_v < ticks_next_v) {
+			std::this_thread::sleep_until(ticks_next_v);
+		}
+
 		auto& surface_v = *::SDL_GetWindowSurface(m_Window);
-
 		::SDL_LockSurface(&surface_v);
-
 		std::span surface_s { 
 			(std::uint32_t*)surface_v.pixels, 
 			std::size_t(surface_v.w * surface_v.h)
@@ -86,11 +110,10 @@ auto SimpleVGA::Emulate(std::stop_token const& token_v) -> void
 			pool_v.GetBlockView(m_VramBlock));
 
 		auto font_s = VGAFont8x16();
-
 		for (auto yy = 0u; yy < surface_v.h; yy += 1u)
 		for (auto xx = 0u; xx < surface_v.w; xx += 1u) {
-			auto const ty = yy / 0x10u; auto const dy = yy % 0x10u;
-			auto const tx = xx / 0x08u; auto const dx = xx % 0x08u;			
+			auto const ty = (yy/2) / 0x10u; auto const dy = (yy/2) % 0x10u;
+			auto const tx = (xx/2) / 0x08u; auto const dx = (xx/2) % 0x08u;			
 			auto const cell_v = vram_s[ty * m_Width + tx];
 			auto const fg_color_v = kTextColorPalette[(cell_v >> 0x8u) & 0x0F];
 			auto const bg_color_v = kTextColorPalette[(cell_v >> 0xCu) & 0x0F];
@@ -100,7 +123,7 @@ auto SimpleVGA::Emulate(std::stop_token const& token_v) -> void
 			surface_s[yy * surface_v.w + xx] = chr_color_v;			
 		}
 		::SDL_UnlockSurface(&surface_v);	
-		::SDL_UpdateWindowSurface(m_Window);
+		::SDL_UpdateWindowSurface(m_Window);		
 	}
 }
 
@@ -111,6 +134,12 @@ auto SimpleVGA::GetCategory() const noexcept -> device::DeviceCatory {
 auto SimpleVGA::SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::uint16_t height_v) -> void
 {
 	using namespace size_literals;
+
+	auto& sched_v = (*m_Hypervisor).GetScheduler();
+
+	if (m_TaskIndex != 0u) {
+		sched_v.DeviceStop(m_TaskIndex);}
+
 	if (mode_v != RenderingMode::kTextColor) {
 		throw std::runtime_error(std::format("{}: unsupported rendering mode\n", __func__));
 	}
@@ -122,7 +151,7 @@ auto SimpleVGA::SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::u
 	m_Height = height_v;
 	m_Width = width_v;
 
-	SDL_SetWindowSize(m_Window, 8u*m_Width, 16u*m_Height);
+	SDL_SetWindowSize(m_Window, 8u*m_Width*2u, 16u*m_Height*2u);
 
 	auto& pool_v = m_Hypervisor->GetMemPool();
 	auto& mman_v = m_Hypervisor->GetMemManager();
@@ -137,9 +166,12 @@ auto SimpleVGA::SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::u
 	m_VramBlock = pool_v.AllocateBlock(32_KiB);
 	mman_v.MapPhysical(m_VramBlock, 0xB8000u, 32_KiB, mman_v.kMemoryFlagsDevice);
 
-	auto vram_s = utils::mutable_span_as<std::uint16_t>(pool_v.GetBlockView(m_VramBlock));
+	auto vram_s = utils::mutable_span_as<std::uint8_t>(pool_v.GetBlockView(m_VramBlock));
 	for(auto& byte_v : vram_s) 
-		byte_v = std::uint16_t(0x0700 + 'A');
+		byte_v = std::rand() % 256;
+
+	m_TaskIndex = sched_v.DeviceStart(*this);
+	
 }
 
 auto SimpleVGA::IoWrite(Hypervisor& hypervisor_v, Processor& cpu_v, std::uint16_t port_v, std::uint32_t data_v, std::uint8_t size_v) -> bool

@@ -59,6 +59,7 @@ namespace device
 		SDL_Window* m_Window { nullptr };
 		std::size_t m_BiosBlock { 0 };
 		std::size_t m_VramBlock { 0 };
+		std::size_t m_TaskIndex { 0 };
 		RenderingMode m_RenderingMode { RenderingMode::kTextColor };
 		std::uint16_t m_Height { 0 };
 		std::uint16_t m_Width { 0 };

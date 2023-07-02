@@ -45,10 +45,11 @@ auto Scheduler::DeviceStart(device::Interface& devifc_v) -> std::size_t
 	auto& context_v{ m_Devices[handle_v] };
 	context_v.m_Device = &devifc_v;
 	DeviceResume(context_v);
-	return handle_v;
+	return handle_v + 1u;
 }
 
-auto Scheduler::DevicePause(std::size_t index_v) -> void {
+auto Scheduler::DevicePause(std::size_t index_v) -> void {		
+	index_v -= 1u;
 	if (index_v >= m_Devices.size()) {
 		throw std::out_of_range("Invalid device handle"); }
 	auto& context_v{ m_Devices[index_v] };
@@ -57,10 +58,18 @@ auto Scheduler::DevicePause(std::size_t index_v) -> void {
 
 auto Scheduler::DeviceResume(std::size_t index_v) -> void
 {
+	index_v -= 1u;
 	if (index_v >= m_Devices.size()) {
 		throw std::out_of_range("Invalid device handle"); }
 	auto& context_v{ m_Devices[index_v] };
 	return DeviceResume(context_v);
+}
+
+auto Scheduler::DeviceStop(std::size_t index_v) -> void {
+	index_v -= 1u;
+	auto& context_v{ m_Devices[index_v] };
+	DeviceStop(context_v);
+	m_FreeHandles.push_back(index_v);
 }
 
 auto Scheduler::DeviceStop(DeviceContext& context_v) -> void {
@@ -86,12 +95,6 @@ auto Scheduler::DeviceResume(DeviceContext& context_v) -> void
 		auto& device_v = *context_v.m_Device;
 		device_v.Emulate(token_v);
 	}};
-}
-
-auto Scheduler::DeviceStop(std::size_t index_v) -> void {
-	auto& context_v{ m_Devices[index_v] };
-	DeviceStop(context_v);	
-	m_FreeHandles.push_back(index_v);
 }
 
 Scheduler::~Scheduler() 

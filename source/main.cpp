@@ -32,12 +32,7 @@ int main(int argc, char** argv) try
 	core::Hypervisor hypervisor_v(config_v);
 	device::SimpleVGA vga_v(hypervisor_v, config_v);
 	vga_v.SetVideoMode(vga_v.kTextColor, 80u, 25u);
-	std::stop_source stop_source_v;
-	auto stop_token_v = stop_source_v.get_token();
-	std::thread _ { [&] {
-		vga_v.Emulate(stop_token_v);
-	}};
-
+	
 	while (true)
 	{
 		SDL_Event event_v;
@@ -46,9 +41,6 @@ int main(int argc, char** argv) try
 			continue;
 		}
 	}
-
-	_.join();
-
   return 0;
 }
 catch (std::exception const& ex) 
