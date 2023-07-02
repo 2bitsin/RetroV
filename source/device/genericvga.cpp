@@ -27,6 +27,7 @@ static inline constexpr std::uint32_t const kTextColorPalette[] = {
 };
 
 using device::GenericVGA;
+using device::Config;
 
 GenericVGA::GenericVGA(core::Hypervisor& hypervisor_v, Config const& config_v)
 	:	m_Hypervisor(&hypervisor_v)
@@ -101,6 +102,10 @@ auto GenericVGA::Emulate(std::stop_token const& token_v) -> void
 		::SDL_UnlockSurface(&surface_v);	
 		::SDL_UpdateWindowSurface(m_Window);
 	}
+}
+
+auto GenericVGA::GetCategory() const noexcept -> device::DeviceCatory { 
+	return DeviceCatory::kVideo; 
 }
 
 auto GenericVGA::SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::uint16_t height_v) -> void

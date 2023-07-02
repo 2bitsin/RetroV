@@ -18,18 +18,20 @@ namespace device
 	struct GenericVGA final:  
 		public device::Interface
 	{	
-		enum RenderingMode {
+		enum class RenderingMode :
+			std::uint32_t
+		{
 			kTextMonochrome,
 			kTextColor,
-			kGraphics1BppLinearCGA,
-			kGraphics2BppLinearCGA,
-			kGraphics4BppCompositeCGA,
-			kGraphics4BppPlanarEGA,
-			kGraphics8BppLinearVGA,
-			kGraphics8BppPlanarVGA,
-			kGraphicsLinearSVGA
+			kGraphicsLinear1BppMonochrome,
+			kGraphicsLinear2BppIndexed,
+			kGraphicsPlanar4BppIndexed,
+			kGraphicsPlanar8BppIndexed,
+			kGraphicsLinear8BppIndexed,
+			kGraphicsLinear16BppRGB,
+			kGraphicsLinear24BppRGB,
+			kGraphicsLinear32BppRGB			
 		};
-
 
 		GenericVGA(core::Hypervisor& hypervisor_v, Config const& config_v);
 
@@ -41,6 +43,7 @@ namespace device
 		~GenericVGA () override;
 
 		auto Emulate(std::stop_token const& token_v) -> void override final;
+		auto GetCategory() const noexcept -> device::DeviceCatory override final;
 
 		auto SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::uint16_t height_v) -> void;
 

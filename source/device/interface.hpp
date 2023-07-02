@@ -11,6 +11,18 @@
 
 namespace device
 {
+	enum class DeviceCatory: 
+		std::uint32_t
+	{
+		kGeneric,
+		kDebug,
+		kVideo,
+		kAudio,
+		kInput,
+		kStorage,
+		kNetwork
+	};
+
 	struct Interface
 	{
 		Interface() = default;
@@ -22,6 +34,7 @@ namespace device
 		auto operator=(Interface&&) -> Interface& = delete;
 		
 		virtual auto Emulate(std::stop_token const& token_v) -> void = 0;		
+		virtual auto GetCategory() const noexcept -> DeviceCatory;
 	};
 
 	using InterfacePtr = std::unique_ptr<Interface>;

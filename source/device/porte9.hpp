@@ -20,6 +20,8 @@ namespace device
 
 		auto Emulate(std::stop_token const& token_v) -> void override final;
 
+		auto GetCategory() const noexcept -> device::DeviceCatory override final;
+
 	private:
 		core::Hypervisor* m_Hypervisor;
 	};
