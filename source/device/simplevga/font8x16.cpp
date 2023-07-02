@@ -1,4 +1,4 @@
-#include <device/genericvga/font.hpp>
+#include <device/simplevga/font.hpp>
 
 static inline constexpr std::byte const font_8x16_bytes[] = 
 {
@@ -346,6 +346,6 @@ static inline constexpr std::byte const font_8x16_bytes[] =
 	std::byte(0x00), std::byte(0x00), std::byte(0x00), std::byte(0x00)
 };
 
-auto device::GenericVGAFont8x16() -> std::span<std::byte const> {
+auto device::VGAFont8x16() -> std::span<std::byte const> {
 	return { std::data(font_8x16_bytes), std::size_t(font_8x16_bytes)};
 }

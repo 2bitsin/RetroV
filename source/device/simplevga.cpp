@@ -1,5 +1,5 @@
-#include <device/genericvga.hpp>
-#include <device/genericvga/font.hpp>
+#include <device/simplevga.hpp>
+#include <device/simplevga/font.hpp>
 #include <core/hypervisor.hpp>
 #include <utils/literals.hpp>
 
@@ -26,15 +26,15 @@ static inline constexpr std::uint32_t const kTextColorPalette[] = {
 	0x00FF5555, 0x00FF55FF, 0x00FFFF55, 0x00FFFFFF
 };
 
-using device::GenericVGA;
+using device::SimpleVGA;
 using device::Config;
 
-GenericVGA::GenericVGA(core::Hypervisor& hypervisor_v, Config const& config_v)
+SimpleVGA::SimpleVGA(core::Hypervisor& hypervisor_v, Config const& config_v)
 	:	m_Hypervisor(&hypervisor_v)
 	, m_Window(nullptr)
 {
 	if (nullptr == m_Window) {
-		m_Window = SDL_CreateWindow("GenericVGA", 
+		m_Window = SDL_CreateWindow("SimpleVGA", 
 			SDL_WINDOWPOS_UNDEFINED, 
 			SDL_WINDOWPOS_UNDEFINED, 
 			640, 400, 
@@ -55,10 +55,10 @@ GenericVGA::GenericVGA(core::Hypervisor& hypervisor_v, Config const& config_v)
 			//return IoWrite(hypervisor_v, processor_v, port_v, data_v, size_v);
 			return false;
 		});
-	SetVideoMode(kTextColor, 80u, 25u);
+	SetVideoMode(RenderingMode::kTextColor, 80u, 25u);
 }
 
-GenericVGA::~GenericVGA()
+SimpleVGA::~SimpleVGA()
 {
 	if (nullptr != m_Window) {
 		SDL_DestroyWindow(m_Window);
@@ -66,7 +66,7 @@ GenericVGA::~GenericVGA()
 	}
 }
 
-auto GenericVGA::Emulate(std::stop_token const& token_v) -> void
+auto SimpleVGA::Emulate(std::stop_token const& token_v) -> void
 {
 	using namespace std::chrono_literals;
 	using namespace std::chrono;
@@ -85,18 +85,18 @@ auto GenericVGA::Emulate(std::stop_token const& token_v) -> void
 		auto vram_s = utils::mutable_span_as<std::uint16_t>(
 			pool_v.GetBlockView(m_VramBlock));
 
-		auto font_s = GenericVGAFont8x16();
+		auto font_s = VGAFont8x16();
 
 		for (auto yy = 0u; yy < surface_v.h; yy += 1u)
 		for (auto xx = 0u; xx < surface_v.w; xx += 1u) {
 			auto const ty = yy / 0x10u; auto const dy = yy % 0x10u;
 			auto const tx = xx / 0x08u; auto const dx = xx % 0x08u;			
 			auto const cell_v = vram_s[ty * m_Width + tx];
-			auto const fg_color_v = kTextColorPalette[(cell_v >> 0u) & 0x0F];
-			auto const bg_color_v = kTextColorPalette[(cell_v >> 4u) & 0x0F];
-			auto const ch_index_v = (cell_v >> 8u) & 0xFF;			
-			auto const chr_bits_v = (std::uint8_t)font_s[ch_index_v * 16u];
-			auto const chr_color_v = (chr_bits_v >> (15u - dy)) & 0x01u ? fg_color_v : bg_color_v;
+			auto const fg_color_v = kTextColorPalette[(cell_v >> 0x8u) & 0x0F];
+			auto const bg_color_v = kTextColorPalette[(cell_v >> 0xCu) & 0x0F];
+			auto const ch_index_v = cell_v & 0xFFu;			
+			auto const chr_bits_v = (std::uint8_t)font_s[ch_index_v*16u + dy];
+			auto const chr_color_v = (chr_bits_v >> (8u - dx)) & 0x01u ? fg_color_v : bg_color_v;
 			surface_s[yy * surface_v.w + xx] = chr_color_v;			
 		}
 		::SDL_UnlockSurface(&surface_v);	
@@ -104,11 +104,11 @@ auto GenericVGA::Emulate(std::stop_token const& token_v) -> void
 	}
 }
 
-auto GenericVGA::GetCategory() const noexcept -> device::DeviceCatory { 
+auto SimpleVGA::GetCategory() const noexcept -> device::DeviceCatory { 
 	return DeviceCatory::kVideo; 
 }
 
-auto GenericVGA::SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::uint16_t height_v) -> void
+auto SimpleVGA::SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::uint16_t height_v) -> void
 {
 	using namespace size_literals;
 	if (mode_v != RenderingMode::kTextColor) {
@@ -136,14 +136,18 @@ auto GenericVGA::SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::
 
 	m_VramBlock = pool_v.AllocateBlock(32_KiB);
 	mman_v.MapPhysical(m_VramBlock, 0xB8000u, 32_KiB, mman_v.kMemoryFlagsDevice);
+
+	auto vram_s = utils::mutable_span_as<std::uint16_t>(pool_v.GetBlockView(m_VramBlock));
+	for(auto& byte_v : vram_s) 
+		byte_v = std::uint16_t(0x0700 + 'A');
 }
 
-auto GenericVGA::IoWrite(Hypervisor& hypervisor_v, Processor& cpu_v, std::uint16_t port_v, std::uint32_t data_v, std::uint8_t size_v) -> bool
+auto SimpleVGA::IoWrite(Hypervisor& hypervisor_v, Processor& cpu_v, std::uint16_t port_v, std::uint32_t data_v, std::uint8_t size_v) -> bool
 {
 	return false;
 }
 
-auto GenericVGA::IoFetch(Hypervisor& hypervisor_v, Processor& cpu_v, std::uint16_t port_v, std::uint32_t& data_v, std::uint8_t size_v) -> bool
+auto SimpleVGA::IoFetch(Hypervisor& hypervisor_v, Processor& cpu_v, std::uint16_t port_v, std::uint32_t& data_v, std::uint8_t size_v) -> bool
 {
 	return false;
 }

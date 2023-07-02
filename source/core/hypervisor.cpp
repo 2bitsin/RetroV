@@ -19,6 +19,7 @@ using core::Hypervisor;
 
 Hypervisor::Hypervisor(Config const& config_v)
 	:	m_Partition  { *this }
+	,	m_Scheduler  { *this }
 	,	m_MemPool    { *this }
 	,	m_MemManager { *this }
 	, m_IoManager  { *this }
@@ -38,6 +39,11 @@ Hypervisor::~Hypervisor()
 auto Hypervisor::GetParitionHandle() -> WHV_PARTITION_HANDLE
 {
 	return GetPartition().GetHandle();
+}
+
+auto Hypervisor::GetScheduler() -> Scheduler&
+{
+  return m_Scheduler;
 }
 
 auto Hypervisor::GetPartition() -> core::Partition&

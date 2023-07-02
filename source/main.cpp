@@ -1,5 +1,5 @@
 #include <machine/genericisapc.hpp>
-#include <device/genericvga.hpp>
+#include <device/simplevga.hpp>
 #include <SDL2/SDL.h>
 
 #include <iostream>
@@ -21,14 +21,17 @@ int main(int argc, char** argv) try
 	
 	core::Config config_v;
 
-	auto base_path_v = std::filesystem::path(argv[0]).parent_path();
-	config_v.SetBootROM(0xF0000u, (base_path_v / "ROMs") / "BiosAMD.bin");
+	auto base_path_v = std::filesystem::path(argv[0])
+		.parent_path()
+		.parent_path();
+
+	config_v.SetBootROM(0xF0000u, base_path_v / "ROMs" / "BiosAMD.bin");
 	config_v.AddProcessor(0);
 	config_v.SetMemorySize(4_MiB);
 
 	core::Hypervisor hypervisor_v(config_v);
-	device::GenericVGA vga_v(hypervisor_v, config_v);
-
+	device::SimpleVGA vga_v(hypervisor_v, config_v);
+	vga_v.SetVideoMode(vga_v.kTextColor, 80u, 25u);
 	std::stop_source stop_source_v;
 	auto stop_token_v = stop_source_v.get_token();
 	std::thread _ { [&] {

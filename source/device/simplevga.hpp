@@ -15,10 +15,10 @@
 namespace device
 {
 
-	struct GenericVGA final:  
+	struct SimpleVGA final:  
 		public device::Interface
 	{	
-		enum class RenderingMode :
+		enum  RenderingMode :
 			std::uint32_t
 		{
 			kTextMonochrome,
@@ -33,14 +33,14 @@ namespace device
 			kGraphicsLinear32BppRGB			
 		};
 
-		GenericVGA(core::Hypervisor& hypervisor_v, Config const& config_v);
+		SimpleVGA(core::Hypervisor& hypervisor_v, Config const& config_v);
 
-		GenericVGA(GenericVGA const&) = delete;
-		GenericVGA(GenericVGA&&) = delete;
-		auto operator=(GenericVGA const&) -> GenericVGA& = delete;
-		auto operator=(GenericVGA&&) -> GenericVGA& = delete;
+		SimpleVGA(SimpleVGA const&) = delete;
+		SimpleVGA(SimpleVGA&&) = delete;
+		auto operator=(SimpleVGA const&) -> SimpleVGA& = delete;
+		auto operator=(SimpleVGA&&) -> SimpleVGA& = delete;
 
-		~GenericVGA () override;
+		~SimpleVGA () override;
 
 		auto Emulate(std::stop_token const& token_v) -> void override final;
 		auto GetCategory() const noexcept -> device::DeviceCatory override final;
@@ -59,7 +59,7 @@ namespace device
 		SDL_Window* m_Window { nullptr };
 		std::size_t m_BiosBlock { 0 };
 		std::size_t m_VramBlock { 0 };
-		RenderingMode m_RenderingMode { kTextColor };
+		RenderingMode m_RenderingMode { RenderingMode::kTextColor };
 		std::uint16_t m_Height { 0 };
 		std::uint16_t m_Width { 0 };
 	};

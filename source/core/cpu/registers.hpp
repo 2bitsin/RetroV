@@ -9,6 +9,7 @@
 namespace core::cpu
 {
 
+
 	struct RegisterFile
 	{
 	#define DECLARE_REGISTER(N) union { uint64_t r##N##x; uint32_t e##N##x; uint16_t N##x; struct{ uint8_t N##l, N##h; }; };
@@ -62,7 +63,6 @@ namespace core::cpu
 			/* 22 */ WHvX64RegisterGs,
 			/* 23 */ WHvX64RegisterSs
 		};
-
 	};
 
 }

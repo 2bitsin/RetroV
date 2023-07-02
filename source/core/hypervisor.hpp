@@ -20,6 +20,7 @@
 #include <core/cpu/processor.hpp>
 #include <core/debug/debugger.hpp>
 #include <core/partition.hpp>
+#include <core/scheduler.hpp>
 
 namespace core
 { 
@@ -40,6 +41,7 @@ namespace core
 
 		auto GetParitionHandle() -> WHV_PARTITION_HANDLE;		
 
+		auto GetScheduler() -> Scheduler&;
 		auto GetPartition() -> Partition&;
 		auto GetMemPool() -> mem::Pool&;
 		auto GetMemManager() -> mem::Manager&;
@@ -85,6 +87,7 @@ namespace core
 		 * Internal state
 		 ****************/
 	private:
+		Scheduler m_Scheduler;
 		Partition m_Partition;
 		mem::Pool m_MemPool;
 		mem::Manager m_MemManager;

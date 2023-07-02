@@ -6,6 +6,6 @@
 
 namespace device {
 
-	auto GenericVGAFont8x16 () -> std::span<std::byte const>;
+	auto VGAFont8x16 () -> std::span<std::byte const>;
 
 }
