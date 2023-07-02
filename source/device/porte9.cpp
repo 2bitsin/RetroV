@@ -29,3 +29,13 @@ auto PortE9::GetCategory() const noexcept -> device::DeviceCatory
 {
   return DeviceCatory::kDebug;
 }
+
+auto PortE9::SetRunState(DeviceRunState) -> void
+{
+  
+}
+
+auto PortE9::GetRunState() -> DeviceRunState
+{
+	return DeviceRunState::kAlwaysOn;
+}

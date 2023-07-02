@@ -23,6 +23,14 @@ namespace device
 		kNetwork
 	};
 
+	enum class DeviceRunState
+	{
+		kAlwaysOn,
+		kStopped,
+		kRunning,
+		kPaused		
+	};
+
 	struct Interface
 	{
 		Interface() = default;
@@ -33,8 +41,10 @@ namespace device
 		auto operator=(Interface const&) -> Interface& = delete;
 		auto operator=(Interface&&) -> Interface& = delete;
 		
-		virtual auto Emulate(std::stop_token const& token_v) -> void = 0;		
 		virtual auto GetCategory() const noexcept -> DeviceCatory;
+		virtual auto Emulate(std::stop_token const& token_v) -> void = 0;		
+		virtual auto SetRunState(DeviceRunState) -> void = 0;
+		virtual auto GetRunState() -> DeviceRunState = 0;
 	};
 
 	using InterfacePtr = std::unique_ptr<Interface>;

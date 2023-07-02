@@ -1,5 +1,4 @@
 #include <machine/genericisapc.hpp>
-#include <device/simplevga.hpp>
 #include <SDL2/SDL.h>
 
 #include <iostream>
@@ -18,21 +17,9 @@ int main(int argc, char** argv) try
 
 	SDL_Init(SDL_INIT_EVERYTHING);
 	std::atexit(SDL_Quit);
-	
-	core::Config config_v;
+		//	vga_v.SetVideoMode(vga_v.kTextColor, 80u, 25u);
 
-	auto base_path_v = std::filesystem::path(argv[0])
-		.parent_path()
-		.parent_path();
-
-	config_v.SetBootROM(0xF0000u, base_path_v / "ROMs" / "BiosAMD.bin");
-	config_v.AddProcessor(0);
-	config_v.SetMemorySize(4_MiB);
-
-	core::Hypervisor hypervisor_v(config_v);
-	device::SimpleVGA vga_v(hypervisor_v, config_v);
-	vga_v.SetVideoMode(vga_v.kTextColor, 80u, 25u);
-	
+	machine::GenericISAPC isapc_v({argv, argc});
 	while (true)
 	{
 		SDL_Event event_v;

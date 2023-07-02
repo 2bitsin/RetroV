@@ -108,7 +108,7 @@ auto SimpleVGA::Emulate(std::stop_token const& token_v) -> void
 		auto& pool_v = m_Hypervisor->GetMemPool();
 		auto vram_s = utils::mutable_span_as<std::uint16_t>(
 			pool_v.GetBlockView(m_VramBlock));
-
+		
 		auto font_s = VGAFont8x16();
 		for (auto yy = 0u; yy < surface_v.h; yy += 1u)
 		for (auto xx = 0u; xx < surface_v.w; xx += 1u) {
@@ -129,6 +129,33 @@ auto SimpleVGA::Emulate(std::stop_token const& token_v) -> void
 
 auto SimpleVGA::GetCategory() const noexcept -> device::DeviceCatory { 
 	return DeviceCatory::kVideo; 
+}
+
+auto SimpleVGA::SetRunState(DeviceRunState state_v) -> void 
+{
+	auto& sched_v=m_Hypervisor->GetScheduler();
+	switch (state_v) {
+	using enum DeviceRunState;
+	case kRunning: 
+		if (m_TaskIndex != 0) 
+			throw std::runtime_error("Already running");
+		m_TaskIndex = sched_v.DeviceStart(*this);
+		break;
+	case kStopped:
+	case kPaused:
+		if (m_TaskIndex == 0)
+			throw std::runtime_error("Not running");
+		sched_v.DeviceStop(m_TaskIndex);
+		m_TaskIndex = 0;
+		break;
+	}
+}
+
+auto SimpleVGA::GetRunState() -> DeviceRunState
+{
+	if (m_TaskIndex != 0) {
+		return DeviceRunState::kRunning; }
+	return DeviceRunState::kStopped;
 }
 
 auto SimpleVGA::SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::uint16_t height_v) -> void
@@ -165,11 +192,6 @@ auto SimpleVGA::SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::u
 
 	m_VramBlock = pool_v.AllocateBlock(32_KiB);
 	mman_v.MapPhysical(m_VramBlock, 0xB8000u, 32_KiB, mman_v.kMemoryFlagsDevice);
-
-	auto vram_s = utils::mutable_span_as<std::uint8_t>(pool_v.GetBlockView(m_VramBlock));
-	for(auto& byte_v : vram_s) 
-		byte_v = std::rand() % 256;
-
 	m_TaskIndex = sched_v.DeviceStart(*this);
 	
 }

@@ -44,6 +44,8 @@ namespace device
 
 		auto Emulate(std::stop_token const& token_v) -> void override final;
 		auto GetCategory() const noexcept -> device::DeviceCatory override final;
+		auto SetRunState(DeviceRunState) -> void override final;
+		auto GetRunState() -> DeviceRunState override final;
 
 		auto SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::uint16_t height_v) -> void;
 
