@@ -19,8 +19,7 @@ Service::Service(Scheduler& scheduler_v, std::function<task_type> callback_v)
 	state_v.m_StopSource = std::stop_source{};
 	state_v.m_StopTarget = state_v.m_StopSource.get_token();
 	state_v.m_Thread = std::jthread{[this,
-		callback_v = std::move(callback_v)] 
-	{
+		callback_v = std::move(callback_v)] {
 		return callback_v(GetScheduler(), *this);
 	}};
 }
@@ -58,8 +57,7 @@ auto Service::Pause() -> void {
 	});
 }
 
-auto Service::Stop() -> void {
-	//assert(m_State);
+auto Service::Stop() -> void {	
 	if (!m_State) return;
 	auto& state_v{ *m_State };
 	state_v.m_StopSource.request_stop();		
