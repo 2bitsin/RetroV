@@ -1,22 +1,14 @@
-#include "scheduler.hpp"
-#include "scheduler.hpp"
-#include "scheduler.hpp"
-#include "scheduler.hpp"
-#include "scheduler.hpp"
-#include "scheduler.hpp"
-#include "scheduler.hpp"
 #include <core/scheduler.hpp>
 
 using core::Scheduler;
 
 Scheduler::Scheduler(Hypervisor& hypervisor)
 	: m_Hypervisor(&hypervisor)
-	, m_Devices()
 {}
 
 Scheduler::Scheduler(Scheduler&& prev_v) noexcept
 	: m_Hypervisor(std::exchange(prev_v.m_Hypervisor, nullptr))
-	, m_Devices(std::move(prev_v.m_Devices))
+	, m_Services()
 	, m_FreeHandles(std::move(prev_v.m_FreeHandles))
 {}
 
@@ -29,77 +21,51 @@ auto Scheduler::operator=(Scheduler&& prev_v) noexcept -> Scheduler& {
 
 auto Scheduler::Swap(Scheduler& prev_v) noexcept -> void {	
 	std::swap(m_Hypervisor, prev_v.m_Hypervisor);
-	std::swap(m_Devices, prev_v.m_Devices);
+	std::swap(m_Services, prev_v.m_Services);
 	std::swap(m_FreeHandles, prev_v.m_FreeHandles);
 }
 
-auto Scheduler::DeviceStart(device::Interface& devifc_v) -> std::size_t
-{
-	std::size_t handle_v{ 0 };
-	if (!m_FreeHandles.empty()) {
-		handle_v = m_FreeHandles.front();
-		m_FreeHandles.pop_front();
+auto Scheduler::DeviceStart(device::Interface& device_v) -> std::size_t {
+	auto callback_v = [&device_v] <typename...T>(T&&...args_v) {
+		device_v.Emulate(std::forward<T>(args_v)...);
+	};
+	using device::Interface;	
+	if (m_FreeHandles.empty()) {
+		auto handle_v=m_Services.size();
+		m_Services.emplace_back(*this, std::move(callback_v));
+		return handle_v + 1u;;
 	} else {
-		handle_v = m_Devices.size();
-		m_Devices.emplace_back(DeviceContext{}); }
-	auto& context_v{ m_Devices[handle_v] };
-	context_v.m_Device = &devifc_v;
-	DeviceResume(context_v);
-	return handle_v + 1u;
+		auto handle_v=m_FreeHandles.front();
+		m_FreeHandles.pop_front();		
+		m_Services[handle_v] = Service(*this, std::move(callback_v));
+		return handle_v+1u;
+	}
 }
 
-auto Scheduler::DevicePause(std::size_t index_v) -> void {		
+auto Scheduler::DeviceStop(std::size_t index_v) -> void
+{
 	index_v -= 1u;
-	if (index_v >= m_Devices.size()) {
-		throw std::out_of_range("Invalid device handle"); }
-	auto& context_v{ m_Devices[index_v] };
-	return DevicePause(context_v);
+	auto& service_v{ m_Services.at(index_v) };
+	service_v.Stop();
+}
+
+auto Scheduler::DevicePause(std::size_t index_v) -> void
+{
+	index_v -= 1u;
+	auto& service_v{ m_Services.at(index_v) };
+	service_v.Pause();
 }
 
 auto Scheduler::DeviceResume(std::size_t index_v) -> void
 {
 	index_v -= 1u;
-	if (index_v >= m_Devices.size()) {
-		throw std::out_of_range("Invalid device handle"); }
-	auto& context_v{ m_Devices[index_v] };
-	return DeviceResume(context_v);
+	auto& service_v{ m_Services.at(index_v) };
+	service_v.Resume();
 }
 
-auto Scheduler::DeviceStop(std::size_t index_v) -> void {
-	index_v -= 1u;
-	auto& context_v{ m_Devices[index_v] };
-	DeviceStop(context_v);
-	m_FreeHandles.push_back(index_v);
-}
 
-auto Scheduler::DeviceStop(DeviceContext& context_v) -> void {
-	DevicePause(context_v);
-	context_v.m_Device = nullptr;
-}
-
-auto Scheduler::DevicePause(DeviceContext& context_v) -> void
-{
-	if (context_v.m_Device == nullptr) {
-		throw std::runtime_error("Invalid device handle"); }
-	context_v.m_StopSource.request_stop();
-	context_v.m_Thread.join();
-}
-
-auto Scheduler::DeviceResume(DeviceContext& context_v) -> void
-{
-	if (context_v.m_Device == nullptr) {
-		throw std::runtime_error("Invalid device handle"); }
-	context_v.m_StopSource = std::stop_source{};
-	context_v.m_Thread = std::jthread{ [&context_v]() {
-		auto token_v{ context_v.m_StopSource.get_token() };
-		auto& device_v = *context_v.m_Device;
-		device_v.Emulate(token_v);
-	}};
-}
-
-Scheduler::~Scheduler() 
-{
-	for (auto& context_v : m_Devices) {
-		if (context_v.m_Device != nullptr) {
-			DeviceStop(context_v); }}
+Scheduler::~Scheduler() {
+	for (auto& service_v : m_Services) {
+		service_v.Stop();
+	}
 }

@@ -18,10 +18,10 @@ namespace device
 		auto operator = (const PortE9&) -> PortE9& = delete;
 		auto operator = (PortE9&&)-> PortE9& = delete;
 
-		auto Emulate(std::stop_token const& token_v) -> void override final;
+		auto Emulate(core::Scheduler&, core::Service&) -> void override final;
 		auto GetCategory() const noexcept -> device::DeviceCatory override final;
-		auto SetRunState(DeviceRunState) -> void override final;
-		auto GetRunState() -> DeviceRunState override final;
+		auto Pause () -> void override final;
+		auto Resume () -> void override final;
 
 	private:
 		core::Hypervisor* m_Hypervisor;

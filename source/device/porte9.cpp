@@ -22,20 +22,14 @@ PortE9::~PortE9()
 	m_Hypervisor->GetIoManager().UnregisterWriteCallback(0xe9);
 }
 
-auto PortE9::Emulate(std::stop_token const& token_v) -> void
+auto PortE9::Emulate(core::Scheduler&, core::Service&) -> void
 {}
 
 auto PortE9::GetCategory() const noexcept -> device::DeviceCatory
-{
-  return DeviceCatory::kDebug;
-}
+{ return DeviceCatory::kDebug; }
 
-auto PortE9::SetRunState(DeviceRunState) -> void
-{
-  
-}
+auto PortE9::Pause() -> void
+{}
 
-auto PortE9::GetRunState() -> DeviceRunState
-{
-	return DeviceRunState::kAlwaysOn;
-}
+auto PortE9::Resume() -> void
+{}

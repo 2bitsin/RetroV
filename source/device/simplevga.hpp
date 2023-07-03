@@ -2,6 +2,8 @@
 
 #include <device/interface.hpp>
 #include <core/cpu/processor_fwd.hpp>
+#include <core/scheduler_fwd.hpp>
+#include <core/service_fwd.hpp>
 
 #include <SDL2/SDL.h>
 
@@ -14,7 +16,6 @@
 
 namespace device
 {
-
 	struct SimpleVGA final:  
 		public device::Interface
 	{	
@@ -42,10 +43,11 @@ namespace device
 
 		~SimpleVGA () override;
 
-		auto Emulate(std::stop_token const& token_v) -> void override final;
+		auto Emulate(core::Scheduler&, core::Service&) -> void override final;
 		auto GetCategory() const noexcept -> device::DeviceCatory override final;
-		auto SetRunState(DeviceRunState) -> void override final;
-		auto GetRunState() -> DeviceRunState override final;
+		auto Pause() -> void override final;
+		auto Resume() -> void override final;
+
 
 		auto SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::uint16_t height_v) -> void;
 

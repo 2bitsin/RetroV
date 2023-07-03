@@ -4,3 +4,6 @@
 #define NOMINMAX
 
 #include <windows.h>
+
+// Cleaning up stupid windows macros
+#undef Yield

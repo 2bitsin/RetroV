@@ -16,18 +16,26 @@ auto GenericISAPC::InitializeConfig(std::span<char const* const> args_v) -> core
 	return config_v;
 }
 
+#include <device/simplevga.hpp>
 GenericISAPC::GenericISAPC(std::span<char const * const> args_v)
 	: m_Hypervisor(InitializeConfig(args_v))
 	, m_Devices()
 {
 	using namespace device;
 	std::string s;
-	m_Devices.emplace_back(CreateDevice(
-		m_Hypervisor, "porte9", s));
-	m_Devices.emplace_back(CreateDevice(
-		m_Hypervisor, "simplevga", s));
+	m_Devices.emplace_back(CreateDevice(m_Hypervisor, "porte9",    s));
+	m_Devices.emplace_back(CreateDevice(m_Hypervisor, "simplevga", s));
 }
 
 GenericISAPC::~GenericISAPC()
+{}
+
+auto machine::GenericISAPC::StartVideo() -> void
 {
+	m_Devices.back()->Resume();
+}
+
+auto machine::GenericISAPC::StopVideo() -> void
+{
+	m_Devices.back()->Pause();
 }

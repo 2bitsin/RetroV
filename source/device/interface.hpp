@@ -1,6 +1,8 @@
 #pragma once
 
 #include <core/hypervisor_fwd.hpp>
+#include <core/scheduler_fwd.hpp>
+#include <core/service_fwd.hpp>
 
 #include <string_view>
 #include <stop_token>
@@ -23,14 +25,6 @@ namespace device
 		kNetwork
 	};
 
-	enum class DeviceRunState
-	{
-		kAlwaysOn,
-		kStopped,
-		kRunning,
-		kPaused		
-	};
-
 	struct Interface
 	{
 		Interface() = default;
@@ -42,13 +36,14 @@ namespace device
 		auto operator=(Interface&&) -> Interface& = delete;
 		
 		virtual auto GetCategory() const noexcept -> DeviceCatory;
-		virtual auto Emulate(std::stop_token const& token_v) -> void = 0;		
-		virtual auto SetRunState(DeviceRunState) -> void = 0;
-		virtual auto GetRunState() -> DeviceRunState = 0;
+		virtual auto Emulate(core::Scheduler&, core::Service&) -> void = 0;		
+
+		virtual auto Pause () -> void = 0;
+		virtual auto Resume () -> void = 0;
 	};
 
 	using InterfacePtr = std::unique_ptr<Interface>;
 	using Config = std::any;
 
-	static auto CreateDevice(core::Hypervisor&, std::string_view device_name_v, Config const&) -> InterfacePtr;
+	auto CreateDevice(core::Hypervisor&, std::string_view device_name_v, Config const&) -> InterfacePtr;
 }

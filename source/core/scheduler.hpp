@@ -2,6 +2,7 @@
 
 #include <device/interface.hpp>
 #include <core/hypervisor_fwd.hpp>
+#include <core/service.hpp>
 
 #include <condition_variable>
 #include <stop_token>
@@ -32,21 +33,10 @@ namespace core
 		auto DeviceResume(std::size_t) -> void;
 
 		~Scheduler();
-	protected:
-		struct DeviceContext
-		{
-			device::Interface* m_Device;
-			std::stop_source m_StopSource;
-			std::jthread m_Thread;
-		};
-
-		auto DeviceStop(DeviceContext& context_v) -> void;
-		auto DevicePause(DeviceContext& context_v) -> void;
-		auto DeviceResume(DeviceContext& context_v) -> void;
 
 	private:
 		Hypervisor* m_Hypervisor { nullptr };
-		std::vector<DeviceContext> m_Devices;
+		std::vector<Service> m_Services;
 		std::deque<std::size_t> m_FreeHandles;
 
 	};

@@ -16,10 +16,12 @@ int main(int argc, char** argv) try
 	std::filesystem::current_path(R"(F:\Archive\FloppyImages)");
 
 	SDL_Init(SDL_INIT_EVERYTHING);
-	std::atexit(SDL_Quit);
-		//	vga_v.SetVideoMode(vga_v.kTextColor, 80u, 25u);
+	std::atexit(SDL_Quit);		
 
-	machine::GenericISAPC isapc_v({argv, argc});
+	machine::GenericISAPC isapc_v({argv, (size_t)argc});
+
+	auto tick_v = high_resolution_clock::now() + 1s;
+	auto last_v = true;
 	while (true)
 	{
 		SDL_Event event_v;
@@ -27,6 +29,15 @@ int main(int argc, char** argv) try
 			if (event_v.type == SDL_QUIT) { break; }
 			continue;
 		}
+		auto now_v = high_resolution_clock::now();
+		if (now_v < tick_v) 
+			continue; 
+
+		if (last_v) isapc_v.StopVideo();
+		else isapc_v.StartVideo();
+
+		last_v = !last_v;
+		tick_v += 5s;
 	}
   return 0;
 }
