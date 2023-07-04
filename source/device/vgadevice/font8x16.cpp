@@ -1,4 +1,4 @@
-#include <device/simplevga/font.hpp>
+#include <device/vgadevice/font.hpp>
 
 static inline constexpr std::byte const font_8x16_bytes[] = 
 {

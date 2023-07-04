@@ -7,7 +7,7 @@
 #include <array>
 #include <mutex>
 
-#include <utils/span_as.hpp>
+#include <utils/span.hpp>
 #include <win32/error.hpp>
 #include <win32/winhvpx.hpp>
 #include <core/config.hpp>
@@ -76,13 +76,6 @@ namespace core
 		auto InitializePartition() -> void;
 		auto InitializeProcessor(std::uint32_t index_v) -> void;
 
-		/************************
-		 *  Exit handling methods
-		 ************************/
-		auto DispatchExit(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool;
-    auto NextInstruction(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> void;
-		auto DispatchHalt(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool;
-
 		/****************
 		 * Internal state
 		 ****************/
@@ -91,8 +84,6 @@ namespace core
 		Partition m_Partition;
 		mem::Pool m_MemPool;
 		mem::Manager m_MemManager;
-		io::Manager m_IoManager;
-		vmc::Manager m_VcManager;
 		std::vector<cpu::Processor> m_Processors;
 		debug::Debugger m_Debugger;
 	};

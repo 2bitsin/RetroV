@@ -15,8 +15,15 @@
 
 namespace core
 {
+	namespace cpu
+	{
+		struct Processor;
+	}
+
 	struct Scheduler 
 	{
+		using Processor = core::cpu::Processor;
+
 		Scheduler(Hypervisor&);
 
 		Scheduler(Scheduler const&) = delete;
@@ -38,6 +45,5 @@ namespace core
 		Hypervisor* m_Hypervisor { nullptr };
 		std::vector<Service> m_Services;
 		std::deque<std::size_t> m_FreeHandles;
-
 	};
 }

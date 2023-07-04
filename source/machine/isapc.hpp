@@ -5,13 +5,13 @@
 
 namespace machine
 {
-	struct GenericISAPC
+	struct ISAPC
 	{
-		GenericISAPC (std::span<char const* const> args_v);
-		~GenericISAPC ();
+		ISAPC (std::span<char const* const> args_v);
+	  ~ISAPC ();
 
-		auto StartVideo() -> void;
-		auto StopVideo() -> void;
+	  auto PowerOn() -> void;
+		auto Shutdown() -> void;
 
 	protected:
 		static auto InitializeConfig(std::span<char const* const> args_v) -> core::Config;

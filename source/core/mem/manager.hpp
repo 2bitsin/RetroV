@@ -4,7 +4,7 @@
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
 
-#include <utils/span_as.hpp>
+#include <utils/span.hpp>
 #include <core/hypervisor_fwd.hpp>
 
 #include <cstdint>

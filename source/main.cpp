@@ -1,4 +1,4 @@
-#include <machine/genericisapc.hpp>
+#include <machine/isapc.hpp>
 #include <SDL2/SDL.h>
 
 #include <iostream>
@@ -18,7 +18,7 @@ int main(int argc, char** argv) try
 	SDL_Init(SDL_INIT_EVERYTHING);
 	std::atexit(SDL_Quit);		
 
-	machine::GenericISAPC isapc_v({argv, (size_t)argc});
+	machine::ISAPC isapc_v({argv, (size_t)argc});
 
 	auto tick_v = high_resolution_clock::now() + 1s;
 	auto last_v = true;
@@ -29,15 +29,6 @@ int main(int argc, char** argv) try
 			if (event_v.type == SDL_QUIT) { break; }
 			continue;
 		}
-		auto now_v = high_resolution_clock::now();
-		if (now_v < tick_v) 
-			continue; 
-
-		if (last_v) isapc_v.StopVideo();
-		else isapc_v.StartVideo();
-
-		last_v = !last_v;
-		tick_v += 5s;
 	}
   return 0;
 }

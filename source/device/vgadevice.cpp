@@ -1,5 +1,5 @@
-#include <device/simplevga.hpp>
-#include <device/simplevga/font.hpp>
+#include <device/vgadevice.hpp>
+#include <device/vgadevice/font.hpp>
 #include <core/hypervisor.hpp>
 #include <utils/literals.hpp>
 
@@ -26,10 +26,10 @@ static inline constexpr std::uint32_t const kTextColorPalette[] = {
 	0x00FF5555, 0x00FF55FF, 0x00FFFF55, 0x00FFFFFF
 };
 
-using device::SimpleVGA;
+using device::VGADevice;
 using device::Config;
 
-SimpleVGA::SimpleVGA(core::Hypervisor& hypervisor_v, Config const& config_v)
+VGADevice::VGADevice(core::Hypervisor& hypervisor_v, Config const& config_v)
 	:	m_Hypervisor(&hypervisor_v)
 	, m_Window(nullptr)
 {
@@ -58,7 +58,7 @@ SimpleVGA::SimpleVGA(core::Hypervisor& hypervisor_v, Config const& config_v)
 	SetVideoMode(RenderingMode::kTextColor, 80u, 25u);
 }
 
-SimpleVGA::~SimpleVGA()
+VGADevice::~VGADevice()
 {
 	using namespace size_literals;
 
@@ -83,7 +83,7 @@ SimpleVGA::~SimpleVGA()
 	}
 }
 
-auto SimpleVGA::Emulate(core::Scheduler& scheduler_v, core::Service& service_v) -> void
+auto VGADevice::Emulate(core::Scheduler& scheduler_v, core::Service& service_v) -> void
 {
 	using namespace std::chrono_literals;
 	using namespace std::chrono;
@@ -126,21 +126,21 @@ auto SimpleVGA::Emulate(core::Scheduler& scheduler_v, core::Service& service_v) 
 	}
 }
 
-auto SimpleVGA::GetCategory() const noexcept -> device::DeviceCatory { 
+auto VGADevice::GetCategory() const noexcept -> device::DeviceCatory { 
 	return DeviceCatory::kVideo; 
 }
 
-auto SimpleVGA::Pause() -> void
+auto VGADevice::Pause() -> void
 {
 	(*m_Hypervisor).GetScheduler().DevicePause(m_TaskIndex);
 }
 
-auto SimpleVGA::Resume() -> void
+auto VGADevice::Resume() -> void
 {
 	(*m_Hypervisor).GetScheduler().DeviceResume(m_TaskIndex);
 }
 
-auto SimpleVGA::SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::uint16_t height_v) -> void
+auto VGADevice::SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::uint16_t height_v) -> void
 {
 	using namespace size_literals;
 
@@ -178,12 +178,12 @@ auto SimpleVGA::SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::u
 	sched_v.DeviceResume(m_TaskIndex);
 }
 
-auto SimpleVGA::IoWrite(Hypervisor& hypervisor_v, Processor& cpu_v, std::uint16_t port_v, std::uint32_t data_v, std::uint8_t size_v) -> bool
+auto VGADevice::IoWrite(Hypervisor& hypervisor_v, Processor& cpu_v, std::uint16_t port_v, std::uint32_t data_v, std::uint8_t size_v) -> bool
 {
 	return false;
 }
 
-auto SimpleVGA::IoFetch(Hypervisor& hypervisor_v, Processor& cpu_v, std::uint16_t port_v, std::uint32_t& data_v, std::uint8_t size_v) -> bool
+auto VGADevice::IoFetch(Hypervisor& hypervisor_v, Processor& cpu_v, std::uint16_t port_v, std::uint32_t& data_v, std::uint8_t size_v) -> bool
 {
 	return false;
 }

@@ -1,6 +1,6 @@
 #include <device/interface.hpp>
 #include <device/porte9.hpp>
-#include <device/simplevga.hpp>
+#include <device/vgadevice.hpp>
 
 #include <functional>
 #include <unordered_map>
@@ -20,8 +20,8 @@ auto device::CreateDevice(Hypervisor& hypervisor_v, std::string_view device_name
 		{"porte9", [](auto& hypervisor_v, auto& device_config_v) -> InterfacePtr {
 			return std::make_unique<device::PortE9>(hypervisor_v, device_config_v);
 		}},
-		{ "simplevga", [](auto& hypervisor_v, auto& device_config_v) -> InterfacePtr {
-			return std::make_unique<device::SimpleVGA>(hypervisor_v, device_config_v);
+		{ "vgadevice", [](auto& hypervisor_v, auto& device_config_v) -> InterfacePtr {
+			return std::make_unique<device::VGADevice>(hypervisor_v, device_config_v);
 		}}
 	};
 

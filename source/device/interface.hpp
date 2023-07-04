@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/hypervisor_fwd.hpp>
+#include <core/cpu/processor_fwd.hpp>
 #include <core/scheduler_fwd.hpp>
 #include <core/service_fwd.hpp>
 
@@ -37,9 +38,9 @@ namespace device
 		
 		virtual auto GetCategory() const noexcept -> DeviceCatory;
 		virtual auto Emulate(core::Scheduler&, core::Service&) -> void = 0;		
+		virtual auto Resume() -> void = 0;
+		virtual auto Pause() -> void = 0;
 
-		virtual auto Pause () -> void = 0;
-		virtual auto Resume () -> void = 0;
 	};
 
 	using InterfacePtr = std::unique_ptr<Interface>;

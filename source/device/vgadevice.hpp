@@ -16,7 +16,7 @@
 
 namespace device
 {
-	struct SimpleVGA final:  
+	struct VGADevice final:  
 		public device::Interface
 	{	
 		enum  RenderingMode :
@@ -34,14 +34,14 @@ namespace device
 			kGraphicsLinear32BppRGB			
 		};
 
-		SimpleVGA(core::Hypervisor& hypervisor_v, Config const& config_v);
+		VGADevice(core::Hypervisor& hypervisor_v, Config const& config_v);
 
-		SimpleVGA(SimpleVGA const&) = delete;
-		SimpleVGA(SimpleVGA&&) = delete;
-		auto operator=(SimpleVGA const&) -> SimpleVGA& = delete;
-		auto operator=(SimpleVGA&&) -> SimpleVGA& = delete;
+		VGADevice(VGADevice const&) = delete;
+		VGADevice(VGADevice&&) = delete;
+		auto operator=(VGADevice const&) -> VGADevice& = delete;
+		auto operator=(VGADevice&&) -> VGADevice& = delete;
 
-		~SimpleVGA () override;
+		~VGADevice () override;
 
 		auto Emulate(core::Scheduler&, core::Service&) -> void override final;
 		auto GetCategory() const noexcept -> device::DeviceCatory override final;
