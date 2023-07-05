@@ -22,8 +22,6 @@ Hypervisor::Hypervisor(Config const& config_v)
 	,	m_Scheduler  { *this }
 	,	m_MemPool    { *this }
 	,	m_MemManager { *this }
-	, m_IoManager  { *this }
-	,	m_VcManager  { *this }
 	,	m_Processors { }
 	,	m_Debugger   { *this }
 {
@@ -61,16 +59,6 @@ auto Hypervisor::GetMemManager() -> mem::Manager&
 	return m_MemManager;
 }
 
-auto Hypervisor::GetIoManager() -> io::Manager&
-{
-	return m_IoManager;
-}
-
-auto Hypervisor::GetVcManager() -> vmc::Manager&
-{
-	return m_VcManager;
-}
-
 auto Hypervisor::GetProcessor(std::uint32_t index_v)->cpu::Processor& 
 {
 	auto position_v = std::lower_bound(m_Processors.begin(), m_Processors.end(), index_v, 
@@ -80,43 +68,6 @@ auto Hypervisor::GetProcessor(std::uint32_t index_v)->cpu::Processor&
 		throw std::out_of_range{ "Invalid processor index" }; }
 	return *position_v;
 }
-
-auto Hypervisor::DispatchHalt(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool 
-{
-	if (exit_v.VpContext.Rflags & cpu::kInterruptFlag) {
-		// Interrupts enabled
-		__debugbreak();
-		return true;
-	}
-
-	return false;
-}
-
-
-auto Hypervisor::DispatchExit(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> bool
-{	
-	switch (exit_v.ExitReason) 
-	{
-	case WHvRunVpExitReasonX64Halt:
-		return DispatchHalt(processor_v, exit_v);
-	case WHvRunVpExitReasonX64IoPortAccess:
-		return m_IoManager.DispatchExit(processor_v, exit_v);
-	case WHvRunVpExitReasonHypercall:	
-		return m_VcManager.DispatchExit(processor_v, exit_v);
-	default:
-		__debugbreak();
-		m_Debugger.PrintRegisters(std::cerr, processor_v.GetRegisters());
-		m_Debugger.Disassemble(std::cerr, processor_v, exit_v.VpContext.Rip+exit_v.VpContext.Cs.Base, 20u);
-		__debugbreak();
-		return false;
-	}
-	return true;
-}
-
-auto Hypervisor::NextInstruction(cpu::Processor& processor_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_v) -> void {	
-	processor_v.SetRegister(WHvX64RegisterRip, exit_v.VpContext.Rip + exit_v.VpContext.InstructionLength);
-}
-
 
 auto Hypervisor::Run() -> void
 {

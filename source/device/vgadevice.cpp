@@ -44,6 +44,8 @@ VGADevice::VGADevice(core::Hypervisor& hypervisor_v, Config const& config_v)
 				__func__, SDL_GetError()));
 		}
 	}
+	
+	/*
 	auto& ioman_v = m_Hypervisor->GetIoManager();
 	for (auto const& port_v : kFetchPorts) ioman_v.RegisterFetchCallback(port_v, 
 		[this] (auto& hypervisor_v, auto& processor_v, auto port_v, auto& data_v, auto size_v) -> bool {
@@ -55,6 +57,7 @@ VGADevice::VGADevice(core::Hypervisor& hypervisor_v, Config const& config_v)
 			//return IoWrite(hypervisor_v, processor_v, port_v, data_v, size_v);
 			return false;
 		});
+	*/
 	SetVideoMode(RenderingMode::kTextColor, 80u, 25u);
 }
 

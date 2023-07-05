@@ -104,6 +104,7 @@ static inline auto CalculateOffset(BiosDisk::Geometry const& geom_v,
 BiosDisk::BiosDisk(core::Hypervisor& hypervisor_v, std::uint8_t drive_id_v)
 	: m_Hypervisor(hypervisor_v)
 	, m_DriveID(drive_id_v)
+	/*
 	, m_Int13h(hypervisor_v.GetVcManager().RegisterCallback(0x13u,
 		[this](auto& hypervisor_v, auto& registers_v, auto& processor_v, auto callno_v) {
 			return Int13h(hypervisor_v, registers_v, processor_v);
@@ -111,14 +112,16 @@ BiosDisk::BiosDisk(core::Hypervisor& hypervisor_v, std::uint8_t drive_id_v)
 	, m_Int19h(hypervisor_v.GetVcManager().RegisterCallback(0x19u,
 		[this](auto& hypervisor_v, auto& registers_v, auto& processor_v, auto callno_v) {
 			return Int19h(hypervisor_v, registers_v, processor_v);
-		}))
+		}))*/
 {}
 
 BiosDisk::~BiosDisk()
 {
+	/*
 	auto& vcm_v = m_Hypervisor.GetVcManager();
 	vcm_v.UnregisterCallback(0x13u, m_Int13h);
 	vcm_v.UnregisterCallback(0x19u, m_Int19h);
+	*/
 }
 
 auto BiosDisk::MountImage(std::filesystem::path const& path_v, Geometry const& geometry_v, bool use_chs_v) -> void

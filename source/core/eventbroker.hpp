@@ -48,6 +48,7 @@ namespace core
 
 		void InstallHandler(std::uint64_t base_v, std::size_t size_v, exit_handler handler_v, IOType iotype_v = IOType::kIoFetchAndWrite);
 		void RemoveHandler(std::uint64_t base_v, std::size_t size_v, IOType iotype_v = IOType::kIoFetchAndWrite);
+
 	private:
 		Hypervisor* m_Hypervisor{ nullptr };
 

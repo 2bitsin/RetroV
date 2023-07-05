@@ -45,8 +45,8 @@ namespace core
 		auto GetPartition() -> Partition&;
 		auto GetMemPool() -> mem::Pool&;
 		auto GetMemManager() -> mem::Manager&;
-		auto GetIoManager() -> io::Manager&;
-		auto GetVcManager() -> vmc::Manager&;
+		//auto GetIoManager() -> io::Manager&;
+		//auto GetVcManager() -> vmc::Manager&;
 		auto GetProcessor(std::uint32_t index_v) -> cpu::Processor&;
 
 		/**********************************
