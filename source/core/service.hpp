@@ -50,7 +50,7 @@ namespace core {
 		struct state_type
 		{
 			std::mutex m_Mutex;
-			std::atomic<ServiceState> m_State;
+			std::atomic<ServiceState> m_DiaptchTbl;
 			std::atomic<bool> m_Waiting;
 			std::condition_variable m_CondVar;
 			std::stop_source m_StopSource;
@@ -60,7 +60,7 @@ namespace core {
 
 	private:
 		Scheduler* m_Scheduler{ nullptr };
-		std::unique_ptr<state_type> m_State;
+		std::unique_ptr<state_type> m_DiaptchTbl;
 	};
 
 }

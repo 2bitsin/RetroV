@@ -17,30 +17,6 @@ int main(int argc, char** argv) try
 
 	std::filesystem::current_path(R"(F:\Archive\FloppyImages)");
 
-	std::uint64_t unique_id { 0 };
-	utils::interval_map<uint64_t, uint64_t> map_v;
-
-	map_v.insert({ 20u, 100u}, unique_id += 1u);
-	map_v.insert({100u, 200u}, unique_id += 1u);
-	map_v.insert({200u, 300u}, unique_id += 1u);
-	map_v.insert({200u, 400u}, unique_id += 1u);
-	map_v.insert({300u, 400u}, unique_id += 1u);
-	map_v.insert({450u, 550u}, unique_id += 1u);
-	map_v.insert({550u, 650u}, unique_id += 1u);
-	map_v.insert({650u, 750u}, unique_id += 1u);
-	map_v.insert({310u, 850u}, unique_id += 1u);
-
-	std::uint64_t q0, q1, q2, q3, q4 { 0 };
-	try {
-		q0 = map_v.at(200u);
-		q1 = map_v.at(220u);
-		q2 = map_v.at(300u);
-		q3 = map_v.at(849u);
-		q4 = map_v.at( 10u);
-	} catch (std::exception const& ex) {
-		std::cout << ex.what() << "\n";
-		__debugbreak();
-	}
 
 	__debugbreak();
 	//SDL_Init(SDL_INIT_EVERYTHING);
