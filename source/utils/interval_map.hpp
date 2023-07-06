@@ -46,7 +46,7 @@ namespace utils
 		using iterator_type = typename std::vector<value_type>::iterator;
 		using const_iterator_type = typename std::vector<value_type>::const_iterator;
 
-		auto insert(key_type const& key_v, mapped_type const& val_v) 
+		inline auto insert(key_type const& key_v, mapped_type const& val_v)
 			-> std::pair<bool, iterator_type>
 		{
 			if (detail::lhs(key_v) >= detail::rhs(key_v)) {
@@ -102,21 +102,29 @@ namespace utils
 			return{ !has_overlapped_v, where_v };
 		}
 
-		auto at(point_type const& point_v) const -> mapped_type const& {			
-			if (auto pos_v=find(point_v); m_intervals.end()!=pos_v) return pos_v->second;
+		inline auto at(point_type const& point_v) const -> mapped_type const& {
+			if (auto pos_v=find(point_v); m_intervals.end()!=pos_v)
+				return pos_v->second;
 			throw std::out_of_range("No such point in interval map");
 		}
 
-		auto at(point_type const& point_v) -> mapped_type& {
-			if (auto pos_v=find(point_v); m_intervals.end()!=pos_v) return pos_v->second;
+		inline auto at(point_type const& point_v) -> mapped_type& {
+			if (auto pos_v=find(point_v); m_intervals.end()!=pos_v) 
+				return pos_v->second;
 			throw std::out_of_range("No such point in interval map");
 		}
 
-		auto contains(point_type const& point_v) const -> bool {
+		inline auto at(point_type const& point_v, mapped_type const& default_v) const -> mapped_type const& {
+			if (auto pos_v=find(point_v); m_intervals.end()!=pos_v) 
+				return pos_v->second;
+			return default_v;
+		}
+
+		inline auto contains(point_type const& point_v) const -> bool {
 			return m_intervals.end() != find(point_v);			
 		}
 
-		auto find (point_type const& point_v) const -> const_iterator_type
+		inline auto find (point_type const& point_v) const -> const_iterator_type
 		{
 			auto upper_b = std::upper_bound(
 				m_intervals.begin(), m_intervals.end(), value_type{ key_type{point_v, point_v}, mapped_type{} },
@@ -132,31 +140,31 @@ namespace utils
 			return upper_b;
 		}
 
-		template <typename... T> auto erase(T&&... args_v) -> auto&& { 
+		template <typename... T> inline auto erase(T&&... args_v) -> auto {
 			return m_intervals.erase(std::forward<T>(args_v)...); }
 
-		auto begin() -> decltype(auto) { return m_intervals.begin(); }
-		auto begin() const -> decltype(auto) { return m_intervals.begin(); }
-		auto end() -> decltype(auto) { return m_intervals.end(); }
-		auto end() const -> decltype(auto) { return m_intervals.end(); }
-		auto rbegin() -> decltype(auto) { return m_intervals.rbegin(); }
-		auto rbegin() const -> decltype(auto) { return m_intervals.rbegin(); }
-		auto rend() -> decltype(auto) { return m_intervals.rend(); }
-		auto rend() const -> decltype(auto) { return m_intervals.rend(); }
-		auto cbegin() const -> decltype(auto) { return m_intervals.cbegin(); }
-		auto cend() const -> decltype(auto) { return m_intervals.cend(); }
-		auto size() const -> decltype(auto) { return m_intervals.size(); }
-		auto empty() const -> decltype(auto) { return m_intervals.empty(); }
+		inline auto begin() -> decltype(auto) { return m_intervals.begin(); }
+		inline auto begin() const -> decltype(auto) { return m_intervals.begin(); }
+		inline auto end() -> decltype(auto) { return m_intervals.end(); }
+		inline auto end() const -> decltype(auto) { return m_intervals.end(); }
+		inline auto rbegin() -> decltype(auto) { return m_intervals.rbegin(); }
+		inline auto rbegin() const -> decltype(auto) { return m_intervals.rbegin(); }
+		inline auto rend() -> decltype(auto) { return m_intervals.rend(); }
+		inline auto rend() const -> decltype(auto) { return m_intervals.rend(); }
+		inline auto cbegin() const -> decltype(auto) { return m_intervals.cbegin(); }
+		inline auto cend() const -> decltype(auto) { return m_intervals.cend(); }
+		inline auto size() const -> decltype(auto) { return m_intervals.size(); }
+		inline auto empty() const -> decltype(auto) { return m_intervals.empty(); }
 
-		auto operator [] (point_type const& point_v) const -> mapped_type const& { return at(point_v); }
-		auto operator [] (point_type const& point_v) -> mapped_type& { return at(point_v); }
+		inline auto operator [] (point_type const& point_v) const -> mapped_type const& { return at(point_v); }
+		inline auto operator [] (point_type const& point_v) -> mapped_type& { return at(point_v); }
 
-		auto swap (interval_map& other_v) -> void { 
+		inline auto swap (interval_map& other_v) -> void {
 			m_intervals.swap(other_v.m_intervals); 
 		}
 
 	protected:
-		auto find(point_type const& point_v) -> iterator_type
+		inline auto find(point_type const& point_v) -> iterator_type
 		{
 			auto upper_b = std::upper_bound(
 				m_intervals.begin(), m_intervals.end(), value_type{ key_type{point_v, point_v}, mapped_type{} },

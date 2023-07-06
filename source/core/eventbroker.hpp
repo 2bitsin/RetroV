@@ -33,7 +33,7 @@ namespace core
 
 		using Processor = cpu::Processor;
 
-		using event_handler = std::function<void(Processor&, WHV_RUN_VP_EXIT_CONTEXT const&)>;
+		using event_handler = std::function<bool(Processor&, WHV_RUN_VP_EXIT_CONTEXT const&)>;
 
 		EventBroker(Hypervisor& hypervisor_v);
 
@@ -65,7 +65,8 @@ namespace core
 			utils::interval_map<std::uint16_t, event_handler> m_IOWrite;
 			utils::interval_map<std::uint16_t, event_handler> m_IOFetch;
 			utils::interval_map<std::uint16_t, event_handler> m_VMMCall;
-			utils::interval_map<std::uint64_t, event_handler> m_Memory;
+			utils::interval_map<std::uint64_t, event_handler> m_MemWrite;
+			utils::interval_map<std::uint64_t, event_handler> m_MemFetch;
 		};
 		std::unique_ptr<DispatchTables> m_DiaptchTbl;
 	};

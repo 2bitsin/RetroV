@@ -4,9 +4,9 @@ IVT:
   { 
     align 4
   .Entry#Number:
-    push      word Number-1
-    VMCallInstruction
-    add       sp,         2
+    jmp $+4
+    dw Number
+    VMCallInstruction    
     iret
   }
 
