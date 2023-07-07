@@ -8,25 +8,25 @@ using device::PortE9;
 
 PortE9::PortE9(core::Hypervisor& hypervisor_v, Config const&)
 	: m_Hypervisor { &hypervisor_v }	
-{	/*
-	m_Hypervisor->GetIoManager().RegisterWriteCallback(0xe9, 
-		[](auto& hypervisor_v, auto& processor_v, auto port_v, auto value_v, auto size_v) -> bool {
-			if (port_v != 0xe9) return false;
-			std::cerr << static_cast<char>(value_v & 0xffu);
-			return true;
-		});
-		*/
+{
+	m_Hypervisor->GetEventBroker().ConnectIoWrite(0xE9u, 1u, this);
 }
 
 PortE9::~PortE9()
+{}
+
+auto PortE9::IoWrite(core::Processor& vcpu_v, std::uint16_t port_v, std::uint64_t data_v, std::uint8_t size_v) -> bool
 {
-	//m_Hypervisor->GetIoManager().UnregisterWriteCallback(0xe9);
+	if (port_v != 0xE9u) return false;
+	std::cout << static_cast<char>(data_v);
+	return true;
 }
 
 auto PortE9::Emulate(core::Scheduler&, core::Service&) -> void
 {}
 
-auto PortE9::GetCategory() const noexcept -> device::DeviceCatory
+auto PortE9::GetCategory() const noexcept 
+	-> device::DeviceCatory
 { return DeviceCatory::kDebug; }
 
 auto PortE9::Pause() -> void

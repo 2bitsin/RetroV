@@ -1,14 +1,15 @@
 Debug:
-.Print:
-    push				si
-    push				ax
-  .l0:
-    lodsb
-    or          al,     al
-    jz          .l1
-    out         0xE9,   al
-    jmp         .l0
-  .l1:
-    pop					ax
-    pop					si
+  .Print:
+    push    ax cx dx si di
+    cld
+    mov     cx,     0xffff
+    mov     di,     si
+    xor     al,     al
+    repne   scasb
+    neg     cx
+    mov     dx,     0xe9
+    rep     outsb
+    pop     di si dx cx ax
     ret
+
+

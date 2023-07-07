@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/hypervisor_fwd.hpp>
-#include <core/cpu/processor_fwd.hpp>
+#include <core/processor_fwd.hpp>
 #include <core/scheduler_fwd.hpp>
 #include <core/service_fwd.hpp>
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <device/interface.hpp>
-#include <core/cpu/processor_fwd.hpp>
+#include <core/processor_fwd.hpp>
 #include <core/scheduler_fwd.hpp>
 #include <core/service_fwd.hpp>
 
@@ -52,7 +52,7 @@ namespace device
 		auto SetVideoMode(RenderingMode mode_v, std::uint16_t width_v, std::uint16_t height_v) -> void;
 
 	protected:
-		using Processor = core::cpu::Processor;
+		using Processor = core::Processor;
 		using Hypervisor = core::Hypervisor;
 
 		auto IoWrite(Hypervisor& hypervisor_v, Processor& cpu_v, std::uint16_t port_v, std::uint32_t  data_v, std::uint8_t size_v) -> bool;

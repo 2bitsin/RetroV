@@ -22,7 +22,7 @@ namespace core
 
 	struct Scheduler 
 	{
-		using Processor = core::cpu::Processor;
+		using Processor = core::Processor;
 
 		Scheduler(Hypervisor&);
 
@@ -38,6 +38,8 @@ namespace core
 		auto DeviceStop(std::size_t) -> void;
 		auto DevicePause(std::size_t) -> void;
 		auto DeviceResume(std::size_t) -> void;
+		auto DevicePauseAll() -> void;
+		auto DeviceResumeAll() -> void;
 
 		~Scheduler();
 

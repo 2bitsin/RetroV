@@ -1,6 +1,6 @@
 #pragma once
 
-namespace core::cpu
+namespace core
 {
 	struct Processor;
 }

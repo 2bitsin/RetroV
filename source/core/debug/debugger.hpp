@@ -5,9 +5,9 @@
 #include <win32/winhvpx.hpp>
 
 #include <utils/capstone.hpp>
-#include <core/cpu/registers.hpp>
+#include <core/processor/registers.hpp>
 #include <core/hypervisor_fwd.hpp>
-#include <core/cpu/processor_fwd.hpp>
+#include <core/processor_fwd.hpp>
 
 #include <type_traits>
 #include <cstdint>
@@ -17,8 +17,8 @@ namespace core::debug
 {
 	struct Debugger
 	{
-		using Processor = cpu::Processor;
-		using RegisterFile = cpu::RegisterFile;
+		using Processor = Processor;
+		using RegisterFile = processor::RegisterFile;
 
 
 		auto operator = (Debugger const&) -> Debugger& = delete;

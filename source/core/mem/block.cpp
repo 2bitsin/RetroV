@@ -99,10 +99,10 @@ Block::~Block()
 
 auto Block::operator=(Block&& prev_v) noexcept -> Block&
 {
-	if (this != &prev_v) {
-		auto temp_v(std::move (prev_v));
-		Swap(temp_v);
-	}
+	if (this==&prev_v)
+		return *this;
+	auto temp_v(std::move (prev_v));
+	Swap(temp_v);	
 	return *this;
 }
 

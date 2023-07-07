@@ -16,10 +16,10 @@ Manager::Manager(Manager&& prev_v) noexcept
 
 auto Manager::operator=(Manager&& prev_v) noexcept -> Manager&
 {
-	if (this != &prev_v) {
-		auto temp_v{ std::move(prev_v) };
-		temp_v.Swap(*this);
-	}
+	if (this==&prev_v) 
+		return *this;
+	auto temp_v{ std::move(prev_v) };
+	temp_v.Swap(*this);
 	return *this;
 }
 

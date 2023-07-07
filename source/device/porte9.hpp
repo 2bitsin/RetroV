@@ -18,6 +18,8 @@ namespace device
 		auto operator = (const PortE9&) -> PortE9& = delete;
 		auto operator = (PortE9&&)-> PortE9& = delete;
 
+		auto IoWrite(core::Processor& vcpu_v, std::uint16_t port_v, std::uint64_t data_v, std::uint8_t size_v) -> bool;
+
 		auto Emulate(core::Scheduler&, core::Service&) -> void override final;
 		auto GetCategory() const noexcept -> device::DeviceCatory override final;
 		auto Pause () -> void override final;

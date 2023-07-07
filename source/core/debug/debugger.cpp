@@ -29,10 +29,10 @@ Debugger::Debugger(Debugger&& prev_v) noexcept
 {}
 
 auto Debugger::operator = (Debugger&& prev_v) noexcept -> Debugger& {
-	if (this != &prev_v) {
-		auto tmp_v{ std::move(prev_v) };
-		tmp_v.Swap(*this);
-	}
+	if (this==&prev_v) 
+		return *this;
+	auto tmp_v{ std::move(prev_v) };
+	tmp_v.Swap(*this);
 	return *this;
 }
 
@@ -72,7 +72,7 @@ auto Debugger::PrintRegisters(std::ostream& output_v, core::RegisterFile const& 
 		<< std::format("SS: {:#06x} LIMIT:{:#010x} BASE:{:#018x} ATTR:{:#06x}\n", R.ss, R.ss_size, R.ss_base, R.ss_attr);
 }
 
-auto Debugger::Disassemble(std::ostream& output_v, cpu::Processor& processor_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void
+auto Debugger::Disassemble(std::ostream& output_v, Processor& processor_v, std::uint64_t virtual_address_v, std::size_t count_v) -> void
 {
 	capstone::instance capstone_v { cs_arch::CS_ARCH_X86, cs_mode::CS_MODE_16, {
 		{ CS_OPT_SYNTAX, CS_OPT_SYNTAX_INTEL },

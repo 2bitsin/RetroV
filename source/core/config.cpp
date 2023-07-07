@@ -63,7 +63,7 @@ void Config::ApplyAfterSetup(Hypervisor& hypervisor_v) const
 
 	// Configure Processors
 	if (!m_Processors.empty()) {
-		for (auto processor_v : m_Processors) {
+		for (auto&& processor_v : m_Processors) {
 			hypervisor_v.InitializeProcessor(processor_v);
 		}
 	} else {

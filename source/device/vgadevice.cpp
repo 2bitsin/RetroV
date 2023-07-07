@@ -110,7 +110,7 @@ auto VGADevice::Emulate(core::Scheduler& scheduler_v, core::Service& service_v) 
 		auto vram_s = utils::mutable_span_as<std::uint16_t>(
 			pool_v.GetBlockView(m_VramBlock));
 		
-		for (auto& vram_w: vram_s) vram_w = (std::rand()&0xFFu)*0x100u + (std::rand()&0xFFu);
+		
 		auto font_s = VGAFont8x16();
 		for (auto yy = 0u; yy < surface_v.h; yy += 1u)
 		for (auto xx = 0u; xx < surface_v.w; xx += 1u) {

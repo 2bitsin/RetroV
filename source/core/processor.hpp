@@ -3,8 +3,10 @@
 #include <win32/error.hpp>
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
-#include <core/cpu/registers.hpp>
+#include <core/processor/registers.hpp>
 #include <core/hypervisor_fwd.hpp>
+#include <core/eventbroker_fwd.hpp>
+#include <core/processor/procthread.hpp>
 
 #include <type_traits>
 #include <cstdint>
@@ -14,8 +16,9 @@
 #include <mutex>
 
 
-namespace core::cpu
-{
+namespace core
+{	
+
 	struct Processor
 	{
 		Processor(core::Hypervisor& hypervisor_v, std::uint32_t index_v);
@@ -63,14 +66,18 @@ namespace core::cpu
 		static auto IsVendorIntel() -> bool;
 		static auto IsVendorAMD() -> bool;
 
+		auto RunInThread (core::EventBroker&) -> void;
 		auto RunUntilExit () -> WHV_RUN_VP_EXIT_CONTEXT;
 		auto RunAsync() -> std::future<WHV_RUN_VP_EXIT_CONTEXT>;
-		auto CancelRunAsync() -> void;
-		auto RequestInterrupt(std::uint16_t vector_v, bool is_nmi_v = false) -> bool;
+		auto CancelRun() -> void;
 
+		auto RequestInterrupt(std::uint16_t vector_v, bool is_nmi_v = false) -> bool;
 	private:
+		using ProcThread = core::processor::ProcThead;
+
 		core::Hypervisor* m_Hypervisor{ nullptr };
-		std::uint32_t m_Index{ 0xffffffffu };
+		std::uint32_t m_VProcIndex{ 0xffffffffu };
+		std::unique_ptr<ProcThread> m_ProcThread;
 	};
 
 }

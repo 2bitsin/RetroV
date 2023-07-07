@@ -13,9 +13,10 @@ Scheduler::Scheduler(Scheduler&& prev_v) noexcept
 {}
 
 auto Scheduler::operator=(Scheduler&& prev_v) noexcept -> Scheduler& {
-	if (this != &prev_v) {
-		auto tmp_v{ std::move(prev_v) };
-		tmp_v.Swap(*this); }
+	if (this==&prev_v) 
+		return *this;
+	auto tmp_v{ std::move(prev_v) };
+	tmp_v.Swap(*this); 
 	return *this;
 }
 
@@ -68,4 +69,13 @@ Scheduler::~Scheduler() {
 	for (auto& service_v : m_Services) {
 		service_v.Stop();
 	}
+}
+
+auto Scheduler::DevicePauseAll() -> void {
+	for (auto& service_v : m_Services) { 
+		service_v.Pause(); }
+}
+auto Scheduler::DeviceResumeAll() -> void {
+	for (auto& service_v : m_Services) { 
+		service_v.Resume(); }
 }

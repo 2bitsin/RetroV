@@ -181,7 +181,7 @@ auto BiosDisk::Unmount() -> void
 	m_UseLBA = true;
 }
 
-auto BiosDisk::Int13h(Hypervisor& hypervisor_v, RegisterFile& R, cpu::Processor& processor_v) -> bool
+auto BiosDisk::Int13h(Hypervisor& hypervisor_v, RegisterFile& R, Processor& processor_v) -> bool
 {
 	switch (R.ah) {
 	case 0x00u: // Reset Disk System
@@ -241,7 +241,7 @@ auto BiosDisk::Int13h(Hypervisor& hypervisor_v, RegisterFile& R, cpu::Processor&
 	return false;
 }
 
-auto BiosDisk::Int19h(Hypervisor& hypervisor_v, RegisterFile& R, cpu::Processor& processor_v) -> bool
+auto BiosDisk::Int19h(Hypervisor& hypervisor_v, RegisterFile& R, Processor& processor_v) -> bool
 {
 	if (!m_File.is_open()) {
 		throw std::runtime_error("Unable to boot, no boot disk mounted.");

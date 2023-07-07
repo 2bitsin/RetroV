@@ -6,10 +6,8 @@
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
 
-namespace core::cpu
+namespace core::processor
 {
-
-
 	struct RegisterFile
 	{
 	#define DECLARE_REGISTER(N) union { uint64_t r##N##x; uint32_t e##N##x; uint16_t N##x; struct{ uint8_t N##l, N##h; }; };
@@ -69,5 +67,5 @@ namespace core::cpu
 
 namespace core
 {
-	using RegisterFile = cpu::RegisterFile;
+	using RegisterFile = processor::RegisterFile;
 }

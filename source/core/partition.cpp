@@ -14,12 +14,11 @@ Partition::Partition(Hypervisor& hypervisor_v)
 	WIN32_ERROR_ASSERT(::WHvCreatePartition(&m_Handle));
 }
 
-auto Partition::operator=(Partition&& prev_v) noexcept -> Partition&
-{
-	if (this != &prev_v) {
-		auto temp_v{ std::move(prev_v) };
-		temp_v.Swap(*this);
-	}
+auto Partition::operator=(Partition&& prev_v) noexcept -> Partition& {
+	if (this==&prev_v)
+		return *this;
+	auto temp_v{ std::move(prev_v) };
+	temp_v.Swap(*this);
 	return *this;
 }
 

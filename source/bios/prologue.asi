@@ -17,7 +17,10 @@ Prologue:
     cld
     call        IVT.Initialize
     sti
-    
+   
+    mov         si,     Strings.Hello
+    call        Debug.Print    
+
     ; Make a big big loop
     mov         eax,    0xFFFFFFFF
   .L1:          
@@ -28,10 +31,6 @@ Prologue:
     dec         eax
     jnz         .L1
     ; End of big big loop
-
-
-    mov         si,     Strings.Hello
-    call        Debug.Print    
 
     int         0x19 ; BOOT
     hlt

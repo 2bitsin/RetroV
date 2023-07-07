@@ -1,6 +1,6 @@
 #pragma once
 
-namespace core::cpu
+namespace core::processor
 {
 	static inline constexpr const auto kCarryFlag                   = 0x000001u;
 	static inline constexpr const auto kParityFlag                  = 0x000004u;

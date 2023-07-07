@@ -5,10 +5,10 @@
 
 namespace machine
 {
-	struct ISAPC
+	struct ISAMachine
 	{
-		ISAPC (std::span<char const* const> args_v);
-	  ~ISAPC ();
+		ISAMachine (std::span<char const* const> args_v);
+	  ~ISAMachine ();
 
 	  auto PowerOn() -> void;
 		auto Shutdown() -> void;

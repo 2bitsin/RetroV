@@ -1,5 +1,6 @@
-#include <core/cpu/processor.hpp>
+#include <core/processor.hpp>
 #include <core/hypervisor.hpp>
+#include <core/capabilities.hpp>
 
 #include <stdexcept>
 #include <future>
@@ -78,21 +79,23 @@ struct InitialProcessorState
 	static constexpr const std::size_t Count = std::min(std::size(Names), std::size(Values));
 };
 
-using core::cpu::Processor;
+using core::Processor;
 
 Processor::Processor(core::Hypervisor& hypervisor_v, std::uint32_t index_v)
 	: m_Hypervisor{ &hypervisor_v }
-	, m_Index{ index_v }
+	, m_VProcIndex{ index_v }
+	, m_ProcThread{ nullptr }
 {
+	using S = InitialProcessorState;
 	auto handle_v = (*m_Hypervisor).GetParitionHandle();
-	WIN32_ERROR_ASSERT(::WHvCreateVirtualProcessor(handle_v, m_Index, 0));	
-	WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(handle_v, m_Index,
-		InitialProcessorState::Names,
-		InitialProcessorState::Count,
-		InitialProcessorState::Values));	
+	WIN32_ERROR_ASSERT(::WHvCreateVirtualProcessor(handle_v, m_VProcIndex, 0));	
+	WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(handle_v, m_VProcIndex, 
+		S::Names, S::Count, S::Values));	
 }
 
 auto Processor::operator=(Processor&& prev_v) noexcept -> Processor& {
+	if (this == &prev_v)
+		return *this;	
 	Processor temp_v{ std::move(prev_v) };
 	temp_v.Swap(*this);
 	return *this;
@@ -100,40 +103,67 @@ auto Processor::operator=(Processor&& prev_v) noexcept -> Processor& {
 
 Processor::Processor(Processor&& prev_v) noexcept
 	: m_Hypervisor{ prev_v.m_Hypervisor }
-	, m_Index{ std::exchange(prev_v.m_Index, 0xffffffffu) }
+	, m_VProcIndex{ std::exchange(prev_v.m_VProcIndex, 0xffffffffu) }
+	, m_ProcThread{ std::move(prev_v.m_ProcThread) }
 {}
 
 auto Processor::Swap(Processor& other_v) noexcept -> void {	
 	std::swap(m_Hypervisor, other_v.m_Hypervisor);
-	std::swap(m_Index, other_v.m_Index);
+	std::swap(m_VProcIndex, other_v.m_VProcIndex);
+	std::swap(m_ProcThread, other_v.m_ProcThread);
+}
+
+auto Processor::RunInThread(core::EventBroker& broker_v) -> void {
+	m_ProcThread = std::make_unique<ProcThread>();
+	auto& context_v { *m_ProcThread };
+	context_v.m_Thread = std::jthread([this, &broker_v](std::stop_token stop_it) -> void {
+		std::atomic<bool> break_it{ false };
+		std::stop_callback really_stop_it (stop_it, [this, &break_it] {
+			break_it.store(true);
+			CancelRun();
+		});
+
+		while (!stop_it.stop_requested()) {
+			auto const exit_v = RunUntilExit();
+			if (exit_v.ExitReason == WHvRunVpExitReasonCanceled) {
+				if (break_it.load()) 
+					break;
+				continue;
+			}
+			if (broker_v.DispatchEvent(*this, exit_v)) {
+				SetRegister(WHvX64RegisterRip, exit_v.VpContext.Rip +
+					exit_v.VpContext.InstructionLength);
+			} 	
+	}});
 }
 
 Processor::~Processor() {
-	if (m_Index != 0xffffffffu) {
-		auto handle_v = (*m_Hypervisor).GetParitionHandle();
-		::WHvDeleteVirtualProcessor(handle_v, m_Index);
+	if (m_VProcIndex != 0xffffffffu) {
+		m_ProcThread.reset();
+		::WHvDeleteVirtualProcessor((*m_Hypervisor).GetParitionHandle(), m_VProcIndex);
+		m_VProcIndex = 0xffffffffu;
 	}
 }
 
 auto Processor::GetIndex() const -> std::uint32_t {
-	return m_Index;
+	return m_VProcIndex;
 }
 
 auto Processor::GetRegister(WHV_REGISTER_NAME name_v, WHV_REGISTER_VALUE& value_v) const -> void {
 	auto handle_v = (*m_Hypervisor).GetParitionHandle();
-	WIN32_ERROR_ASSERT(::WHvGetVirtualProcessorRegisters(handle_v, m_Index, &name_v, 1u, &value_v));
+	WIN32_ERROR_ASSERT(::WHvGetVirtualProcessorRegisters(handle_v, m_VProcIndex, &name_v, 1u, &value_v));
 }
 
 auto Processor::SetRegister(WHV_REGISTER_NAME name_v, WHV_REGISTER_VALUE const& value_v) const -> void {
 	auto handle_v = (*m_Hypervisor).GetParitionHandle();
-	WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(handle_v, m_Index, &name_v, 1u, &value_v));
+	WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(handle_v, m_VProcIndex, &name_v, 1u, &value_v));
 }
 
 auto Processor::GetRegisters() const -> RegisterFile {
 	std::vector<WHV_REGISTER_VALUE> values_v;
 	values_v.resize(std::size(RegisterFile::Layout));
 	auto handle_v = (*m_Hypervisor).GetParitionHandle();
-	WIN32_ERROR_ASSERT(::WHvGetVirtualProcessorRegisters(handle_v, m_Index,
+	WIN32_ERROR_ASSERT(::WHvGetVirtualProcessorRegisters(handle_v, m_VProcIndex,
 		RegisterFile::Layout, std::size(RegisterFile::Layout), values_v.data()));
 	return RegisterFile
 	{
@@ -216,7 +246,7 @@ auto Processor::SetRegisters(RegisterFile const& registers_v) -> void {
 	values_v[22].Segment = { .Base = registers_v.gs_base, .Limit = registers_v.gs_size, .Selector = registers_v.gs, .Attributes = registers_v.gs_attr };
 	values_v[23].Segment = { .Base = registers_v.ss_base, .Limit = registers_v.ss_size, .Selector = registers_v.ss, .Attributes = registers_v.ss_attr };
 	auto handle_v = (*m_Hypervisor).GetParitionHandle();
-	WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(handle_v, m_Index,
+	WIN32_ERROR_ASSERT(::WHvSetVirtualProcessorRegisters(handle_v, m_VProcIndex,
 		RegisterFile::Layout, std::size(RegisterFile::Layout), values_v.data()));
 }
 
@@ -224,7 +254,7 @@ auto Processor::RunUntilExit() -> WHV_RUN_VP_EXIT_CONTEXT {
 	WHV_RUN_VP_EXIT_CONTEXT exit_v;
 	std::memset(&exit_v, 0, sizeof(exit_v));
 	auto handle_v = (*m_Hypervisor).GetParitionHandle();
-	WIN32_ERROR_ASSERT(::WHvRunVirtualProcessor(handle_v, m_Index, &exit_v, sizeof(exit_v)));
+	WIN32_ERROR_ASSERT(::WHvRunVirtualProcessor(handle_v, m_VProcIndex, &exit_v, sizeof(exit_v)));
 	return exit_v;
 }
 
@@ -235,10 +265,10 @@ auto Processor::RunAsync() -> std::future<WHV_RUN_VP_EXIT_CONTEXT> {
 		});
 }
 
-auto Processor::CancelRunAsync() -> void
+auto Processor::CancelRun() -> void
 {
 	auto const handle_v = (*m_Hypervisor).GetParitionHandle();
-	WIN32_ERROR_ASSERT(::WHvCancelRunVirtualProcessor(handle_v, m_Index, 0u));
+	WIN32_ERROR_ASSERT(::WHvCancelRunVirtualProcessor(handle_v, m_VProcIndex, 0u));
 }
 
 auto Processor::RequestInterrupt(std::uint16_t vector_v, bool is_nmi_v) -> bool
@@ -251,15 +281,6 @@ auto Processor::RequestInterrupt(std::uint16_t vector_v, bool is_nmi_v) -> bool
 	value_v.PendingInterruption.DeliverErrorCode = 0;
 	value_v.PendingInterruption.InterruptionVector = vector_v;
 	WHV_REGISTER_NAME const pending_name_v = WHvRegisterPendingInterruption;
-	return S_OK == ::WHvSetVirtualProcessorRegisters(handle_v, m_Index, &pending_name_v, 1u, &value_v);
+	return S_OK == ::WHvSetVirtualProcessorRegisters(handle_v, m_VProcIndex, &pending_name_v, 1u, &value_v);
 }
 
-auto Processor::IsVendorIntel() -> bool {
-	auto const vendor_v = Hypervisor::GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
-	return vendor_v == WHvProcessorVendorIntel;
-}
-
-auto Processor::IsVendorAMD() -> bool {
-	auto const vendor_v = Hypervisor::GetCapability<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
-	return vendor_v == WHvProcessorVendorAmd || vendor_v == WHvProcessorVendorHygon;
-}
