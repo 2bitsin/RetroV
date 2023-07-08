@@ -66,13 +66,18 @@ namespace core
 
 		auto RunUntilExit () -> WHV_RUN_VP_EXIT_CONTEXT;		
 		auto CancelRun() -> void;
+		auto GetPartitionHandle() const -> WHV_PARTITION_HANDLE;
 
 		auto RequestInterrupt(std::uint16_t vector_v, bool is_nmi_v = false) -> bool;
+
+		auto IoPortAccess(WHV_EMULATOR_IO_ACCESS_INFO& access_v) -> bool;
+		auto MemoryAccess(WHV_EMULATOR_MEMORY_ACCESS_INFO& access_v) -> bool;
+
 	private:
 		struct ProcThread{ std::jthread m_Thread; };
-
-		core::Hypervisor* m_Hypervisor{ nullptr };
+		Hypervisor* m_Hypervisor{ nullptr };
 		std::uint32_t m_VProcIndex{ 0xffffffffu };
+
 		std::unique_ptr<ProcThread> m_ProcThread;
 	};
 

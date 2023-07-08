@@ -278,6 +278,11 @@ auto Processor::CancelRun() -> void
 	WIN32_ERROR_ASSERT(::WHvCancelRunVirtualProcessor(handle_v, m_VProcIndex, 0u));
 }
 
+auto Processor::GetPartitionHandle() const -> WHV_PARTITION_HANDLE
+{
+	return m_Hypervisor->GetParitionHandle();
+}
+
 auto Processor::RequestInterrupt(std::uint16_t vector_v, bool is_nmi_v) -> bool
 {
 	auto const handle_v = (*m_Hypervisor).GetParitionHandle();
@@ -289,5 +294,19 @@ auto Processor::RequestInterrupt(std::uint16_t vector_v, bool is_nmi_v) -> bool
 	value_v.PendingInterruption.InterruptionVector = vector_v;
 	WHV_REGISTER_NAME const pending_name_v = WHvRegisterPendingInterruption;
 	return S_OK == ::WHvSetVirtualProcessorRegisters(handle_v, m_VProcIndex, &pending_name_v, 1u, &value_v);
+}
+
+auto Processor::IoPortAccess(WHV_EMULATOR_IO_ACCESS_INFO& access_v) -> bool
+{
+	
+
+	return false;
+}
+
+auto Processor::MemoryAccess(WHV_EMULATOR_MEMORY_ACCESS_INFO& access_v) -> bool
+{
+	
+
+	return false;
 }
 
