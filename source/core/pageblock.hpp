@@ -9,21 +9,21 @@
 
 namespace core
 {
-	struct MemoryBlock
+	struct PageBlock
 	{
 		static inline constexpr const auto kPageSize = 4096;
 	
-		MemoryBlock ();
-		MemoryBlock (std::size_t size_v);
-		MemoryBlock (std::span<std::byte const> data_v, std::size_t size_v = 0u, bool repeat_v = false);
-		MemoryBlock (std::filesystem::path const& path_v, std::size_t size_v = 0u, bool repeat_v = false,
+		PageBlock ();
+		PageBlock (std::size_t size_v);
+		PageBlock (std::span<std::byte const> data_v, std::size_t size_v = 0u, bool repeat_v = false);
+		PageBlock (std::filesystem::path const& path_v, std::size_t size_v = 0u, bool repeat_v = false,
 			std::uint64_t offset = 0u, std::size_t length = 0u);
-		~MemoryBlock ();
+		~PageBlock ();
 	
-		auto operator= (MemoryBlock const&) -> MemoryBlock& = delete;
-		auto operator= (MemoryBlock &&) noexcept -> MemoryBlock&;
-		MemoryBlock(MemoryBlock const&) = delete;
-		MemoryBlock(MemoryBlock &&) noexcept;
+		auto operator= (PageBlock const&) -> PageBlock& = delete;
+		auto operator= (PageBlock &&) noexcept -> PageBlock&;
+		PageBlock(PageBlock const&) = delete;
+		PageBlock(PageBlock &&) noexcept;
 	
 		auto Data () const noexcept -> std::byte const*;
 		auto Data () noexcept -> std::byte*;
@@ -32,7 +32,7 @@ namespace core
 		auto View () const noexcept -> std::span<std::byte const>;
 		auto View () noexcept -> std::span<std::byte>;
 	
-		auto Swap (MemoryBlock& other_v) noexcept -> void;
+		auto Swap (PageBlock& other_v) noexcept -> void;
 
 		auto Rellocate (std::size_t size_v) -> void;
 		auto Release () noexcept -> void;

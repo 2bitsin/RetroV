@@ -1,8 +1,6 @@
-#include <utils/interval_map.hpp>
-#include <machine/isamachine.hpp>
-#include <SDL2/SDL.h>
+#include <utils/literals.hpp>
 
-#include <WinHvEmulation.h>
+#include <SDL2/SDL.h>
 
 #include <iostream>
 #include <filesystem>
@@ -16,15 +14,12 @@ int main(int argc, char** argv) try
 	using namespace size_literals;
 	using namespace std::chrono_literals;
 	using namespace std::chrono;
-	using machine::ISAMachine;
-
+	
 	std::filesystem::current_path(R"(F:\Archive\FloppyImages)");
 
 	SDL_Init(SDL_INIT_EVERYTHING);
 	std::atexit(SDL_Quit);		
 
-	ISAMachine isa_machine_v({argv, (size_t)argc});
-	isa_machine_v.PowerOn();
 	while (true)
 	{
 		SDL_Event event_v;
@@ -33,8 +28,7 @@ int main(int argc, char** argv) try
 			continue;
 		}
 	}
-	isa_machine_v.Shutdown();
-  return 0;
+	return 0;
 }
 catch (std::exception const& ex) 
 {

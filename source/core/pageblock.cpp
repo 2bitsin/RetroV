@@ -1,4 +1,4 @@
-#include <core/memoryblock.hpp>
+#include <core/pageblock.hpp>
 #include <win32/error.hpp>
 
 #include <system_error>
@@ -6,29 +6,29 @@
 #include <iostream>
 #include <fstream>
 
-using core::MemoryBlock;
+using core::PageBlock;
 
-MemoryBlock::MemoryBlock()
+PageBlock::PageBlock()
 	: m_Data(nullptr)
 	, m_Size(0)
 {
 }
 
-MemoryBlock::MemoryBlock(std::size_t size_v)
-	: MemoryBlock()
+PageBlock::PageBlock(std::size_t size_v)
+	: PageBlock()
 {
-	if (size_v > 0u) MemoryBlock::Rellocate(size_v);
+	if (size_v > 0u) PageBlock::Rellocate(size_v);
 }
 
-MemoryBlock::MemoryBlock(std::span<std::byte const> data_v, std::size_t size_v, bool repeat_v)
-	: MemoryBlock()
+PageBlock::PageBlock(std::span<std::byte const> data_v, std::size_t size_v, bool repeat_v)
+	: PageBlock()
 {
 	if (0u == size_v) {
 		size_v = data_v.size();
 	}
 
 	if (size_v > 0u) {
-		MemoryBlock::Rellocate(size_v);
+		PageBlock::Rellocate(size_v);
 	}
 
 	if (repeat_v) {
@@ -43,8 +43,8 @@ MemoryBlock::MemoryBlock(std::span<std::byte const> data_v, std::size_t size_v, 
 	}
 }
 
-MemoryBlock::MemoryBlock(std::filesystem::path const& path_v, std::size_t size_v, bool repeat_v, std::uint64_t offset_v, std::size_t length_v)
-	: MemoryBlock()
+PageBlock::PageBlock(std::filesystem::path const& path_v, std::size_t size_v, bool repeat_v, std::uint64_t offset_v, std::size_t length_v)
+	: PageBlock()
 {
 	if (!std::filesystem::exists(path_v)) 
 	{
@@ -63,7 +63,7 @@ MemoryBlock::MemoryBlock(std::filesystem::path const& path_v, std::size_t size_v
 
 	if (0u == size_v) size_v = length_v;
 	
-	MemoryBlock::Rellocate(size_v);
+	PageBlock::Rellocate(size_v);
 
 	std::ifstream file_v(path_v, std::ios::binary);
 	if (!file_v) throw std::system_error(std::make_error_code(std::errc::io_error));	
@@ -83,7 +83,7 @@ MemoryBlock::MemoryBlock(std::filesystem::path const& path_v, std::size_t size_v
 	}
 }
 
-auto MemoryBlock::Release() noexcept -> void
+auto PageBlock::Release() noexcept -> void
 {
 	if (m_Data) {
 		VirtualFree(m_Data, 0, MEM_RELEASE);
@@ -92,12 +92,12 @@ auto MemoryBlock::Release() noexcept -> void
 	m_Size = 0;
 }
 
-MemoryBlock::~MemoryBlock() 
+PageBlock::~PageBlock() 
 {
-	MemoryBlock::Release();
+	PageBlock::Release();
 }
 
-auto MemoryBlock::operator=(MemoryBlock&& prev_v) noexcept -> MemoryBlock&
+auto PageBlock::operator=(PageBlock&& prev_v) noexcept -> PageBlock&
 {
 	if (this==&prev_v)
 		return *this;
@@ -106,15 +106,15 @@ auto MemoryBlock::operator=(MemoryBlock&& prev_v) noexcept -> MemoryBlock&
 	return *this;
 }
 
-auto MemoryBlock::Swap(MemoryBlock& prev_v) noexcept -> void
+auto PageBlock::Swap(PageBlock& prev_v) noexcept -> void
 {
 	std::swap(m_Data, prev_v.m_Data);
 	std::swap(m_Size, prev_v.m_Size);
 }
 
-auto MemoryBlock::Rellocate(std::size_t size_v) -> void
+auto PageBlock::Rellocate(std::size_t size_v) -> void
 {
-	MemoryBlock::~MemoryBlock();
+	PageBlock::~PageBlock();
 	size_v = (size_v + kPageSize - 1) & ~(kPageSize - 1);
 	auto data_v = VirtualAlloc(nullptr, size_v,
 		MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
@@ -126,32 +126,32 @@ auto MemoryBlock::Rellocate(std::size_t size_v) -> void
 }
 
 
-MemoryBlock::MemoryBlock(MemoryBlock&& prev_v) noexcept
+PageBlock::PageBlock(PageBlock&& prev_v) noexcept
 	: m_Data(std::exchange(prev_v.m_Data, nullptr))
 	, m_Size(std::exchange(prev_v.m_Size, 0))
 {}
 
-auto MemoryBlock::Data() const noexcept -> std::byte const*
+auto PageBlock::Data() const noexcept -> std::byte const*
 {
 	return m_Data;
 }
 
-auto MemoryBlock::Data() noexcept -> std::byte *
+auto PageBlock::Data() noexcept -> std::byte *
 {
 	return m_Data;
 }
 
-auto MemoryBlock::Size() const noexcept -> std::size_t
+auto PageBlock::Size() const noexcept -> std::size_t
 {
 	return m_Size;
 }
 
-auto MemoryBlock::View() const noexcept -> std::span<std::byte const>
+auto PageBlock::View() const noexcept -> std::span<std::byte const>
 {
 	return { m_Data, m_Size };
 }
 
-auto MemoryBlock::View() noexcept -> std::span<std::byte>
+auto PageBlock::View() noexcept -> std::span<std::byte>
 {
 	return { m_Data, m_Size };
 }
