@@ -6,7 +6,6 @@
 #include <core/processor/registers.hpp>
 #include <core/hypervisor_fwd.hpp>
 #include <core/eventbroker_fwd.hpp>
-#include <core/processor/procthread.hpp>
 
 #include <type_traits>
 #include <cstdint>
@@ -63,17 +62,13 @@ namespace core
 		auto GetRegisters() const -> RegisterFile;
 		auto SetRegisters(RegisterFile const& registers_v) -> void;
 
-		static auto IsVendorIntel() -> bool;
-		static auto IsVendorAMD() -> bool;
-
 		auto RunInThread (core::EventBroker&) -> void;
-		auto RunUntilExit () -> WHV_RUN_VP_EXIT_CONTEXT;
-		auto RunAsync() -> std::future<WHV_RUN_VP_EXIT_CONTEXT>;
+		auto RunUntilExit () -> WHV_RUN_VP_EXIT_CONTEXT;		
 		auto CancelRun() -> void;
 
 		auto RequestInterrupt(std::uint16_t vector_v, bool is_nmi_v = false) -> bool;
 	private:
-		using ProcThread = core::processor::ProcThead;
+		struct ProcThread{ std::jthread m_Thread; };
 
 		core::Hypervisor* m_Hypervisor{ nullptr };
 		std::uint32_t m_VProcIndex{ 0xffffffffu };

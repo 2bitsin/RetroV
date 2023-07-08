@@ -11,20 +11,20 @@ auto Pool::FreeBlock(std::size_t index_v) -> void
 {
 	if (index_v >= m_Blocks.size()) {
 		throw std::out_of_range{ std::format(
-			"{} : Block index out of range.", __func__) };
+			"{} : Pages index out of range.", __func__) };
 	}
 	m_Blocks[index_v].Release();
 	m_FreeBlocks.push_back(index_v);
 }
 
-auto Pool::GetBlock(std::size_t index_v) -> core::mem::Block& {
+auto Pool::GetBlock(std::size_t index_v) -> core::mem::Pages& {
 	return m_Blocks[index_v];
 }
 
-auto Pool::GetBlock(std::size_t index_v) const -> core::mem::Block const& {
+auto Pool::GetBlock(std::size_t index_v) const -> core::mem::Pages const& {
 	if (index_v >= m_Blocks.size()) {
 		throw std::out_of_range{ std::format(
-			"{} : Block index out of range.", __func__) };
+			"{} : Pages index out of range.", __func__) };
 	}
 	return m_Blocks[index_v];
 }
@@ -33,7 +33,7 @@ auto Pool::GetBlockData(std::size_t index_v) -> std::byte*
 {
 	if (index_v >= m_Blocks.size()) {
 		throw std::out_of_range{ std::format(
-			"{} : Block index out of range.", __func__) };
+			"{} : Pages index out of range.", __func__) };
 	}
 	return GetBlock(index_v).Data();
 }

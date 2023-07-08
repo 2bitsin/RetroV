@@ -7,23 +7,23 @@
 #include <cstddef>
 #include <span>
 
-namespace core::mem
+namespace core
 {
-	struct Block
+	struct Pages
 	{
 		static inline constexpr const auto kPageSize = 4096;
 	
-		Block ();
-		Block (std::size_t size_v);
-		Block (std::span<std::byte const> data_v, std::size_t size_v = 0u, bool repeat_v = false);
-		Block (std::filesystem::path const& path_v, std::size_t size_v = 0u, bool repeat_v = false,
+		Pages ();
+		Pages (std::size_t size_v);
+		Pages (std::span<std::byte const> data_v, std::size_t size_v = 0u, bool repeat_v = false);
+		Pages (std::filesystem::path const& path_v, std::size_t size_v = 0u, bool repeat_v = false,
 			std::uint64_t offset = 0u, std::size_t length = 0u);
-		~Block ();
+		~Pages ();
 	
-		auto operator= (Block const&) -> Block& = delete;
-		auto operator= (Block &&) noexcept -> Block&;
-		Block(Block const&) = delete;
-		Block(Block &&) noexcept;
+		auto operator= (Pages const&) -> Pages& = delete;
+		auto operator= (Pages &&) noexcept -> Pages&;
+		Pages(Pages const&) = delete;
+		Pages(Pages &&) noexcept;
 	
 		auto Data () const noexcept -> std::byte const*;
 		auto Data () noexcept -> std::byte*;
@@ -32,7 +32,7 @@ namespace core::mem
 		auto View () const noexcept -> std::span<std::byte const>;
 		auto View () noexcept -> std::span<std::byte>;
 	
-		auto Swap (Block& other_v) noexcept -> void;
+		auto Swap (Pages& other_v) noexcept -> void;
 
 		auto Rellocate (std::size_t size_v) -> void;
 		auto Release () noexcept -> void;

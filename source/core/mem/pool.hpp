@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/mem/block.hpp>
+#include <core/pages.hpp>
 #include <core/hypervisor_fwd.hpp>
 
 #include <cstdint>
@@ -23,7 +23,7 @@ namespace core::mem
 			if (!m_FreeBlocks.empty()) {
 				auto const index_v = m_FreeBlocks.back();
 				m_FreeBlocks.pop_front();
-				m_Blocks[index_v] = Block(std::forward<T>(args_v)...);
+				m_Blocks[index_v] = Pages(std::forward<T>(args_v)...);
 				return index_v;
 			}
 
@@ -34,18 +34,18 @@ namespace core::mem
 
 		auto FreeBlock(std::size_t index_v) -> void;
 
-		auto GetBlock(std::size_t index_v) -> Block&;
+		auto GetBlock(std::size_t index_v) -> Pages&;
 		auto GetBlockData(std::size_t index_v) -> std::byte*;
 		auto GetBlockSize(std::size_t index_v) -> std::size_t;
 		auto GetBlockView(std::size_t index_v) -> std::span<std::byte>;
 
-		auto GetBlock (std::size_t index_v) const -> Block const&;
+		auto GetBlock (std::size_t index_v) const -> Pages const&;
 		auto GetBlockData(std::size_t index_v) const -> std::byte const*;
 		auto GetBlockSize(std::size_t index_v) const -> std::size_t;
 		auto GetBlockView(std::size_t index_v) const -> std::span<std::byte const>;
 
 	private:
-		std::vector<Block> m_Blocks;
+		std::vector<Pages> m_Blocks;
 		std::deque<std::size_t> m_FreeBlocks;
 	};
 }

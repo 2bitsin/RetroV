@@ -258,13 +258,6 @@ auto Processor::RunUntilExit() -> WHV_RUN_VP_EXIT_CONTEXT {
 	return exit_v;
 }
 
-auto Processor::RunAsync() -> std::future<WHV_RUN_VP_EXIT_CONTEXT> {
-	return std::async(std::launch::async, 
-		[this] () -> WHV_RUN_VP_EXIT_CONTEXT {
-			return RunUntilExit();
-		});
-}
-
 auto Processor::CancelRun() -> void
 {
 	auto const handle_v = (*m_Hypervisor).GetParitionHandle();
