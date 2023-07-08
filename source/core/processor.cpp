@@ -113,29 +113,29 @@ auto Processor::Swap(Processor& other_v) noexcept -> void {
 	std::swap(m_ProcThread, other_v.m_ProcThread);
 }
 
-auto Processor::RunInThread(core::EventBroker& broker_v) -> void {
-	m_ProcThread = std::make_unique<ProcThread>();
-	auto& context_v { *m_ProcThread };
-	context_v.m_Thread = std::jthread([this, &broker_v](std::stop_token stop_it) -> void {
-		std::atomic<bool> break_it{ false };
-		std::stop_callback really_stop_it (stop_it, [this, &break_it] {
-			break_it.store(true);
-			CancelRun();
-		});
-
-		while (!stop_it.stop_requested()) {
-			auto const exit_v = RunUntilExit();
-			if (exit_v.ExitReason == WHvRunVpExitReasonCanceled) {
-				if (break_it.load()) 
-					break;
-				continue;
-			}
-			if (broker_v.DispatchEvent(*this, exit_v)) {
-				SetRegister(WHvX64RegisterRip, exit_v.VpContext.Rip +
-					exit_v.VpContext.InstructionLength);
-			} 	
-	}});
-}
+//auto Processor::RunInThread(core::EventBroker& broker_v) -> void {
+//	m_ProcThread = std::make_unique<ProcThread>();
+//	auto& context_v { *m_ProcThread };
+//	context_v.m_Thread = std::jthread([this, &broker_v](std::stop_token stop_it) -> void {
+//		std::atomic<bool> break_it{ false };
+//		std::stop_callback really_stop_it (stop_it, [this, &break_it] {
+//			break_it.store(true);
+//			CancelRun();
+//		});
+//
+//		while (!stop_it.stop_requested()) {
+//			auto const exit_v = RunUntilExit();
+//			if (exit_v.ExitReason == WHvRunVpExitReasonCanceled) {
+//				if (break_it.load()) 
+//					break;
+//				continue;
+//			}
+//			if (broker_v.DispatchEvent(*this, exit_v)) {
+//				SetRegister(WHvX64RegisterRip, exit_v.VpContext.Rip +
+//					exit_v.VpContext.InstructionLength);
+//			} 	
+//	}});
+//}
 
 Processor::~Processor() {
 	if (m_VProcIndex != 0xffffffffu) {
@@ -147,6 +147,20 @@ Processor::~Processor() {
 
 auto Processor::GetIndex() const -> std::uint32_t {
 	return m_VProcIndex;
+}
+
+auto Processor::GetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE> values_v) const -> HRESULT
+{
+	auto const count_v = std::min(names_v.size(), values_v.size());
+	return ::WHvGetVirtualProcessorRegisters((*m_Hypervisor).GetParitionHandle(), 
+		m_VProcIndex, names_v.data(), count_v, values_v.data());
+}
+
+auto Processor::SetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE const> values_v) const -> HRESULT
+{
+	auto const count_v = std::min(names_v.size(), values_v.size());
+	return ::WHvSetVirtualProcessorRegisters((*m_Hypervisor).GetParitionHandle(), 
+		m_VProcIndex, names_v.data(), count_v, values_v.data());
 }
 
 auto Processor::GetRegister(WHV_REGISTER_NAME name_v, WHV_REGISTER_VALUE& value_v) const -> void {

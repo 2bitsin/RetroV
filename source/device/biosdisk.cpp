@@ -1,4 +1,4 @@
-#include <core/mem/block.hpp>
+#include <core/memoryblock.hpp>
 #include <core/hypervisor.hpp>
 #include <device/biosdisk.hpp>
 

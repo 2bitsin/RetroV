@@ -16,12 +16,11 @@
 #include <core/scheduler.hpp>
 
 #include <core/debug/debugger.hpp>
-#include <core/mem/block.hpp>
+#include <core/memoryblock.hpp>
 #include <core/mem/pool.hpp>
 #include <core/mem/manager.hpp>
 #include <core/processor/registers.hpp>
 #include <core/processor.hpp>
-#include <core/eventbroker.hpp>
 
 namespace core
 { 
@@ -43,7 +42,6 @@ namespace core
 		auto GetParitionHandle() -> WHV_PARTITION_HANDLE;		
 		auto GetScheduler() -> Scheduler&;
 		auto GetPartition() -> Partition&;
-		auto GetEventBroker() -> EventBroker&;
 		auto GetMemPool() -> mem::Pool&;
 		auto GetMemManager() -> mem::Manager&;
 		auto GetProcessor(std::uint32_t index_v) -> Processor&;
@@ -70,7 +68,7 @@ namespace core
 	private:
 		Scheduler m_Scheduler;
 		Partition m_Partition;
-		EventBroker m_EventBroker;
+		
 		mem::Pool m_MemPool;
 		mem::Manager m_MemManager;
 		std::vector<Processor> m_Processors;		

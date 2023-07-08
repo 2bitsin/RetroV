@@ -5,7 +5,6 @@
 #include <win32/winhvpx.hpp>
 #include <core/processor/registers.hpp>
 #include <core/hypervisor_fwd.hpp>
-#include <core/eventbroker_fwd.hpp>
 
 #include <type_traits>
 #include <cstdint>
@@ -13,7 +12,7 @@
 #include <future>
 #include <thread>
 #include <mutex>
-
+#include <span>
 
 namespace core
 {	
@@ -33,6 +32,9 @@ namespace core
 		~Processor();
 
 		auto GetIndex() const -> std::uint32_t;		
+
+		auto GetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE> values_v) const -> HRESULT;			                
+		auto SetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE const> values_v) const -> HRESULT;
 
 		auto GetRegister(WHV_REGISTER_NAME name_v, WHV_REGISTER_VALUE& value_v) const -> void;
 		auto SetRegister(WHV_REGISTER_NAME name_v, WHV_REGISTER_VALUE const& value_v) const -> void;
@@ -62,7 +64,6 @@ namespace core
 		auto GetRegisters() const -> RegisterFile;
 		auto SetRegisters(RegisterFile const& registers_v) -> void;
 
-		auto RunInThread (core::EventBroker&) -> void;
 		auto RunUntilExit () -> WHV_RUN_VP_EXIT_CONTEXT;		
 		auto CancelRun() -> void;
 

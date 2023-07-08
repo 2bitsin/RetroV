@@ -23,8 +23,7 @@ Hypervisor::Hypervisor(Config const& config_v)
 	,	m_MemPool			{ *this }
 	,	m_MemManager	{ *this }
 	,	m_Processors	{ }
-	,	m_Debugger		{ *this }
-	, m_EventBroker { *this }
+	,	m_Debugger		{ *this }	
 {
 	InitializePartition();
 	config_v.ApplyBeforeSetup(*this);
@@ -50,11 +49,6 @@ auto Hypervisor::GetPartition() -> core::Partition&
   return m_Partition;
 }
 
-auto Hypervisor::GetEventBroker() -> EventBroker&
-{
-	return m_EventBroker;
-}
-
 auto Hypervisor::GetMemPool() -> mem::Pool&
 {
 	return m_MemPool;
@@ -78,8 +72,6 @@ auto Hypervisor::GetProcessor(std::uint32_t index_v)->Processor&
 auto Hypervisor::PowerOn() -> void
 {
 	GetScheduler().DeviceResumeAll();
-	for (auto& processor_v : m_Processors) {
-		processor_v.RunInThread(GetEventBroker()); }
 }
 
 auto Hypervisor::Shutdown() -> void

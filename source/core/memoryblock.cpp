@@ -1,4 +1,4 @@
-#include <core/pages.hpp>
+#include <core/memoryblock.hpp>
 #include <win32/error.hpp>
 
 #include <system_error>
@@ -6,29 +6,29 @@
 #include <iostream>
 #include <fstream>
 
-using core::Pages;
+using core::MemoryBlock;
 
-Pages::Pages()
+MemoryBlock::MemoryBlock()
 	: m_Data(nullptr)
 	, m_Size(0)
 {
 }
 
-Pages::Pages(std::size_t size_v)
-	: Pages()
+MemoryBlock::MemoryBlock(std::size_t size_v)
+	: MemoryBlock()
 {
-	if (size_v > 0u) Pages::Rellocate(size_v);
+	if (size_v > 0u) MemoryBlock::Rellocate(size_v);
 }
 
-Pages::Pages(std::span<std::byte const> data_v, std::size_t size_v, bool repeat_v)
-	: Pages()
+MemoryBlock::MemoryBlock(std::span<std::byte const> data_v, std::size_t size_v, bool repeat_v)
+	: MemoryBlock()
 {
 	if (0u == size_v) {
 		size_v = data_v.size();
 	}
 
 	if (size_v > 0u) {
-		Pages::Rellocate(size_v);
+		MemoryBlock::Rellocate(size_v);
 	}
 
 	if (repeat_v) {
@@ -43,8 +43,8 @@ Pages::Pages(std::span<std::byte const> data_v, std::size_t size_v, bool repeat_
 	}
 }
 
-Pages::Pages(std::filesystem::path const& path_v, std::size_t size_v, bool repeat_v, std::uint64_t offset_v, std::size_t length_v)
-	: Pages()
+MemoryBlock::MemoryBlock(std::filesystem::path const& path_v, std::size_t size_v, bool repeat_v, std::uint64_t offset_v, std::size_t length_v)
+	: MemoryBlock()
 {
 	if (!std::filesystem::exists(path_v)) 
 	{
@@ -63,7 +63,7 @@ Pages::Pages(std::filesystem::path const& path_v, std::size_t size_v, bool repea
 
 	if (0u == size_v) size_v = length_v;
 	
-	Pages::Rellocate(size_v);
+	MemoryBlock::Rellocate(size_v);
 
 	std::ifstream file_v(path_v, std::ios::binary);
 	if (!file_v) throw std::system_error(std::make_error_code(std::errc::io_error));	
@@ -83,7 +83,7 @@ Pages::Pages(std::filesystem::path const& path_v, std::size_t size_v, bool repea
 	}
 }
 
-auto Pages::Release() noexcept -> void
+auto MemoryBlock::Release() noexcept -> void
 {
 	if (m_Data) {
 		VirtualFree(m_Data, 0, MEM_RELEASE);
@@ -92,12 +92,12 @@ auto Pages::Release() noexcept -> void
 	m_Size = 0;
 }
 
-Pages::~Pages() 
+MemoryBlock::~MemoryBlock() 
 {
-	Pages::Release();
+	MemoryBlock::Release();
 }
 
-auto Pages::operator=(Pages&& prev_v) noexcept -> Pages&
+auto MemoryBlock::operator=(MemoryBlock&& prev_v) noexcept -> MemoryBlock&
 {
 	if (this==&prev_v)
 		return *this;
@@ -106,15 +106,15 @@ auto Pages::operator=(Pages&& prev_v) noexcept -> Pages&
 	return *this;
 }
 
-auto Pages::Swap(Pages& prev_v) noexcept -> void
+auto MemoryBlock::Swap(MemoryBlock& prev_v) noexcept -> void
 {
 	std::swap(m_Data, prev_v.m_Data);
 	std::swap(m_Size, prev_v.m_Size);
 }
 
-auto Pages::Rellocate(std::size_t size_v) -> void
+auto MemoryBlock::Rellocate(std::size_t size_v) -> void
 {
-	Pages::~Pages();
+	MemoryBlock::~MemoryBlock();
 	size_v = (size_v + kPageSize - 1) & ~(kPageSize - 1);
 	auto data_v = VirtualAlloc(nullptr, size_v,
 		MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
@@ -126,32 +126,32 @@ auto Pages::Rellocate(std::size_t size_v) -> void
 }
 
 
-Pages::Pages(Pages&& prev_v) noexcept
+MemoryBlock::MemoryBlock(MemoryBlock&& prev_v) noexcept
 	: m_Data(std::exchange(prev_v.m_Data, nullptr))
 	, m_Size(std::exchange(prev_v.m_Size, 0))
 {}
 
-auto Pages::Data() const noexcept -> std::byte const*
+auto MemoryBlock::Data() const noexcept -> std::byte const*
 {
 	return m_Data;
 }
 
-auto Pages::Data() noexcept -> std::byte *
+auto MemoryBlock::Data() noexcept -> std::byte *
 {
 	return m_Data;
 }
 
-auto Pages::Size() const noexcept -> std::size_t
+auto MemoryBlock::Size() const noexcept -> std::size_t
 {
 	return m_Size;
 }
 
-auto Pages::View() const noexcept -> std::span<std::byte const>
+auto MemoryBlock::View() const noexcept -> std::span<std::byte const>
 {
 	return { m_Data, m_Size };
 }
 
-auto Pages::View() noexcept -> std::span<std::byte>
+auto MemoryBlock::View() noexcept -> std::span<std::byte>
 {
 	return { m_Data, m_Size };
 }

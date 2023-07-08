@@ -2,6 +2,8 @@
 #include <machine/isamachine.hpp>
 #include <SDL2/SDL.h>
 
+#include <WinHvEmulation.h>
+
 #include <iostream>
 #include <filesystem>
 #include <cstdlib>
@@ -10,7 +12,7 @@
 
 #undef main
 int main(int argc, char** argv) try
-{
+{	
 	using namespace size_literals;
 	using namespace std::chrono_literals;
 	using namespace std::chrono;

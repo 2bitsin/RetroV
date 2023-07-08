@@ -9,7 +9,6 @@ using device::PortE9;
 PortE9::PortE9(core::Hypervisor& hypervisor_v, Config const&)
 	: m_Hypervisor { &hypervisor_v }	
 {
-	m_Hypervisor->GetEventBroker().ConnectIoWrite(0xE9u, 1u, this);
 }
 
 PortE9::~PortE9()

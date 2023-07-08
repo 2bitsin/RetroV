@@ -17,11 +17,11 @@ auto Pool::FreeBlock(std::size_t index_v) -> void
 	m_FreeBlocks.push_back(index_v);
 }
 
-auto Pool::GetBlock(std::size_t index_v) -> core::mem::Pages& {
+auto Pool::GetBlock(std::size_t index_v) -> core::MemoryBlock& {
 	return m_Blocks[index_v];
 }
 
-auto Pool::GetBlock(std::size_t index_v) const -> core::mem::Pages const& {
+auto Pool::GetBlock(std::size_t index_v) const -> core::MemoryBlock const& {
 	if (index_v >= m_Blocks.size()) {
 		throw std::out_of_range{ std::format(
 			"{} : Pages index out of range.", __func__) };
