@@ -39,21 +39,16 @@ namespace utils
 			: m_intervals{node_type(std::move(defval_v), point_type(0))}
 		{}
 
-		auto insert(interval_type const& bounds_v, value_type value_v) -> bool
+		auto insert(interval_type const& bounds_v, value_type value_v) -> void
 		{
 			auto [base_v, last_v] = bounds_v;
-			if (base_v > last_v) std::swap(base_v, last_v);
-			if (last_v - base_v == 0) {
-				__debugbreak();
-				return false;
-			}
+			if (base_v >= last_v) throw std::invalid_argument("bounds_v.first >= bounds_v.second");
 			auto last_pos_v = upper_bound(m_intervals.begin(), m_intervals.end(), last_v);			
 			auto pre_last_pos_v = std::prev(last_pos_v);
 			last_pos_v = m_intervals.emplace(last_pos_v, pre_last_pos_v->first, last_v);
 			auto base_pos_v = lower_bound(m_intervals.begin(), m_intervals.end(), base_v);
 			last_pos_v = m_intervals.erase(base_pos_v, last_pos_v);
 			m_intervals.emplace(last_pos_v, std::move(value_v), base_v);
-			return true;
 		}
 
 		auto at (point_type const& point_v) const -> value_type
