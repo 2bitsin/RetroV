@@ -39,7 +39,7 @@ struct control_map
 
 
 
-void TEST_interval_map() 
+void TEST_fuzz_test_interval_map() 
 {
 	using utils::interval_map;
 	
@@ -77,5 +77,50 @@ void TEST_interval_map()
 		}
 		number_of_tests += 1u;
 	}
+}
 
+struct ihello {
+	virtual ~ihello() = default;
+	virtual void greetings() const = 0;
+};
+
+struct world_hello : ihello {
+	void greetings() const override {
+		std::cout<<"Hello, World!\n";
+	}
+};
+
+struct universe_hello : ihello {
+	void greetings() const override {
+		std::cout<<"Hello, Universe!\n";
+	}
+};
+
+struct galaxy_hello : ihello {
+	void greetings() const override {
+		std::cout<<"Hello, Galaxy!\n";
+	}
+};
+
+void TEST_interval_map() {
+	
+	using utils::interval_map;
+
+	auto hello1_v = std::make_unique<world_hello>();
+	auto hello2_v = std::make_unique<universe_hello>();
+	auto hello3_v = std::make_unique<galaxy_hello>();
+
+	interval_map<std::uint64_t, ihello const*> testmap_v(hello1_v.get());
+
+	testmap_v.insert({ 5u, 10u}, hello1_v.get());
+	testmap_v.insert({10u, 30u}, hello2_v.get());
+	testmap_v.insert({15u, 20u}, hello3_v.get());
+
+	for (auto i = 0u; i < 30u; ++i) {
+		auto const hello_v = testmap_v.at(i);
+		std::cout << std::format("{:<3}: ", i);
+		hello_v->greetings();
+	}
+
+	__debugbreak();
 }
