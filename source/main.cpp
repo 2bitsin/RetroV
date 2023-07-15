@@ -20,7 +20,7 @@ int main(int argc, char** argv) try
 	
 	std::filesystem::current_path(R"(F:\Archive\FloppyImages)");
 
-	TEST_interval_map();
+//	TEST_interval_map();
 
 #if 0
 	SDL_Init(SDL_INIT_EVERYTHING);

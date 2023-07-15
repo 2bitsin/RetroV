@@ -51,11 +51,89 @@ namespace utils
 			m_intervals.emplace(last_pos_v, std::move(value_v), base_v);
 		}
 
-		auto at (point_type const& point_v) const -> value_type
+		auto value_at (point_type const& point_v) const -> value_type
 		{
-			auto [value_v, _] = *std::prev(upper_bound(
-				m_intervals.begin(), m_intervals.end(), point_v));
+			auto [value_v, _] = find(point_v);
 			return value_v;
+		}
+		
+		auto find(point_type const& point_v) const -> std::tuple<value_type, point_type>
+		{
+			return *std::prev(upper_bound(m_intervals.begin(), m_intervals.end(), point_v));
+		}
+
+		struct const_iterator 
+		{
+			const_iterator(std::vector<node_type> const& intervals_v, std::vector<node_type>::const_iterator curr_v)
+				: m_intervals{intervals_v}, m_curr{curr_v}
+			{}
+
+			const_iterator(std::vector<node_type> const& intervals_v) 
+				: m_intervals{intervals_v}, m_curr{intervals_v.end()}
+			{}
+
+			auto operator++() -> const_iterator&
+			{
+				++m_curr;
+				return *this;
+			}
+
+			auto operator++(int) -> const_iterator
+			{
+				auto copy_v = *this;
+				++m_curr;
+				return copy_v;
+			}
+
+			auto operator--() -> const_iterator&
+			{
+				--m_curr;
+				return *this;
+			}
+
+			auto operator--(int) -> const_iterator
+			{
+				auto copy_v = *this;
+				--m_curr;
+				return copy_v;
+			}
+
+			auto operator==(const_iterator const& other_v) const -> bool
+			{
+				return m_curr == other_v.m_curr;
+			}
+
+			auto operator!=(const_iterator const& other_v) const -> bool
+			{
+				return m_curr != other_v.m_curr;
+			}
+			
+			auto operator*() const 
+				-> std::tuple<point_type, point_type, value_type> 
+			{
+				if (m_curr == m_intervals.end()) 
+				{	throw std::out_of_range("iterator out of range");	}
+
+				if (auto next_v = std::next(m_curr); next_v != m_intervals.end()) 
+				{ auto [_______, last_v] = *next_v;
+					auto [value_v, base_v] = *m_curr;
+					return{ base_v, last_v, value_v }; }
+
+				return{ m_curr->second, m_curr->second, m_curr->first };
+			}
+
+		private:
+			std::vector<node_type> const& m_intervals;
+			std::vector<node_type>::const_iterator m_curr;
+
+		};
+
+		auto begin() const -> const_iterator {
+			return{ m_intervals, m_intervals.begin() };
+		}
+
+		auto end() const -> const_iterator {
+			return{ m_intervals };
 		}
 
 	private:

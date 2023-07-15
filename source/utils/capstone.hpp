@@ -3,7 +3,7 @@
 #include <capstone/capstone.h>
 #include <capstone/x86.h>
 
-#include <utils/enum_set.hpp>
+#include <utils/flags.hpp>
 
 #include <functional>
 #include <cstdint>
@@ -92,7 +92,7 @@ namespace capstone
 		}
 
 		auto groups() const noexcept 
-			-> utils::enum_set<uint32_t>
+			-> utils::flags<uint32_t>
 		{
 			uint32_t value { 0u };
 			for(auto i = 0u; i < _detail().groups_count; ++i)

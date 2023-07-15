@@ -30,7 +30,7 @@ struct control_map
 		return m_map.size();
 	}
 
-	auto at(I const& index) {
+	auto value_at(I const& index) {
 		return m_map.at(index);
 	}
 
@@ -69,8 +69,8 @@ void TEST_fuzz_test_interval_map()
 		}
 
 		for (auto j = 0u; j < control_v.size(); ++j) {
-			auto acquired_v = testmap_v.at(j);
-			auto expected_v = control_v.at(j);
+			auto acquired_v = testmap_v.value_at(j);
+			auto expected_v = control_v.value_at(j);
 			if (acquired_v != expected_v)
 				std::cout<<std::format("{}: {} != {}\n", j, expected_v, acquired_v);
 			assert(acquired_v == expected_v);
@@ -102,7 +102,7 @@ struct galaxy_hello : ihello {
 	}
 };
 
-void TEST_interval_map() {
+void TEST_interval_map_pointers() {
 	
 	using utils::interval_map;
 
@@ -117,10 +117,28 @@ void TEST_interval_map() {
 	testmap_v.insert({15u, 20u}, hello3_v.get());
 
 	for (auto i = 0u; i < 30u; ++i) {
-		auto const hello_v = testmap_v.at(i);
+		auto const hello_v = testmap_v.value_at(i);
 		std::cout << std::format("{:<3}: ", i);
 		hello_v->greetings();
 	}
 
+	__debugbreak();
+}
+
+
+void TEST_interval_map() {
+
+	using utils::interval_map;
+	interval_map<std::uint64_t, std::uint8_t> testmap_v(0x00u);
+
+	testmap_v.insert({  5u, 10u }, 0x10u);
+	testmap_v.insert({ 10u, 30u }, 0x20u);
+	testmap_v.insert({ 15u, 20u }, 0x30u);
+
+
+	for (auto&& [lhs_v, rhs_v, value_v] : testmap_v) {
+		std::cout << std::format("[{:<3} ... {:<3}] => {:#04x}\n", lhs_v, rhs_v, value_v);
+	}
+	 
 	__debugbreak();
 }

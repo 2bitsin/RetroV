@@ -1,11 +1,15 @@
 #pragma once
 
+#include <type_traits>
+#include <concepts>
+#include <cassert>
+
 namespace utils
 {
 	template <std::integral T>
-	struct enum_set
+	struct flags
 	{
-		enum_set(T value = T()) noexcept: m_value { value } {}
+		flags(T value = T()) noexcept: m_value { value } {}
 
 		operator T () const noexcept { return m_value ; }
 
@@ -23,6 +27,13 @@ namespace utils
 		auto any_of(U&& ... values) const -> bool
 		{
 			return (contains(std::forward<U>(values)) || ...);
+		}
+
+		template <typename... U>
+		requires (sizeof...(U) > 0)
+		auto all_of(U&& ... values) const -> bool
+		{
+			return (contains(std::forward<U>(values)) && ...);
 		}
 
 	private:
