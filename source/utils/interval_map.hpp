@@ -18,8 +18,9 @@ namespace utils
 		using value_type = ValueType;
 		using interval_type = std::pair<point_type, point_type>;
 		using node_type = std::pair<value_type, point_type>;	
-	
-		auto upper_bound(auto&& begin, auto&& end, point_type const& point_v) const
+
+	protected:
+		inline auto upper_bound(auto&& begin, auto&& end, point_type const& point_v) const
 		{
 			return std::upper_bound(begin, end, point_v, 
 				[](auto&& point_v, auto&& node_v) {
@@ -27,7 +28,7 @@ namespace utils
 				});
 		}
 
-		auto lower_bound(auto&& begin, auto&& end, point_type const& point_v) const
+		inline auto lower_bound(auto&& begin, auto&& end, point_type const& point_v) const
 		{
 			return std::lower_bound(begin, end, point_v, 
 				[](auto&& node_v, auto&& point_v) {
@@ -35,11 +36,12 @@ namespace utils
 				});
 		}
 
-		interval_map(value_type defval_v = value_type())
+	public:
+		inline interval_map(value_type defval_v = value_type())
 			: m_intervals{node_type(std::move(defval_v), point_type(0))}
 		{}
 
-		auto insert(interval_type const& bounds_v, value_type value_v) -> void
+		inline auto insert(interval_type const& bounds_v, value_type value_v) -> void
 		{
 			auto [base_v, last_v] = bounds_v;
 			if (base_v >= last_v) throw std::invalid_argument("bounds_v.first >= bounds_v.second");
@@ -51,64 +53,67 @@ namespace utils
 			m_intervals.emplace(last_pos_v, std::move(value_v), base_v);
 		}
 
-		auto value_at (point_type const& point_v) const -> value_type
+		inline auto lower_bound(point_type const& point_v) const { return lower_bound(m_intervals.begin(), m_intervals.end(), point_v); };
+		inline auto upper_bound(point_type const& point_v) const { return upper_bound(m_intervals.begin(), m_intervals.end(), point_v); };
+
+		inline auto value_at (point_type const& point_v) const -> value_type
 		{
 			auto [value_v, _] = find(point_v);
 			return value_v;
 		}
 		
-		auto find(point_type const& point_v) const -> std::tuple<value_type, point_type>
+		inline auto find(point_type const& point_v) const -> std::tuple<value_type, point_type>
 		{
 			return *std::prev(upper_bound(m_intervals.begin(), m_intervals.end(), point_v));
 		}
 
 		struct const_iterator 
 		{
-			const_iterator(std::vector<node_type> const& intervals_v, std::vector<node_type>::const_iterator curr_v)
+			inline const_iterator(std::vector<node_type> const& intervals_v, std::vector<node_type>::const_iterator curr_v)
 				: m_intervals{intervals_v}, m_curr{curr_v}
 			{}
 
-			const_iterator(std::vector<node_type> const& intervals_v) 
+			inline const_iterator(std::vector<node_type> const& intervals_v)
 				: m_intervals{intervals_v}, m_curr{intervals_v.end()}
 			{}
 
-			auto operator++() -> const_iterator&
+			inline auto operator++() -> const_iterator&
 			{
 				++m_curr;
 				return *this;
 			}
 
-			auto operator++(int) -> const_iterator
+			inline auto operator++(int) -> const_iterator
 			{
 				auto copy_v = *this;
 				++m_curr;
 				return copy_v;
 			}
 
-			auto operator--() -> const_iterator&
+			inline auto operator--() -> const_iterator&
 			{
 				--m_curr;
 				return *this;
 			}
 
-			auto operator--(int) -> const_iterator
+			inline auto operator--(int) -> const_iterator
 			{
 				auto copy_v = *this;
 				--m_curr;
 				return copy_v;
 			}
 
-			auto operator==(const_iterator const& other_v) const -> bool
+			inline auto operator==(const_iterator const& other_v) const -> bool
 			{
 				return m_curr == other_v.m_curr;
 			}
 
-			auto operator!=(const_iterator const& other_v) const -> bool
+			inline auto operator!=(const_iterator const& other_v) const -> bool
 			{
 				return m_curr != other_v.m_curr;
 			}
 			
-			auto operator*() const 
+			inline auto operator*() const
 				-> std::tuple<point_type, point_type, value_type> 
 			{
 				if (m_curr == m_intervals.end()) 
