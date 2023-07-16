@@ -29,9 +29,9 @@ namespace core
 
 		MemoryMap(VirtualMachineBase& vm_base_v);
 
-		auto DefineRegion(uint64_t base_page_v, Access access_v, Memory& block_v, uint64_t page_count_v = 0u) -> std::size_t;
-		auto DefineRegion(uint64_t base_page_v, Access access_v, std::unique_ptr<Memory> block_v, uint64_t page_count_v = 0u) -> std::size_t;
-		auto RemoveRegion(std::size_t region_index_v) -> void;	
+		auto DefineRegion(uint64_t base_page_v, Access access_v, Memory& block_v, uint64_t pages_v = 0u) -> std::size_t;
+		auto DefineRegion(uint64_t base_page_v, Access access_v, std::unique_ptr<Memory> block_v, uint64_t pages_v = 0u) -> std::size_t;
+		auto RemoveRegion(std::size_t index_v) -> void;	
 
 	protected:
 
@@ -46,10 +46,11 @@ namespace core
 	#pragma pack(push, 1)
 		struct region_type {			
 			Memory* m_Memory;
+			std::byte* m_Data;
 			uint64_t m_PageCount:52;
+			uint64_t m_Access:12;
 			uint64_t m_BasePage:52;
-			Access m_Access;
-			RegionFlags m_Flags;
+			uint64_t m_Flags:12;
 		};
 
 	#pragma pack(pop)
@@ -58,7 +59,7 @@ namespace core
 			           ,"cache line aligned");
 
 		auto AllocateRegion() -> std::size_t ;
-		auto DefineRegion(uint64_t base_page_v, Access access_v, RegionFlags flags_v, Memory* block_v, uint64_t page_count_v) -> std::size_t;
+		auto DefineRegion(uint64_t base_page_v, Access access_v, std::uint16_t flags_v, Memory* block_v, uint64_t page_count_v) -> std::size_t;
 
 
 	private:

@@ -56,6 +56,16 @@ namespace utils
 		inline auto lower_bound(point_type const& point_v) const { return lower_bound(m_intervals.begin(), m_intervals.end(), point_v); };
 		inline auto upper_bound(point_type const& point_v) const { return upper_bound(m_intervals.begin(), m_intervals.end(), point_v); };
 
+		inline auto clear() -> void
+		{
+			m_intervals.erase(std::next(m_intervals.begin()), m_intervals.end());			
+		}
+
+		inline auto empty() const -> bool
+		{
+			return m_intervals.size() < 2u;
+		}
+
 		inline auto value_at (point_type const& point_v) const -> value_type
 		{
 			auto [value_v, _] = find(point_v);
@@ -120,8 +130,8 @@ namespace utils
 				{	throw std::out_of_range("iterator out of range");	}
 
 				if (auto next_v = std::next(m_curr); next_v != m_intervals.end()) 
-				{ auto [_______, last_v] = *next_v;
-					auto [value_v, base_v] = *m_curr;
+				{	auto [value_v, base_v] = *m_curr;
+				  auto [_______, last_v] = *next_v;
 					return{ base_v, last_v, value_v }; }
 
 				return{ m_curr->second, m_curr->second, m_curr->first };

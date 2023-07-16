@@ -8,6 +8,7 @@
 namespace core
 {
 	enum Access: uint32_t {
+		kAccessNone = 0x0u,
 		kAccessFetch = 0x1u,
 		kAccessWrite = 0x2u,
 		kAccessExecute = 0x4u
