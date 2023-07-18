@@ -28,25 +28,29 @@ namespace win32
 		auto swap(WHvPartition& other_v) noexcept -> void;
 	
 		auto GetHandle() const noexcept -> WHV_PARTITION_HANDLE;
-		auto Setup () -> void;
-		auto Reset () -> void;
+		auto Setup () const -> HRESULT;
+		auto Reset () const -> HRESULT;
 	
-		auto SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, void const* buffer_v, uint32_t size_v) -> void;
-		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, void* buffer_v, uint32_t& size_v) -> void;
+		auto SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, void const* buffer_v, uint32_t size_v) const -> HRESULT;
+		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, void* buffer_v, uint32_t& size_v) const -> HRESULT;
 
 		template <typename T>
-		auto SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, T const& value_v) -> void
+		auto SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, T const& value_v) const -> HRESULT
 		{
-			SetProperty(property_v, &value_v, (uint32_t)sizeof(T));
+			return SetProperty(property_v, &value_v, (uint32_t)sizeof(T));
 		}
 
 		template <typename T>
-		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, T& value_v) -> void
+		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, T& value_v) const -> HRESULT
 		{
 			uint32_t size_v{ sizeof(T) };
-			GetProperty(property_v, &value_v, size_v);
+			auto result_v = GetProperty(property_v, &value_v, size_v);
 			assert(size_v == sizeof(T));
+			return result_v;
 		}
+
+		auto MapGpaRange(void* buffer_v, std::uint64_t physaddr_v, std::uint64_t length_v, WHV_MAP_GPA_RANGE_FLAGS flags_v) const-> HRESULT;
+		auto UnmapGpaRange(std::uint64_t physaddr_v, std::uint64_t length_v) const-> HRESULT;
 
 	protected:
 		WHvPartition(WHV_PARTITION_HANDLE handle_v) noexcept;

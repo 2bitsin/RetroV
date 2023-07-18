@@ -11,6 +11,22 @@ WHvEmulator::WHvEmulator(WHV_EMULATOR_HANDLE handle_v) noexcept
 	: m_Handle{ handle_v }
 {}
 
+auto win32::WHvEmulator::TryIoEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) noexcept 
+	-> std::tuple<HRESULT, WHV_EMULATOR_STATUS>
+{
+	WHV_EMULATOR_STATUS status_v{ WHvEmulatorStatusUnsuccessful };
+  auto result_v = WHvEmulatorTryIoEmulation(m_Handle, context_v, &vpctx_v, &ioctx_v, &status_v);
+	return{ result_v, status_v };
+}
+
+auto win32::WHvEmulator::TryMmioEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_MEMORY_ACCESS_CONTEXT const& mmctx_v) noexcept 
+	-> std::tuple<HRESULT, WHV_EMULATOR_STATUS>
+{
+  WHV_EMULATOR_STATUS status_v{ WHvEmulatorStatusUnsuccessful };
+	auto result_v = WHvEmulatorTryMmioEmulation(m_Handle, context_v, &vpctx_v, &mmctx_v, &status_v);
+	return{ result_v, status_v };
+}
+
 WHvEmulator::WHvEmulator()
 	: WHvEmulator(nullptr)
 {}
@@ -60,30 +76,20 @@ auto WHvEmulator::Create() -> WHvEmulator
 
 auto WHvEmulator::MemoryAccess(void* context_v, WHV_EMULATOR_MEMORY_ACCESS_INFO* info_v, -> HRESULT
 {	
-	assert(((WHV_EMULATOR_CALLBACKS const*)context_v)->WHvEmulatorMemoryCallback != nullptr);
-	return ((WHV_EMULATOR_CALLBACKS const*)context_v)->WHvEmulatorMemoryCallback(context_v, info_v);
 }
 
 auto WHvEmulator::IoPortAccess(void* context_v, WHV_EMULATOR_IO_ACCESS_INFO* info_v) -> HRESULT
 {
-	assert(((WHV_EMULATOR_CALLBACKS const*)context_v)->WHvEmulatorIoPortCallback != nullptr);
-	return ((WHV_EMULATOR_CALLBACKS const*)context_v)->WHvEmulatorIoPortCallback(context_v, info_v);
 }
 
 auto WHvEmulator::GetRegisters(void* context_v, const WHV_REGISTER_NAME* names_v, uint32_t count_v, WHV_REGISTER_VALUE* values_v)
 {
-	assert(((WHV_EMULATOR_CALLBACKS const*)context_v)->WHvEmulatorGetVirtualProcessorRegisters != nullptr);
-	return ((WHV_EMULATOR_CALLBACKS const*)context_v)->WHvEmulatorGetVirtualProcessorRegisters(context_v, names_v, count_v, values_v);
 }
 
 auto WHvEmulator::SetRegisters(void* context_v, const WHV_REGISTER_NAME* names_v, uint32_t count_v, const WHV_REGISTER_VALUE* values_v)
 {
-	assert(((WHV_EMULATOR_CALLBACKS const*)context_v)->WHvEmulatorSetVirtualProcessorRegisters != nullptr);
-	return ((WHV_EMULATOR_CALLBACKS const*)context_v)->WHvEmulatorSetVirtualProcessorRegisters(context_v, names_v, count_v, values_v);
 }
 
 auto WHvEmulator::TranslateGvaPage(void* context_v, uint64_t gva_v, WHV_TRANSLATE_GVA_FLAGS flags_v, WHV_TRANSLATE_GVA_RESULT_CODE* result_v, WHV_GPA* gpa_v) -> HRESULT
 {
-	assert(((WHV_EMULATOR_CALLBACKS const*)context_v)->WHvEmulatorTranslateGvaPage != nullptr);
-	return ((WHV_EMULATOR_CALLBACKS const*)context_v)->WHvEmulatorTranslateGvaPage(context_v, gva_v, flags_v, result_v, gpa_v);
 }

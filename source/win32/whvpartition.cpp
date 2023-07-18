@@ -16,6 +16,16 @@ auto WHvPartition::Create() -> WHvPartition
 	return WHvPartition(handle_v);
 }
 
+auto WHvPartition::MapGpaRange(void* buffer_v, std::uint64_t physaddr_v, std::uint64_t length_v, WHV_MAP_GPA_RANGE_FLAGS flags_v) const -> HRESULT
+{
+	return ::WHvMapGpaRange(m_Handle, buffer_v, physaddr_v, length_v, flags_v);
+}
+
+auto WHvPartition::UnmapGpaRange(std::uint64_t physaddr_v, std::uint64_t length_v) const -> HRESULT
+{
+	return ::WHvUnmapGpaRange(m_Handle, physaddr_v, length_v);
+}
+
 WHvPartition::WHvPartition(WHV_PARTITION_HANDLE handle_v) noexcept
 	: m_Handle{ handle_v }
 {}
@@ -53,23 +63,23 @@ auto WHvPartition::GetHandle() const noexcept -> WHV_PARTITION_HANDLE
 	return m_Handle;
 }
 
-auto WHvPartition::Setup() -> void
+auto WHvPartition::Setup() const -> HRESULT
 {
-	WIN32_ERROR_ASSERT(::WHvSetupPartition(m_Handle));
+	return ::WHvSetupPartition(m_Handle);
 }
 
-auto WHvPartition::Reset() -> void
+auto WHvPartition::Reset() const -> HRESULT
 {
-	WIN32_ERROR_ASSERT(::WHvResetPartition(m_Handle));
+	return ::WHvResetPartition(m_Handle);
 }
 
-auto WHvPartition::SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, void const* buffer_v, uint32_t size_v) -> void
+auto WHvPartition::SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, void const* buffer_v, uint32_t size_v) const -> HRESULT
 {
-	WIN32_ERROR_ASSERT(::WHvSetPartitionProperty(m_Handle, property_v, buffer_v, size_v));
+	return ::WHvSetPartitionProperty(m_Handle, property_v, buffer_v, size_v);
 }
 
-auto WHvPartition::GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, void* buffer_v, uint32_t& size_v) 
+auto WHvPartition::GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, void* buffer_v, uint32_t& size_v) const -> HRESULT
 {
-	WIN32_ERROR_ASSERT(::WHvGetPartitionProperty(m_Handle, property_v, buffer_v, size_v, &size_v));
+	return ::WHvGetPartitionProperty(m_Handle, property_v, buffer_v, size_v, &size_v);
 }
 
