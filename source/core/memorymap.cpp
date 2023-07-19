@@ -1,8 +1,9 @@
 #include <core/memorymap.hpp>
+#include <core/virtualmachine.hpp>
 
 using core::MemoryMap;
 
-MemoryMap::MemoryMap(VirtualMachineBase& vm_base_v)
+MemoryMap::MemoryMap(VirtualMachine& vm_base_v)
 	:	m_VMBase      { vm_base_v }
 	, m_AddressMap  {           }
 	, m_Regions     {{ nullptr }}
@@ -45,7 +46,7 @@ auto MemoryMap::DefineRegion(uint64_t base_page_v, Access access_v, std::uint16_
 	auto const last_v = base_v + size_v;
 	if (nullptr != region_v.m_Data) {
 		region_v.m_Flags |= RegionFlags::kMappedDirectly;		
-		//m_VMBase.Partition().MapGpaRegion(region_v.m_Data, base_v, size_v, access_v);
+		m_VMBase.Partition().MapGpaRange(region_v.m_Data, base_v, size_v, access_v);
 	}
 	m_AddressMap.insert({base_v, last_v}, index_v);
 	return index_v;

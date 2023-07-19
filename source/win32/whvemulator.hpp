@@ -61,7 +61,7 @@ namespace win32
 		auto swap(WHvEmulator& other_v) noexcept -> void;
 
 		WHvEmulator();
-		~WHvEmulator();
+		~WHvEmulator() noexcept(false);
 
 		WHvEmulator(WHvEmulator&& other_v) noexcept;
 		auto operator=(WHvEmulator&& other_v) noexcept -> WHvEmulator&;

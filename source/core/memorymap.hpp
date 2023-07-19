@@ -14,7 +14,7 @@
 
 namespace core
 {
-	struct VirtualMachineBase;
+	struct VirtualMachine;
 
 	struct MemoryMap
 	{
@@ -27,7 +27,7 @@ namespace core
 		MemoryMap(MemoryMap const&) = delete;
 		MemoryMap(MemoryMap&&) = delete;
 
-		MemoryMap(VirtualMachineBase& vm_base_v);
+		MemoryMap(VirtualMachine& vm_base_v);
 
 		auto DefineRegion(uint64_t base_page_v, Access access_v, Memory& block_v, uint64_t pages_v = 0u) -> std::size_t;
 		auto DefineRegion(uint64_t base_page_v, Access access_v, std::unique_ptr<Memory> block_v, uint64_t pages_v = 0u) -> std::size_t;
@@ -63,7 +63,7 @@ namespace core
 
 
 	private:
-		VirtualMachineBase& m_VMBase;
+		VirtualMachine& m_VMBase;
 		std::shared_mutex m_Mutex;
 		utils::interval_map<uint64_t, std::size_t> m_AddressMap;
 		std::vector<region_type> m_Regions;

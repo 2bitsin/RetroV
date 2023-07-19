@@ -6,8 +6,8 @@
 
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
-
 #include <utils/objects.hpp>
+#include <core/accessflags.hpp>
 
 namespace win32
 {
@@ -17,7 +17,7 @@ namespace win32
 		static auto Create() -> WHvPartition;
 	
 		WHvPartition();
-		~WHvPartition();
+		~WHvPartition() noexcept(false);
 	
 		WHvPartition(WHvPartition&& other_v) noexcept;
 		auto operator=(WHvPartition&& other_v) noexcept -> WHvPartition&;
@@ -49,7 +49,7 @@ namespace win32
 			return result_v;
 		}
 
-		auto MapGpaRange(void* buffer_v, std::uint64_t physaddr_v, std::uint64_t length_v, WHV_MAP_GPA_RANGE_FLAGS flags_v) const-> HRESULT;
+		auto MapGpaRange(void* buffer_v, std::uint64_t physaddr_v, std::uint64_t length_v, core::Access flags_v) const-> HRESULT;
 		auto UnmapGpaRange(std::uint64_t physaddr_v, std::uint64_t length_v) const-> HRESULT;
 
 	protected:

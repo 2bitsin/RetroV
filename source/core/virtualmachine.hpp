@@ -10,9 +10,13 @@
 
 namespace core
 {
-	struct VirtualMachineBase
+	struct VirtualMachine
 	{
-		VirtualMachineBase();
+		VirtualMachine();
+		~VirtualMachine();
+
+		auto Partition() const -> win32::WHvPartition const& { return m_Partition; }
+		auto Emulator() const -> win32::WHvEmulator const& { return m_Emulator; }
 
 	private:
 		win32::WHvPartition m_Partition;
