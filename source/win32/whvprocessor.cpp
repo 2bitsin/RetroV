@@ -1,4 +1,5 @@
 #include <win32/whvprocessor.hpp>
+#include <algorithm>
 
 using win32::WHvProcessor;
 
@@ -49,4 +50,18 @@ auto WHvProcessor::SetRegisters(std::span<WHV_REGISTER_NAME const> rnames_v, std
 	if (rnames_v.size() != values_v.size())
 		return E_INVALIDARG;
 	return WHvSetVirtualProcessorRegisters(m_Partition.GetHandle(), m_VcpuIndex, rnames_v.data(), rnames_v.size(), values_v.data());
+}
+
+auto WHvProcessor::MemFetchSome(std::uint64_t physaddr_v, std::span<std::byte> buffer_v, WHV_CACHE_TYPE cache_v) const -> std::tuple<HRESULT, std::size_t>
+{
+	auto const cc_v = WHV_ACCESS_GPA_CONTROLS{ .CacheType = cache_v };
+	auto size_v = std::min(kMaxMemoryAccessSize, buffer_v.size());
+	return { ::WHvReadGpaRange(m_Partition.GetHandle(), m_VcpuIndex, physaddr_v, cc_v, buffer_v.data(), size_v), size_v };
+}
+
+auto WHvProcessor::MemWriteSome(std::uint64_t physaddr_v, std::span<std::byte const> buffer_v, WHV_CACHE_TYPE cache_v) const -> std::tuple<HRESULT, std::size_t>
+{
+	auto const cc_v = WHV_ACCESS_GPA_CONTROLS{ .CacheType = cache_v };
+	auto size_v = std::min(kMaxMemoryAccessSize, buffer_v.size());
+	return { ::WHvWriteGpaRange(m_Partition.GetHandle(), m_VcpuIndex, physaddr_v, cc_v, buffer_v.data(), size_v), size_v };
 }

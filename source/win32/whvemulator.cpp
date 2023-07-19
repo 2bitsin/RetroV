@@ -74,22 +74,35 @@ auto WHvEmulator::Create() -> WHvEmulator
 	return WHvEmulator(handle_v);
 }
 
-auto WHvEmulator::MemoryAccess(void* context_v, WHV_EMULATOR_MEMORY_ACCESS_INFO* info_v, -> HRESULT
+auto WHvEmulator::MemoryAccess(void* context_v, WHV_EMULATOR_MEMORY_ACCESS_INFO* info_v) -> HRESULT
 {	
+	auto const& context_r = *(InvocationContext*)context_v;
+	return context_r.MemoryAccess(context_r.ObjectPointer, info_v);
 }
 
 auto WHvEmulator::IoPortAccess(void* context_v, WHV_EMULATOR_IO_ACCESS_INFO* info_v) -> HRESULT
 {
+	auto const& context_r = *(InvocationContext*)context_v;
+	return context_r.IoPortAccess(context_r.ObjectPointer, info_v);
 }
 
-auto WHvEmulator::GetRegisters(void* context_v, const WHV_REGISTER_NAME* names_v, uint32_t count_v, WHV_REGISTER_VALUE* values_v)
+auto WHvEmulator::GetRegisters(void* context_v, 
+	const WHV_REGISTER_NAME* names_v, uint32_t count_v, WHV_REGISTER_VALUE* values_v) -> HRESULT
 {
+	auto const& context_r = *(InvocationContext*)context_v;
+	return context_r.GetRegisters(context_r.ObjectPointer, names_v, count_v, values_v);
 }
 
-auto WHvEmulator::SetRegisters(void* context_v, const WHV_REGISTER_NAME* names_v, uint32_t count_v, const WHV_REGISTER_VALUE* values_v)
+auto WHvEmulator::SetRegisters(void* context_v, 
+	const WHV_REGISTER_NAME* names_v, uint32_t count_v, const WHV_REGISTER_VALUE* values_v) -> HRESULT
 {
+	auto const& context_r = *(InvocationContext*)context_v;
+	return context_r.SetRegisters(context_r.ObjectPointer, names_v, count_v, values_v);
 }
 
-auto WHvEmulator::TranslateGvaPage(void* context_v, uint64_t gva_v, WHV_TRANSLATE_GVA_FLAGS flags_v, WHV_TRANSLATE_GVA_RESULT_CODE* result_v, WHV_GPA* gpa_v) -> HRESULT
+auto WHvEmulator::TranslateGvaPage(void* context_v, WHV_GUEST_VIRTUAL_ADDRESS virtaddr_v, 
+	WHV_TRANSLATE_GVA_FLAGS falgs_v, WHV_TRANSLATE_GVA_RESULT_CODE* code_v, WHV_GUEST_PHYSICAL_ADDRESS* physaddr_v) -> HRESULT
 {
+	auto const& context_r = *(InvocationContext*)context_v;
+	return context_r.TranslateGvaPage(context_r.ObjectPointer, virtaddr_v, falgs_v, code_v, physaddr_v);
 }

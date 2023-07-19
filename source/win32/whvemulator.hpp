@@ -4,6 +4,8 @@
 #include <win32/winhvpx.hpp>
 #include <win32/error.hpp>
 
+#include <utils/bitmanip.hpp>
+
 #include <type_traits>
 #include <concepts>
 #include <cstddef>
@@ -14,19 +16,17 @@ namespace win32
 {
 	namespace detail
 	{
-		using _8bytes = std::byte[8];
-		using _4bytes = std::byte[4];
 
 		template <typename ObjectT>
 		concept Has_IoPortAccess = requires(ObjectT&& object_v, 
-			bool is_write_v, std::uint16_t addr_v, std::uint8_t size_v, _4bytes& data_v)
+			bool is_write_v, std::uint16_t addr_v, std::uint8_t size_v, utils::bytes<4u>& data_v)
 		{		
 			{ object_v.IoPortAccess(is_write_v, addr_v, size_v, data_v) } -> std::same_as<std::uint32_t>;
 		};
 
 		template <typename ObjectT>
 		concept Has_MemoryAccess = requires(ObjectT&& object_v, 
-			bool is_write_v, std::uint64_t addr_v, std::uint8_t size_v, _8bytes& data_v)
+			bool is_write_v, std::uint64_t addr_v, std::uint8_t size_v, utils::bytes<8u>& data_v)
 		{		
 			{ object_v.MemoryAccess(is_write_v, addr_v, size_v, data_v) } -> std::same_as<std::uint32_t>;
 		};
@@ -115,9 +115,9 @@ namespace win32
 						return E_INVALIDARG;
 					return static_cast<T*>(context_v)->IoPortAccess(
 						(bool)access_v->Direction, 
-						(std::uint16_t)access_v->PortNumber,
+						(std::uint16_t)access_v->Port,
 						(std::uint8_t)access_v->AccessSize, 
-						*(_4bytes*)std::addressof(access_v->Data));
+						*(utils::bytes<4>*)std::addressof(access_v->Data));
 				};
 			}
 
@@ -130,7 +130,7 @@ namespace win32
 						(bool)access_v->Direction,
 						(std::uint16_t)access_v->GpaAddress,
 						(std::uint8_t)access_v->AccessSize,
-						*(_8bytes*)std::addressof(access_v->Data));
+						*(utils::bytes<8>*)std::addressof(access_v->Data));
 				};
 			}
 
@@ -172,11 +172,11 @@ namespace win32
 		}
 
 
-		auto IoPortAccess(void* context_v, WHV_EMULATOR_IO_ACCESS_INFO* access_v) -> void;
-		auto MemoryAccess(void* context_v, WHV_EMULATOR_MEMORY_ACCESS_INFO* access_v) -> void;
-		auto GetRegisters(void* context_v, WHV_REGISTER_NAME const* rnames_v, uint32_t count_v, WHV_REGISTER_VALUE* values_v) -> void;
-		auto SetRegisters(void* context_v, WHV_REGISTER_NAME const* rnames_v, uint32_t count_v, WHV_REGISTER_VALUE const* values_v) -> void;
-		auto TranslateGvaPage(void* context_v, uint64_t gva_v, WHV_TRANSLATE_GVA_FLAGS flags_v, WHV_TRANSLATE_GVA_RESULT_CODE* code_v, uint64_t* gpa_v) -> void;
+		static auto __stdcall IoPortAccess(void* context_v, WHV_EMULATOR_IO_ACCESS_INFO* access_v) -> HRESULT;
+		static auto __stdcall MemoryAccess(void* context_v, WHV_EMULATOR_MEMORY_ACCESS_INFO* access_v) -> HRESULT;
+		static auto __stdcall GetRegisters(void* context_v, WHV_REGISTER_NAME const* rnames_v, uint32_t count_v, WHV_REGISTER_VALUE* values_v) -> HRESULT;
+		static auto __stdcall SetRegisters(void* context_v, WHV_REGISTER_NAME const* rnames_v, uint32_t count_v, WHV_REGISTER_VALUE const* values_v) -> HRESULT;
+		static auto __stdcall TranslateGvaPage(void* context_v, WHV_GUEST_VIRTUAL_ADDRESS virtaddr_v, WHV_TRANSLATE_GVA_FLAGS falgs_v, WHV_TRANSLATE_GVA_RESULT_CODE* code_v, WHV_GUEST_PHYSICAL_ADDRESS* physaddr_v) -> HRESULT;
 
 	private:
 		WHV_EMULATOR_HANDLE m_Handle{ nullptr };			

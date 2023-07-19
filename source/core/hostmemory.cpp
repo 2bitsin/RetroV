@@ -1,4 +1,5 @@
 #include <core/hostmemory.hpp>
+#include <core/constants.hpp>
 #include <win32/error.hpp>
 
 #include <system_error>
@@ -101,11 +102,11 @@ auto HostMemory::operator=(HostMemory&& prev_v) noexcept -> HostMemory&
 	if (this==&prev_v)
 		return *this;
 	auto temp_v(std::move (prev_v));
-	Swap(temp_v);	
+	swap(temp_v);	
 	return *this;
 }
 
-auto HostMemory::Swap(HostMemory& prev_v) noexcept -> void
+auto HostMemory::swap(HostMemory& prev_v) noexcept -> void
 {
 	std::swap(m_Data, prev_v.m_Data);
 	std::swap(m_Size, prev_v.m_Size);
@@ -157,11 +158,10 @@ auto HostMemory::Data(std::size_t offset_v, std::size_t length_v) noexcept -> st
 }
 
 auto HostMemory::Access(std::uint64_t address_v, bool write_v, 
-	std::uint8_t size_v, std::uint8_t (&data_v) [8u]) -> void
+	std::uint8_t size_v, utils::bytes<8u> &data_v) -> std::uint32_t
 {
 	while (address_v >= m_Size) {
 		address_v -= m_Size; }
-
 	if (write_v) {
 		if (address_v + size_v > m_Size) {
 			auto const copy_v = m_Size - address_v;
@@ -176,4 +176,5 @@ auto HostMemory::Access(std::uint64_t address_v, bool write_v,
 			std::memcpy(data_v + copy_v, m_Data, size_v - copy_v);
 		} else {
 			std::memcpy(data_v, m_Data + address_v, size_v); }}
+	return S_OK;
 }

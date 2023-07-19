@@ -1,5 +1,9 @@
 #include <core/memorymap.hpp>
 #include <core/virtualmachine.hpp>
+#include <core/constants.hpp>
+
+#include <win32/windows.hpp>
+#include <win32/winhvpx.hpp>
 
 using core::MemoryMap;
 
@@ -25,12 +29,12 @@ auto MemoryMap::DefineRegion(uint64_t base_page_v, Access access_v, std::uint16_
 	if (pages_v == 0u) {
 		pages_v = block_v->Size() / kPageSize;
 	} else {
-		pages_v = std::min(pages_v, block_v->Size() / kPageSize);
+		pages_v = std::min<std::size_t>(pages_v, block_v->Size() / kPageSize);
 	}
 
-	auto const index_v = AllocateRegion();
-
 	std::unique_lock lock_v{ m_Mutex };
+
+	auto const index_v = AllocateRegion();
 
 	auto& region_v = m_Regions[index_v];
 
@@ -54,8 +58,7 @@ auto MemoryMap::DefineRegion(uint64_t base_page_v, Access access_v, std::uint16_
 
 
 auto MemoryMap::AllocateRegion() -> std::size_t
-{
-	std::unique_lock lock_v{ m_Mutex };
+{	
 	if (m_FreeRegions.empty()) {
 		auto const index_v = m_Regions.size();
 		m_Regions.emplace_back();
@@ -80,7 +83,7 @@ auto MemoryMap::RemoveRegion(std::size_t index_v) -> void
 	m_AddressMap.insert({base_v, last_v}, 0u);
 
 	if (region_v.m_Flags & RegionFlags::kMappedDirectly) {
-		//m_VMBase.Partition().UnmapGpaRange(base_v, size_v);
+		m_VMBase.Partition().UnmapGpaRange(base_v, size_v);
 	}
 	if (region_v.m_Flags & RegionFlags::kReleaseAfterDone) {
 		delete region_v.m_Memory;
@@ -96,3 +99,67 @@ auto MemoryMap::RemoveRegion(std::size_t index_v) -> void
 	m_FreeRegions.push_back(index_v);
 
 }
+
+auto MemoryMap::MemoryAccess(bool is_write_v, uint64_t address_v, std::uint8_t size_v, utils::bytes<8u>& data_v) const -> std::uint32_t
+{
+	std::shared_lock lock_v{ m_Mutex };
+
+	auto const index_v = m_AddressMap.value_at(address_v);
+	auto const& region_v = m_Regions[index_v];
+	auto const offset_v = address_v - region_v.m_BasePage*kPageSize;
+
+	if (is_write_v) {
+		if (!(region_v.m_Access & kAccessWrite)) {
+			return E_ACCESSDENIED;
+		}
+	} else{
+		if (!(region_v.m_Access & kAccessExecute)
+			&&!(region_v.m_Access & kAccessFetch)) {
+			return E_ACCESSDENIED;
+		}
+	}
+	if (offset_v >= region_v.m_PageCount*kPageSize) {
+		return E_ACCESSDENIED;
+	}
+
+	auto const block_size_v = region_v.m_PageCount * kPageSize;
+
+	size_v = (std::uint8_t)std::min<std::size_t>(size_v, block_size_v - offset_v);
+
+	if (!region_v.m_Data) {
+		auto& mem_v = *region_v.m_Memory;
+		return mem_v.Access(offset_v, is_write_v, size_v, data_v);
+	}
+
+	if (is_write_v) {
+		std::memcpy(region_v.m_Data + offset_v, std::data(data_v), size_v);
+	} else {
+		std::memcpy(std::data(data_v), region_v.m_Data + offset_v, size_v);
+	}	
+	return S_OK;
+}
+
+auto MemoryMap::MemoryView(std::uint64_t address_v, std::uint64_t size_v) const 
+	-> std::span<std::byte> 
+{
+	std::shared_lock lock_v{ m_Mutex };
+
+	auto const index_v = m_AddressMap.value_at(address_v);
+	auto const& region_v = m_Regions[index_v];
+	auto const offset_v = address_v - region_v.m_BasePage*kPageSize;
+
+	if (offset_v >= region_v.m_PageCount*kPageSize) {
+		return {};
+	}
+
+	auto const block_size_v = region_v.m_PageCount*kPageSize;
+	size_v = std::min<std::size_t>(size_v, block_size_v - offset_v);
+
+	if (!region_v.m_Data) {
+		auto& mem_v = *region_v.m_Memory;
+		return mem_v.Data(offset_v, size_v);
+	}
+
+	return{ region_v.m_Data + offset_v, size_v };
+}
+ 

@@ -9,19 +9,17 @@
 
 #include <utils/objects.hpp>
 #include <utils/interval_map.hpp>
+#include <utils/bitmanip.hpp>
 #include <core/memory.hpp>
 #include <core/accessflags.hpp>
+#include <core/constants.hpp>
 
 namespace core
 {
 	struct VirtualMachine;
 
 	struct MemoryMap
-	{
-		static inline constexpr const auto kPageSize = Memory::kPageSize;
-		static inline constexpr const auto kLastAddress = 0xFFFFFFFFFFFFFFFFull;
-		static inline constexpr const auto kPageLimit = (kLastAddress >> 12u)+1u;
-
+	{		
 		auto operator=(MemoryMap const&) -> MemoryMap& = delete;
 		auto operator=(MemoryMap &&) -> MemoryMap& = delete;
 		MemoryMap(MemoryMap const&) = delete;
@@ -32,7 +30,8 @@ namespace core
 		auto DefineRegion(uint64_t base_page_v, Access access_v, Memory& block_v, uint64_t pages_v = 0u) -> std::size_t;
 		auto DefineRegion(uint64_t base_page_v, Access access_v, std::unique_ptr<Memory> block_v, uint64_t pages_v = 0u) -> std::size_t;
 		auto RemoveRegion(std::size_t index_v) -> void;	
-
+		auto MemoryAccess(bool is_write_v, uint64_t address_v, std::uint8_t size_v, utils::bytes<8u>& data_v) const -> std::uint32_t;		
+		auto MemoryView(std::uint64_t address_v, std::uint64_t size_v) const -> std::span<std::byte>;
 	protected:
 
 		enum RegionFlags: uint32_t {
@@ -64,7 +63,7 @@ namespace core
 
 	private:
 		VirtualMachine& m_VMBase;
-		std::shared_mutex m_Mutex;
+		mutable std::shared_mutex m_Mutex;
 		utils::interval_map<uint64_t, std::size_t> m_AddressMap;
 		std::vector<region_type> m_Regions;
 		std::vector<std::size_t> m_FreeRegions;

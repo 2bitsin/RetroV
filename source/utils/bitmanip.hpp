@@ -14,4 +14,7 @@ namespace utils {
 		auto const mask_v = (T(1u)<<count_v)-T(1u);
 		return crossover_mask(lhs_v, rhs_v, mask_v);
 	}
+
+	template<std::size_t N> 
+	using bytes = std::byte[N];
 }
