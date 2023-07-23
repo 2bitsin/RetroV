@@ -56,7 +56,7 @@ namespace win32
 
 	struct WHvEmulator
 	{
-		static auto Create() -> WHvEmulator;
+		static auto Create(WHV_EMULATOR_CALLBACKS const& callbacks_v) -> WHV_EMULATOR_HANDLE;
 		auto GetHandle() const noexcept -> WHV_EMULATOR_HANDLE;
 		auto swap(WHvEmulator& other_v) noexcept -> void;
 

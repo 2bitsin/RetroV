@@ -9,9 +9,9 @@
 #include <cstdint>
 #include <cstddef>
 
-namespace core {
+namespace win32 {
 
-	struct Capabilities
+	struct WHvCapabilities
 	{
 
 		static auto IsVendorAMD() -> bool;
@@ -19,13 +19,15 @@ namespace core {
 		static auto Get(WHV_CAPABILITY_CODE, void* buffer_v, std::uint32_t length_v) -> std::uint32_t;
 
 		template <typename T> requires (std::is_trivial_v<T>)
-			static inline auto Get(WHV_CAPABILITY_CODE code_v) -> T {
+		static inline auto Get(WHV_CAPABILITY_CODE code_v) -> T {
 			T buffer_v{ };
 			auto const length_v = Get(code_v, &buffer_v, sizeof(buffer_v));
 			if (length_v != sizeof(buffer_v))
 				throw std::invalid_argument("Invalid buffer size");
 			return buffer_v;
 		}
+
+		static auto LogInformation() -> void;
 
 	};
 }

@@ -28,7 +28,14 @@ auto win32::WHvEmulator::TryMmioEmulation(void* context_v, WHV_VP_EXIT_CONTEXT c
 }
 
 WHvEmulator::WHvEmulator()
-	: WHvEmulator(nullptr)
+	: WHvEmulator(Create({
+			sizeof(WHV_EMULATOR_CALLBACKS), 0u,
+			&IoPortAccess,
+			&MemoryAccess,
+			&GetRegisters,
+			&SetRegisters,
+			&TranslateGvaPage
+		}))
 {}
 
 WHvEmulator::~WHvEmulator() noexcept(false) {
@@ -60,18 +67,11 @@ auto WHvEmulator::GetHandle() const noexcept -> WHV_EMULATOR_HANDLE
 	return m_Handle;
 }
 
-auto WHvEmulator::Create() -> WHvEmulator
+auto WHvEmulator::Create(WHV_EMULATOR_CALLBACKS const& callbacks_v) -> WHV_EMULATOR_HANDLE
 {
 	WHV_EMULATOR_HANDLE handle_v{ nullptr };
-	WHV_EMULATOR_CALLBACKS callbacks_v{ 0 };
-	callbacks_v.Size = sizeof(WHV_EMULATOR_CALLBACKS);
-	callbacks_v.WHvEmulatorGetVirtualProcessorRegisters = &GetRegisters;
-	callbacks_v.WHvEmulatorSetVirtualProcessorRegisters = &SetRegisters;
-	callbacks_v.WHvEmulatorTranslateGvaPage = &TranslateGvaPage;
-	callbacks_v.WHvEmulatorIoPortCallback = &IoPortAccess;
-	callbacks_v.WHvEmulatorMemoryCallback = &MemoryAccess;
 	WIN32_ERROR_ASSERT(::WHvEmulatorCreateEmulator(&callbacks_v, &handle_v));
-	return WHvEmulator(handle_v);
+	return handle_v;
 }
 
 auto WHvEmulator::MemoryAccess(void* context_v, WHV_EMULATOR_MEMORY_ACCESS_INFO* info_v) -> HRESULT

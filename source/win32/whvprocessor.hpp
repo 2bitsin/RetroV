@@ -19,7 +19,7 @@ namespace win32
 	{		
 		static inline constexpr const std::size_t kMaxMemoryAccessSize = 16u;
 
-		WHvProcessor(win32::WHvPartition& partition_v, std::uint32_t vcpuindex_v);
+		WHvProcessor(win32::WHvPartition& partition_v, std::uint32_t vcpuindex_v=0u);
 	  ~WHvProcessor() noexcept(false);
 
 		auto Run() const -> std::tuple<HRESULT, WHV_RUN_VP_EXIT_CONTEXT>;

@@ -1,8 +1,11 @@
-#include <utils/literals.hpp>
-#include <utils/interval_map.hpp>
-#include <tests/interval_map.hpp>
-
 #include <SDL2/SDL.h>
+
+#include <win32/error.hpp>
+#include <win32/windows.hpp>
+#include <win32/whvcapabilities.hpp>
+#include <core/virtualmachine.hpp>
+#include <utils/literals.hpp>
+#include <utils/logger.hpp>
 
 #include <filesystem>
 #include <iostream>
@@ -10,6 +13,8 @@
 #include <cassert>
 #include <chrono>
 #include <cstdio>
+#include <format>
+#include <chrono>
 
 #undef main
 int main(int argc, char** argv) try
@@ -17,12 +22,16 @@ int main(int argc, char** argv) try
 	using namespace size_literals;
 	using namespace std::chrono_literals;
 	using namespace std::chrono;
+	using namespace std::filesystem;
 	
-	std::filesystem::current_path(R"(F:\Archive\FloppyImages)");
+	current_path(path(argv[0])
+		.parent_path()
+		.parent_path());
 
-//	TEST_interval_map();
 
-#if 0
+
+	core::VirtualMachine corevm(core::Configuration());
+	
 	SDL_Init(SDL_INIT_EVERYTHING);
 	std::atexit(SDL_Quit);		
 
@@ -34,7 +43,7 @@ int main(int argc, char** argv) try
 			continue;
 		}
 	}
-#endif
+
 	return 0;
 }
 catch (std::exception const& ex) 

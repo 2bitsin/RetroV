@@ -7,6 +7,7 @@
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
 #include <utils/objects.hpp>
+#include <utils/span.hpp>
 #include <core/accessflags.hpp>
 
 namespace win32
@@ -14,9 +15,10 @@ namespace win32
 
 	struct WHvPartition 
 	{	
-		static auto Create() -> WHvPartition;
+		static auto Create() -> WHV_PARTITION_HANDLE;
 	
 		WHvPartition();
+		WHvPartition(std::initializer_list<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY>> props_v);
 		~WHvPartition() noexcept(false);
 	
 		WHvPartition(WHvPartition&& other_v) noexcept;
@@ -31,22 +33,22 @@ namespace win32
 		auto Setup () const -> HRESULT;
 		auto Reset () const -> HRESULT;
 	
-		auto SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, void const* buffer_v, uint32_t size_v) const -> HRESULT;
-		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, void* buffer_v, uint32_t& size_v) const -> HRESULT;
+		auto SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, std::span<std::byte const> value_v) const -> HRESULT;
+		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, std::span<std::byte>& span_v) const -> HRESULT;
+		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, std::span<std::byte>&& span_v) const -> HRESULT {
+			return GetProperty(property_v, span_v);
+		}
 
 		template <typename T>
 		auto SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, T const& value_v) const -> HRESULT
 		{
-			return SetProperty(property_v, &value_v, (uint32_t)sizeof(T));
+			return SetProperty(property_v, utils::as_bytes(value_v));
 		}
 
 		template <typename T>
 		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, T& value_v) const -> HRESULT
 		{
-			uint32_t size_v{ sizeof(T) };
-			auto result_v = GetProperty(property_v, &value_v, size_v);
-			assert(size_v == sizeof(T));
-			return result_v;
+			return GetProperty(property_v, utils::as_bytes(value_v));
 		}
 
 		auto MapGpaRange(void* buffer_v, std::uint64_t physaddr_v, std::uint64_t length_v, core::Access flags_v) const-> HRESULT;
