@@ -1,8 +1,9 @@
 #include <win32/whvpartition.hpp>
 
+#include <win32/error.hpp>
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
-#include <win32/error.hpp>
+#include <win32/whvprocessor.hpp>
 
 #include <utility>
 using std::exchange;
@@ -20,16 +21,34 @@ WHvPartition::WHvPartition(WHV_PARTITION_HANDLE handle_v) noexcept
 	: m_Handle{ handle_v }
 {}
 
+auto WHvPartition::InitializeProcessor(std::uint32_t index_v) -> HRESULT
+{
+	auto result_v = ::WHvCreateVirtualProcessor(GetHandle(), index_v, 0u);
+	if (S_OK != result_v) {
+		return result_v;
+	}
+	win32::WHvProcessor processor_v{ *this, index_v };
+	return processor_v.Reset();
+}
+
 WHvPartition::WHvPartition()
-	: WHvPartition(Create())
+	: WHvPartition(nullptr)
 {}
 
 WHvPartition::WHvPartition(std::initializer_list<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY>> props_v)
 	: WHvPartition(Create())
 {
-	for (auto const& [code_v, value_v] : props_v) 
+	WIN32_ERROR_ASSERT(InitializeProcessor(0u)); 
+	for (auto const& [code_v, value_v] : props_v)
 	{
 		WIN32_ERROR_ASSERT(SetProperty(code_v, value_v));
+		if (WHvPartitionPropertyCodeProcessorCount!=code_v)
+			break;
+		for (std::uint32_t index_v = 1u; 
+			index_v < value_v.ProcessorCount; index_v += 1u) 
+		{
+			WIN32_ERROR_ASSERT(InitializeProcessor(index_v));
+		}
 	}
 	WIN32_ERROR_ASSERT(Setup());
 }
@@ -51,8 +70,19 @@ auto WHvPartition::UnmapGpaRange(std::uint64_t physaddr_v, std::uint64_t length_
 	return ::WHvUnmapGpaRange(m_Handle, physaddr_v, length_v);
 }
 
+auto WHvPartition::Processor(std::uint32_t apicid_v) const -> win32::WHvProcessor
+{
+  return WHvProcessor(*this, apicid_v);
+}
+
 WHvPartition::~WHvPartition() noexcept(false) {
-	if (nullptr!=m_Handle) {
+	if (nullptr!=m_Handle) 
+	{
+		std::uint32_t cpucount_v{ 0u };
+		WIN32_ERROR_ASSERT(GetProperty(WHvPartitionPropertyCodeProcessorCount, cpucount_v));
+		for (std::uint32_t index_v = 0u; index_v < cpucount_v; index_v += 1u) {
+			WIN32_ERROR_ASSERT(::WHvDeleteVirtualProcessor(m_Handle, index_v));
+		}
 		WIN32_ERROR_ASSERT(::WHvDeletePartition(m_Handle));
 	}
 }
@@ -102,4 +132,3 @@ auto WHvPartition::GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, std::span
 	value_v = value_v.first(size_v);
 	return result_v;
 }
-

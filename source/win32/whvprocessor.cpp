@@ -1,19 +1,15 @@
 #include <win32/whvprocessor.hpp>
+#include <win32/whvpartition.hpp>
+#include <win32/whvregisters.hpp>
+
 #include <algorithm>
 
 using win32::WHvProcessor;
 
-WHvProcessor::WHvProcessor(win32::WHvPartition& partition_v, std::uint32_t vcpuindex_v)
+WHvProcessor::WHvProcessor(WHvPartition const& partition_v, std::uint32_t vcpuindex_v)
 	: m_Partition{ partition_v }
 	, m_VcpuIndex{ vcpuindex_v }
-{
-	WIN32_ERROR_ASSERT(::WHvCreateVirtualProcessor(m_Partition.GetHandle(), m_VcpuIndex, 0u));
-}
-
-WHvProcessor::~WHvProcessor() noexcept(false)
-{
-	WIN32_ERROR_ASSERT(::WHvDeleteVirtualProcessor(m_Partition.GetHandle(), m_VcpuIndex));
-}
+{}
 
 auto WHvProcessor::TranslateGva(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v) const
 	-> std::tuple<HRESULT, WHV_TRANSLATE_GVA_RESULT, std::uint64_t> 
@@ -22,6 +18,11 @@ auto WHvProcessor::TranslateGva(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAG
 	std::uint64_t physaddr_v{};
 	auto result_v = ::WHvTranslateGva(m_Partition.GetHandle(), m_VcpuIndex, virtaddr_v, flags_v, &code_v, &physaddr_v);
 	return { result_v, code_v, physaddr_v };
+}
+
+auto WHvProcessor::Reset() const -> HRESULT
+{
+	return win32::GetInitialProcessorState().ApplyTo(*this);
 }
 
 auto WHvProcessor::Run() const -> std::tuple<HRESULT, WHV_RUN_VP_EXIT_CONTEXT>

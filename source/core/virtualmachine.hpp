@@ -21,15 +21,14 @@ namespace core
 		auto Resume    () -> void;
 		auto Stop      () -> void;
 		auto Reset     () -> void;
-		
+	
+	protected:
 		auto Partition ()	const -> win32::WHvPartition const& { return m_Partition; }
-		auto Emulator  ()	const -> win32::WHvEmulator  const& { return m_Emulator;  }
-		auto Processor ()	const -> win32::WHvProcessor const& { return m_Processor; }
-
+		auto Emulator  ()	const -> win32::WHvEmulator  const& { return m_Emulator;  }		
+	
 	private:
 		win32::WHvPartition m_Partition;
-		win32::WHvEmulator	m_Emulator;
-		win32::WHvProcessor m_Processor;
+		win32::WHvEmulator m_Emulator;
 	};
 
 }

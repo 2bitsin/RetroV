@@ -6,6 +6,8 @@
 
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
+#include <win32/whvprocessor.hpp>
+
 #include <utils/objects.hpp>
 #include <utils/span.hpp>
 #include <core/accessflags.hpp>
@@ -39,26 +41,30 @@ namespace win32
 			return GetProperty(property_v, span_v);
 		}
 
-		template <typename T>
+		template <typename T> requires (std::is_trivial_v<T>)
 		auto SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, T const& value_v) const -> HRESULT
 		{
 			return SetProperty(property_v, utils::as_bytes(value_v));
 		}
 
-		template <typename T>
+		template <typename T> requires (std::is_trivial_v<T>)
 		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, T& value_v) const -> HRESULT
 		{
-			return GetProperty(property_v, utils::as_bytes(value_v));
+			return GetProperty(property_v, utils::as_mutable_bytes(value_v));
 		}
 
 		auto MapGpaRange(void* buffer_v, std::uint64_t physaddr_v, std::uint64_t length_v, core::Access flags_v) const-> HRESULT;
 		auto UnmapGpaRange(std::uint64_t physaddr_v, std::uint64_t length_v) const-> HRESULT;
 
+		auto Processor(std::uint32_t apicid_v) const -> win32::WHvProcessor;
+
 	protected:
 		WHvPartition(WHV_PARTITION_HANDLE handle_v) noexcept;
+
+		auto InitializeProcessor(std::uint32_t index_v) -> HRESULT;
 	
 	private:
-		WHV_PARTITION_HANDLE m_Handle{ nullptr };
+		WHV_PARTITION_HANDLE m_Handle{ nullptr };		
 	};
 
 }

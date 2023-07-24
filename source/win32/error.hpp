@@ -21,6 +21,8 @@ namespace win32
 		static auto to_string(std::int32_t value_v) -> std::string;
 		static auto __assert__(std::int32_t errvalue_v, std::source_location location_v, std::string_view clode_line = "") -> void;
 	
+		static auto throw_last_error (std::source_location location_v = std::source_location::current()) -> void;
+
 	protected:
 		std::int32_t m_errvalue;
 		std::source_location m_location;

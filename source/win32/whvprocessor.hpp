@@ -1,6 +1,5 @@
 #pragma once
 
-#include <win32/whvpartition.hpp>
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
 #include <win32/error.hpp>
@@ -13,15 +12,17 @@
 
 namespace win32 
 {
-	struct VirtualMahcineBase;
+	struct WHvPartition;
 
 	struct WHvProcessor
 	{		
 		static inline constexpr const std::size_t kMaxMemoryAccessSize = 16u;
 
-		WHvProcessor(win32::WHvPartition& partition_v, std::uint32_t vcpuindex_v=0u);
-	  ~WHvProcessor() noexcept(false);
+		WHvProcessor(WHvPartition const& partition_v, std::uint32_t vcpuindex_v=0u);
 
+	  ~WHvProcessor() = default;
+
+		auto Reset() const -> HRESULT;
 		auto Run() const -> std::tuple<HRESULT, WHV_RUN_VP_EXIT_CONTEXT>;
 		auto Cancel() const -> HRESULT;
 
@@ -34,7 +35,7 @@ namespace win32
 		auto MemWriteSome(std::uint64_t physaddr_v, std::span<std::byte const> buffer_v, WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) const -> std::tuple<HRESULT, std::size_t>;
 
 	private:
-		win32::WHvPartition& m_Partition;
+		win32::WHvPartition const& m_Partition;
 		std::uint32_t m_VcpuIndex;		
 	};
 }

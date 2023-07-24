@@ -3,6 +3,8 @@
 #include <win32/error.hpp>
 #include <win32/windows.hpp>
 #include <win32/whvcapabilities.hpp>
+#include <win32/whvregisters.hpp>
+
 #include <core/virtualmachine.hpp>
 #include <utils/literals.hpp>
 #include <utils/logger.hpp>
@@ -28,9 +30,7 @@ int main(int argc, char** argv) try
 		.parent_path()
 		.parent_path());
 
-
-
-	core::VirtualMachine corevm(core::Configuration());
+	//core::VirtualMachine corevm(core::Configuration());
 	
 	SDL_Init(SDL_INIT_EVERYTHING);
 	std::atexit(SDL_Quit);		

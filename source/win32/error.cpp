@@ -28,6 +28,11 @@ auto error::__assert__(std::int32_t errvalue_v, std::source_location location_v,
 	}
 }
 
+auto error::throw_last_error(std::source_location location_v) -> void
+{
+	throw error(last_error(), std::move(location_v));
+}
+
 using namespace std::string_literals;
 error::error(std::int32_t errvalue_v, std::source_location location_v, std::string_view code_v)
 	: std::runtime_error(std::format("{}:{}:{}: {}",  		
