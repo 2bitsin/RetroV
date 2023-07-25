@@ -105,8 +105,10 @@ auto WHvPartition::GetHandle() const noexcept -> WHV_PARTITION_HANDLE
 	return m_Handle;
 }
 
-auto WHvPartition::Setup(std::span<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY> const> props_v) const -> HRESULT {
+auto WHvPartition::Setup(std::span<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY> const> props_v) const -> HRESULT 
+{
 	std::int32_t result_v{ S_OK };
+
 	for (auto const& [code_v, value_v] : props_v)
 	{
 		result_v = SetProperty(code_v, value_v);
@@ -114,6 +116,7 @@ auto WHvPartition::Setup(std::span<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PA
 			return result_v;
 		}
 	}
+
 	result_v = Setup();
 	if (S_OK != result_v) {
 		return result_v;
@@ -124,7 +127,9 @@ auto WHvPartition::Setup(std::span<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PA
 	if (S_OK != result_v) {
 		return result_v;
 	}
-	for (std::uint32_t index_v = 0u; index_v < vcpucount_v; index_v += 1u)
+	assert(vcpucount_v > 0u);
+	for (std::uint32_t index_v = 0u; 
+		index_v < vcpucount_v; index_v += 1u)
 	{
 		result_v = InitializeProcessor(index_v);
 		if (S_OK != result_v) {
