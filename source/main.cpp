@@ -33,9 +33,7 @@ int main(int argc, char** argv) try
 	using core::VirtualMachine;
 	using core::Configuration;
 
-	VirtualMachine vmcore_v(Configuration()); 
-
-	
+	VirtualMachine vmcore_v{ Configuration() }; 
 	
 	SDL_Init(SDL_INIT_EVERYTHING);
 	std::atexit(SDL_Quit);		

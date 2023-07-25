@@ -29,14 +29,14 @@ auto VirtualMachine::ConfigureMemory(Configuration const&) -> void
 	std::uint64_t memory_size_v = 16_MiB;
 
 	if (memory_size_v > 0u) {
-		auto basemem_size_v = std::max(memory_size_v, 640_KiB);
+		auto basemem_size_v = std::min(memory_size_v, 640_KiB);
 		memory_size_v -= basemem_size_v;
 		assert(basemem_size_v + 384_KiB <= 1_MiB);
 		m_Memory.emplace_back(m_Partition, 0 / kPageSize, basemem_size_v / kPageSize, kAccessMemory);
 	}
 
 	if (memory_size_v > 0u) {
-		auto extmem_size_v = std::max(memory_size_v, 14_MiB);
+		auto extmem_size_v = std::min(memory_size_v, 14_MiB);
 		memory_size_v -= extmem_size_v;
 		assert(extmem_size_v + 2_MiB <= 16_MiB);
 		m_Memory.emplace_back(m_Partition, 1_MiB/kPageSize, extmem_size_v/kPageSize, kAccessMemory);
@@ -77,4 +77,5 @@ auto VirtualMachine::ConfigureBiosROM(Configuration const&) -> void
 	size_v = (size_v + kPageSize - 1u) & ~(kPageSize - 1u);
 	auto addr_v = 1_MiB - size_v;
 	m_Memory.emplace_back(m_Partition, addr_v / kPageSize, size_v / kPageSize, kAccessReadOnly);
+	m_Memory.back().Load(path_v);
 }
