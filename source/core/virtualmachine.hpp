@@ -7,6 +7,7 @@
 #include <win32/whvpartition.hpp>
 #include <win32/whvprocessor.hpp>
 
+#include <core/virtualmemory.hpp>
 #include <core/configuration.hpp>
 
 namespace core
@@ -26,9 +27,14 @@ namespace core
 		auto Partition ()	const -> win32::WHvPartition const& { return m_Partition; }
 		auto Emulator  ()	const -> win32::WHvEmulator  const& { return m_Emulator;  }		
 	
+		auto ConfigureMemory(Configuration const&) -> void;
+		auto ConfigureBiosROM(Configuration const&) -> void;
+
 	private:
+
 		win32::WHvPartition m_Partition;
 		win32::WHvEmulator m_Emulator;
+		std::list<VirtualMemory> m_Memory;
 	};
 
 }

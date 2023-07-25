@@ -21,7 +21,7 @@ WHvPartition::WHvPartition(WHV_PARTITION_HANDLE handle_v) noexcept
 	: m_Handle{ handle_v }
 {}
 
-auto WHvPartition::InitializeProcessor(std::uint32_t index_v) -> HRESULT
+auto WHvPartition::InitializeProcessor(std::uint32_t index_v) const -> HRESULT
 {
 	auto result_v = ::WHvCreateVirtualProcessor(GetHandle(), index_v, 0u);
 	if (S_OK != result_v) {
@@ -38,19 +38,7 @@ WHvPartition::WHvPartition()
 WHvPartition::WHvPartition(std::initializer_list<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY>> props_v)
 	: WHvPartition(Create())
 {
-	WIN32_ERROR_ASSERT(InitializeProcessor(0u)); 
-	for (auto const& [code_v, value_v] : props_v)
-	{
-		WIN32_ERROR_ASSERT(SetProperty(code_v, value_v));
-		if (WHvPartitionPropertyCodeProcessorCount!=code_v)
-			break;
-		for (std::uint32_t index_v = 1u; 
-			index_v < value_v.ProcessorCount; index_v += 1u) 
-		{
-			WIN32_ERROR_ASSERT(InitializeProcessor(index_v));
-		}
-	}
-	WIN32_ERROR_ASSERT(Setup());
+	Setup (props_v);
 }
 
 auto WHvPartition::MapGpaRange(void* buffer_v, std::uint64_t physaddr_v, std::uint64_t length_v, core::Access flags_v) const -> HRESULT
@@ -73,6 +61,13 @@ auto WHvPartition::UnmapGpaRange(std::uint64_t physaddr_v, std::uint64_t length_
 auto WHvPartition::Processor(std::uint32_t apicid_v) const -> win32::WHvProcessor
 {
   return WHvProcessor(*this, apicid_v);
+}
+
+auto WHvPartition::NumberOfProcessors() const -> std::uint32_t
+{
+	std::uint32_t vcpucount_v{ 0u };
+	WIN32_ERROR_ASSERT(GetProperty(WHvPartitionPropertyCodeProcessorCount, vcpucount_v));
+	return vcpucount_v;
 }
 
 WHvPartition::~WHvPartition() noexcept(false) {
@@ -108,6 +103,31 @@ auto WHvPartition::swap(WHvPartition& other_v) noexcept -> void
 auto WHvPartition::GetHandle() const noexcept -> WHV_PARTITION_HANDLE
 {
 	return m_Handle;
+}
+
+auto WHvPartition::Setup(std::span<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY> const> props_v) const -> HRESULT {
+	auto result_v = InitializeProcessor(0u);
+	if (S_OK != result_v) {
+		return result_v;
+	}
+	for (auto const& [code_v, value_v] : props_v)
+	{
+		result_v = SetProperty(code_v, value_v);
+		if (S_OK != result_v) {
+			return result_v;
+		}
+		if (WHvPartitionPropertyCodeProcessorCount != code_v)
+			break;
+		for (std::uint32_t index_v = 1u;
+			index_v < value_v.ProcessorCount; index_v += 1u)
+		{
+			result_v = InitializeProcessor(index_v);
+			if (S_OK != result_v) {
+				return result_v;
+			}
+		}
+	}
+	return Setup();
 }
 
 auto WHvPartition::Setup() const -> HRESULT

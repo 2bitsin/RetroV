@@ -32,9 +32,12 @@ namespace win32
 		auto swap(WHvPartition& other_v) noexcept -> void;
 	
 		auto GetHandle() const noexcept -> WHV_PARTITION_HANDLE;
-		auto Setup () const -> HRESULT;
 		auto Reset () const -> HRESULT;
-	
+
+		auto Setup () const -> HRESULT;
+		auto Setup (std::initializer_list<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY> const> props_v) const -> HRESULT { return Setup(props_v); }
+		auto Setup (std::span<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY> const> props_v) const -> HRESULT;
+
 		auto SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, std::span<std::byte const> value_v) const -> HRESULT;
 		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, std::span<std::byte>& span_v) const -> HRESULT;
 		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, std::span<std::byte>&& span_v) const -> HRESULT {
@@ -58,10 +61,12 @@ namespace win32
 
 		auto Processor(std::uint32_t apicid_v) const -> win32::WHvProcessor;
 
+		auto NumberOfProcessors() const -> std::uint32_t;
+
 	protected:
 		WHvPartition(WHV_PARTITION_HANDLE handle_v) noexcept;
 
-		auto InitializeProcessor(std::uint32_t index_v) -> HRESULT;
+		auto InitializeProcessor(std::uint32_t index_v) const -> HRESULT;
 	
 	private:
 		WHV_PARTITION_HANDLE m_Handle{ nullptr };		

@@ -5,14 +5,16 @@
 
 namespace utils
 {
-	auto module_filename() -> std::filesystem::path {
+	auto module_filename() -> std::filesystem::path 
+	{
 		std::wstring buffer_v(MAX_PATH, '\0');
 		std::uint32_t result_v{ 0u };
+		std::int32_t win32_error_v{ 0 };
 	repeat_again:
 		result_v = ::GetModuleFileNameW(nullptr, buffer_v.data(), buffer_v.size());
 
 		if (result_v >= buffer_v.size() || result_v < 1u) {
-			auto win32_error_v = win32::error::last_error();
+			win32_error_v = win32::error::last_error();
 			if (ERROR_INSUFFICIENT_BUFFER == win32_error_v) {
 				buffer_v.resize(buffer_v.size() * 2u);
 				goto repeat_again;
@@ -22,6 +24,7 @@ namespace utils
 			}
 		}
 		buffer_v.resize(result_v);
+	  return buffer_v;
 	}
 
 	auto path_substitute(std::filesystem::path const& path_v) -> std::filesystem::path

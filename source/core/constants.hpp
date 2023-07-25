@@ -3,9 +3,15 @@
 #include <cstdint>
 #include <cstddef>
 
+#include <utils/literals.hpp>
+
 namespace core
 {
-	static inline constexpr std::size_t kPageSize = 4096u;
+	namespace detail
+	{
+	using namespace size_literals;
+
+	static inline constexpr std::size_t kPageSize = 4_KiB;
 	static inline constexpr const auto kLastAddress = 0xFFFFFFFFFFFFFFFFull;
 	static inline constexpr const auto kPageLimit = (kLastAddress >> 12u) + 1u;
 
@@ -26,4 +32,27 @@ namespace core
 	static inline constexpr const auto kVirtualInterruptFlag = 0x080000u;
 	static inline constexpr const auto kVirtualInterruptPendingFlag = 0x100000u;
 	static inline constexpr const auto kCpuIdAvailableFlag = 0x200000u;
+	}
+
+	using detail::kPageSize;
+	using detail::kLastAddress;
+	using detail::kPageLimit;
+	using detail::kCarryFlag ;
+	using detail::kParityFlag ;
+	using detail::kAdjustFlag ;
+	using detail::kZeroFlag ;
+	using detail::kSignFlag ;
+	using detail::kTrapFlag ;
+	using detail::kInterruptFlag ;
+	using detail::kDirectionFlag ;
+	using detail::kOverflowFlag ;
+	using detail::kPrivilegeLevelMask ;
+	using detail::kNestedTaskFlag ;
+	using detail::kResumeFlag ;
+	using detail::kVirtual8086ModeFlag ;
+	using detail::kAlignmentCheckFlag ;
+	using detail::kVirtualInterruptFlag ;
+	using detail::kVirtualInterruptPendingFlag ;
+	using detail::kCpuIdAvailableFlag ;
+	
 }
