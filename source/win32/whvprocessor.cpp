@@ -22,13 +22,18 @@ auto WHvProcessor::TranslateGva(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAG
 
 auto WHvProcessor::Reset() const -> HRESULT
 {
-	return win32::GetInitialProcessorState().ApplyTo(*this);
+	return GetInitialProcessorState().ApplyTo(*this);
+}
+
+auto WHvProcessor::Run(WHV_RUN_VP_EXIT_CONTEXT& exit_v) const -> HRESULT
+{
+	return ::WHvRunVirtualProcessor(m_Partition.GetHandle(), m_VcpuIndex, &exit_v, sizeof(exit_v));
 }
 
 auto WHvProcessor::Run() const -> std::tuple<HRESULT, WHV_RUN_VP_EXIT_CONTEXT>
 {
 	WHV_RUN_VP_EXIT_CONTEXT exit_v{};
-	auto result_v = ::WHvRunVirtualProcessor(m_Partition.GetHandle(), m_VcpuIndex, &exit_v, sizeof(exit_v));
+	auto const result_v = Run(exit_v);
 	return { result_v, exit_v };
 }
 
@@ -51,6 +56,16 @@ auto WHvProcessor::SetRegisters(std::span<WHV_REGISTER_NAME const> rnames_v, std
 	if (rnames_v.size() != values_v.size())
 		return E_INVALIDARG;
 	return WHvSetVirtualProcessorRegisters(m_Partition.GetHandle(), m_VcpuIndex, rnames_v.data(), rnames_v.size(), values_v.data());
+}
+
+auto WHvProcessor::SetRegister(WHV_REGISTER_NAME rname_v, WHV_REGISTER_VALUE value_v) const -> HRESULT
+{
+	return SetRegisters({ &rname_v, 1u }, { &value_v, 1u });
+}
+
+auto WHvProcessor::GetRegister(WHV_REGISTER_NAME rname_v, WHV_REGISTER_VALUE& value_v) const -> HRESULT
+{
+	return GetRegisters({ &rname_v, 1u }, { &value_v, 1u });
 }
 
 auto WHvProcessor::MemFetchSome(std::uint64_t physaddr_v, std::span<std::byte> buffer_v, WHV_CACHE_TYPE cache_v) const -> std::tuple<HRESULT, std::size_t>

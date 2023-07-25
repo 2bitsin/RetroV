@@ -9,6 +9,13 @@
 
 #include <core/virtualmemory.hpp>
 #include <core/configuration.hpp>
+#include <core/processorthread.hpp>
+
+#include <shared_mutex>
+#include <memory>
+#include <mutex>
+#include <list>
+
 
 namespace core
 {
@@ -18,10 +25,10 @@ namespace core
 		~VirtualMachine();
 
 		auto Start     () -> void;
-		auto Suspend   () -> void;
-		auto Resume    () -> void;
 		auto Stop      () -> void;
 		auto Reset     () -> void;
+
+		auto RunMain	 () -> void;
 	
 	protected:
 		auto Partition ()	const -> win32::WHvPartition const& { return m_Partition; }
@@ -29,12 +36,15 @@ namespace core
 	
 		auto ConfigureMemory(Configuration const&) -> void;
 		auto ConfigureBiosROM(Configuration const&) -> void;
+		auto ConfigurePartition(Configuration const&) -> void;
 
 	private:
 
+		std::shared_mutex m_StateMutex;
 		win32::WHvPartition m_Partition;
 		win32::WHvEmulator m_Emulator;
 		std::list<VirtualMemory> m_Memory;
+		ProcessorThread m_ProcessorThread;
 	};
 
 }

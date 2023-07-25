@@ -28,14 +28,7 @@ auto win32::WHvEmulator::TryMmioEmulation(void* context_v, WHV_VP_EXIT_CONTEXT c
 }
 
 WHvEmulator::WHvEmulator()
-	: WHvEmulator(Create({
-			sizeof(WHV_EMULATOR_CALLBACKS), 0u,
-			&IoPortAccess,
-			&MemoryAccess,
-			&GetRegisters,
-			&SetRegisters,
-			&TranslateGvaPage
-		}))
+	: WHvEmulator(nullptr)
 {}
 
 WHvEmulator::~WHvEmulator() noexcept(false) {
@@ -60,6 +53,17 @@ auto WHvEmulator::operator=(WHvEmulator&& other_v) noexcept -> WHvEmulator&
 auto WHvEmulator::swap(WHvEmulator& other_v) noexcept -> void
 {
 	std::swap(m_Handle, other_v.m_Handle);
+}
+
+auto win32::WHvEmulator::Create() -> WHV_EMULATOR_HANDLE {
+  return Create({
+		sizeof(WHV_EMULATOR_CALLBACKS), 0u,
+		&IoPortAccess,
+		&MemoryAccess,
+		&GetRegisters,
+		&SetRegisters,
+		&TranslateGvaPage
+	});
 }
 
 auto WHvEmulator::GetHandle() const noexcept -> WHV_EMULATOR_HANDLE

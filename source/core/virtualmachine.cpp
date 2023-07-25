@@ -8,15 +8,10 @@ using namespace size_literals;
 using core::VirtualMachine;
 
 VirtualMachine::VirtualMachine(Configuration const& config_v)
-	: m_Partition { 
-			{ WHvPartitionPropertyCodeProcessorCount, { 
-				.ProcessorCount = 1u }},
-		  { WHvPartitionPropertyCodeExtendedVmExits, { 
-				.ExtendedVmExits = { 
-					.HypercallExit = 1u }}}
-		}
-	, m_Emulator  {  }	
+	: m_Partition { win32::WHvPartition::Create() }
+	, m_Emulator  { win32::WHvEmulator::Create() }	
 {
+	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);
 }
@@ -24,10 +19,42 @@ VirtualMachine::VirtualMachine(Configuration const& config_v)
 VirtualMachine::~VirtualMachine() 
 {}
 
+auto VirtualMachine::Start() -> void
+{
+	using namespace win32;
+	m_ProcessorThread.Start(*this, { m_Partition, 0u });
+}
+
+auto VirtualMachine::Stop() -> void
+{
+	m_ProcessorThread.Stop();
+}
+
+auto VirtualMachine::Reset() -> void
+{
+	using namespace win32;
+	Stop();
+	WHvProcessor(m_Partition, 0u).Reset();
+	Start();
+}
+
+auto VirtualMachine::RunMain() -> void
+{
+}
+
+auto VirtualMachine::ConfigurePartition(Configuration const&) -> void
+{
+	WIN32_ERROR_ASSERT(m_Partition.Setup({
+		{ WHvPartitionPropertyCodeProcessorCount,  { .ProcessorCount = 1u } },
+		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .HypercallExit = 1u } } }
+	}));
+}
+
 auto VirtualMachine::ConfigureMemory(Configuration const&) -> void
 {
+	WIN32_ERROR_ASSERT(m_Partition.Reset());
+	m_Memory.clear();
 	std::uint64_t memory_size_v = 16_MiB;
-
 	if (memory_size_v > 0u) {
 		auto basemem_size_v = std::min(memory_size_v, 640_KiB);
 		memory_size_v -= basemem_size_v;

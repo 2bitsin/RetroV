@@ -57,16 +57,20 @@ namespace win32
 	struct WHvEmulator
 	{
 		static auto Create(WHV_EMULATOR_CALLBACKS const& callbacks_v) -> WHV_EMULATOR_HANDLE;
-		auto GetHandle() const noexcept -> WHV_EMULATOR_HANDLE;
-		auto swap(WHvEmulator& other_v) noexcept -> void;
+		static auto Create() -> WHV_EMULATOR_HANDLE;
 
 		WHvEmulator();
+		WHvEmulator(WHV_EMULATOR_HANDLE handle_v) noexcept;
 		~WHvEmulator() noexcept(false);
 
 		WHvEmulator(WHvEmulator&& other_v) noexcept;
 		auto operator=(WHvEmulator&& other_v) noexcept -> WHvEmulator&;
 		WHvEmulator(WHvEmulator const&) = delete;
 		auto operator=(WHvEmulator const&) -> WHvEmulator& = delete;		
+		
+		auto swap(WHvEmulator& other_v) noexcept -> void;
+
+		auto GetHandle() const noexcept -> WHV_EMULATOR_HANDLE;
 
 		template <typename ObjectT>
 		auto TryIoEmulation(ObjectT& object_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) noexcept 
@@ -87,8 +91,7 @@ namespace win32
 		}
 		
 	protected:
-		WHvEmulator(WHV_EMULATOR_HANDLE handle_v) noexcept;
-		
+
 		auto TryIoEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) noexcept 
 			-> std::tuple<HRESULT, WHV_EMULATOR_STATUS>;
 		auto TryMmioEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_MEMORY_ACCESS_CONTEXT const& mmctx_v) noexcept 

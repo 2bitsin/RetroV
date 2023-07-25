@@ -11,8 +11,6 @@
 
 #include <filesystem>
 #include <iostream>
-#include <cstdlib>
-#include <cassert>
 #include <chrono>
 #include <cstdio>
 #include <format>
@@ -33,20 +31,42 @@ int main(int argc, char** argv) try
 	using core::VirtualMachine;
 	using core::Configuration;
 
-	VirtualMachine vmcore_v{ Configuration() }; 
-	
 	SDL_Init(SDL_INIT_EVERYTHING);
-	std::atexit(SDL_Quit);		
+	std::atexit(SDL_Quit);
+
+	SDL_Window* window_v = SDL_CreateWindow(
+		"Virtual Machine", 
+		SDL_WINDOWPOS_CENTERED, 
+		SDL_WINDOWPOS_CENTERED, 
+		800, 600, 
+		SDL_WINDOW_SHOWN);
+
+	VirtualMachine vmcore_v{ Configuration() };
+	vmcore_v.Start();
 
 	while (true)
 	{
 		SDL_Event event_v;
-		if (SDL_PollEvent(&event_v)) {
+		if (SDL_PollEvent(&event_v)) 
+		{
 			if (event_v.type == SDL_QUIT) { break; }
+			if (event_v.type == SDL_KEYDOWN) 
+			{
+				switch (event_v.key.keysym.sym) 
+				{
+				case SDLK_F12: vmcore_v.Stop(); break;
+				case SDLK_F11: vmcore_v.Start(); break;
+				case SDLK_F10: vmcore_v.Reset(); break;
+				}
+			}
 			continue;
 		}
+		vmcore_v.RunMain();
+		SDL_UpdateWindowSurface(window_v);
 	}
 
+	vmcore_v.Stop();	
+	SDL_DestroyWindow(window_v);
 	return 0;
 }
 catch (std::exception const& ex) 

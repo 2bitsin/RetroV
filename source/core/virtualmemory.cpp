@@ -77,7 +77,7 @@ VirtualMemory::~VirtualMemory()
 {
 	if (m_Data) {
 		m_Partition->UnmapGpaRange(m_Base, m_Size);
-		WIN32_ERROR_ASSERT(::VirtualFree(m_Data, 0, MEM_RELEASE));
+		::VirtualFree(m_Data, 0, MEM_RELEASE);
 	}
 }
 

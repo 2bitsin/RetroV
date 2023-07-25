@@ -20,6 +20,7 @@ namespace win32
 		static auto Create() -> WHV_PARTITION_HANDLE;
 	
 		WHvPartition();
+		WHvPartition(WHV_PARTITION_HANDLE handle_v) noexcept;
 		WHvPartition(std::initializer_list<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY>> props_v);
 		~WHvPartition() noexcept(false);
 	
@@ -35,7 +36,11 @@ namespace win32
 		auto Reset () const -> HRESULT;
 
 		auto Setup () const -> HRESULT;
-		auto Setup (std::initializer_list<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY> const> props_v) const -> HRESULT { return Setup(props_v); }
+
+		auto Setup (std::initializer_list<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY> const> props_v) const -> HRESULT {
+			return Setup(std::span(props_v)); 
+		}
+
 		auto Setup (std::span<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY> const> props_v) const -> HRESULT;
 
 		auto SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, std::span<std::byte const> value_v) const -> HRESULT;
@@ -60,12 +65,7 @@ namespace win32
 		auto UnmapGpaRange(std::uint64_t physaddr_v, std::uint64_t length_v) const-> HRESULT;
 
 		auto Processor(std::uint32_t apicid_v) const -> win32::WHvProcessor;
-
 		auto NumberOfProcessors() const -> std::uint32_t;
-
-	protected:
-		WHvPartition(WHV_PARTITION_HANDLE handle_v) noexcept;
-
 		auto InitializeProcessor(std::uint32_t index_v) const -> HRESULT;
 	
 	private:
