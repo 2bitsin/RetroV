@@ -5,9 +5,6 @@ Prologue:
     mov         ss,     sp
     mov         sp,     STACK_OFFSSET
 
-    push        ss
-    pop         ss
-
     mov         ax,     cs
     mov         ds,     ax
     mov         es,     ax

@@ -10,6 +10,7 @@ using core::VirtualMachine;
 VirtualMachine::VirtualMachine(Configuration const& config_v)
 	: m_Partition { win32::WHvPartition::Create() }
 	, m_Emulator  { win32::WHvEmulator::Create() }
+	, m_Processor { *this, 0u }
 {
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
@@ -22,7 +23,7 @@ VirtualMachine::~VirtualMachine()
 auto VirtualMachine::Start() -> void
 {
 	using namespace win32;
-	m_ProcessorThread.Start(*this, { m_Partition, 0u });
+	m_ProcessorThread.Start(*this, 0u);
 }
 
 auto VirtualMachine::Stop() -> void
@@ -52,8 +53,7 @@ auto VirtualMachine::ConfigurePartition(Configuration const&) -> void
 
 auto VirtualMachine::ConfigureMemory(Configuration const&) -> void
 {
-	WIN32_ERROR_ASSERT(m_Partition.Reset());
-	m_Memory.clear();
+	WIN32_ERROR_ASSERT(m_Partition.Reset());	
 	std::uint64_t memory_size_v = 16_MiB;
 	if (memory_size_v > 0u) {
 		auto basemem_size_v = std::min(memory_size_v, 640_KiB);
@@ -107,15 +107,32 @@ auto VirtualMachine::ConfigureBiosROM(Configuration const&) -> void
 	m_Memory.back().Load(path_v);
 }
 
-auto VirtualMachine::ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, win32::WHvProcessor const& processor_v) -> void
+auto VirtualMachine::ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, std::uint32_t vcpuindex_v) -> void
 {
 	switch (exit_v.ExitReason) 
 	{
 	case WHvRunVpExitReasonX64IoPortAccess:
-		m_Emulator.TryIoEmulation(processor_v, exit_v.VpContext, exit_v.IoPortAccess);
-
-	
-	
-
+		m_Emulator.TryIoEmulation(m_Processor, exit_v.VpContext, exit_v.IoPortAccess);
+		break;
+	case WHvRunVpExitReasonMemoryAccess:
+		m_Emulator.TryMmioEmulation(m_Processor, exit_v.VpContext, exit_v.MemoryAccess);
+		break;
+	default:
+		__debugbreak();	
+		break;
 	}
+}
+
+auto VirtualMachine::IoPortAccess(bool is_write_v, std::uint16_t port_v, std::uint8_t size_v, utils::bytes<4u>& data_v) -> std::int32_t
+{
+	switch (port_v) {
+	case 0xe9: 
+		return 0;
+	}
+	return 0;
+}
+
+auto core::VirtualMachine::MemoryAccess(bool is_write_v, std::uint64_t addr_v, std::uint8_t size_v, utils::bytes<8u>& data_v) -> std::int32_t
+{
+	return std::int32_t();
 }

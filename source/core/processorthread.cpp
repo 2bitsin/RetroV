@@ -16,12 +16,12 @@ ProcessorThread::~ProcessorThread() noexcept
 	Stop();
 }
 
-auto ProcessorThread::Start(VirtualMachine& machine_v, win32::WHvProcessor processor_v) -> void
+auto ProcessorThread::Start(VirtualMachine& machine_v, std::uint32_t vcpuindex_v) -> void
 {
 	Stop();	
 	using utils::lambda;
 	m_Thread = std::jthread(lambda(this, &ProcessorThread::RunProcessor),
-		std::ref(machine_v), std::move(processor_v));
+		std::ref(machine_v), vcpuindex_v);
 }
 
 auto ProcessorThread::Stop() -> void
@@ -33,24 +33,27 @@ auto ProcessorThread::Stop() -> void
 	}
 }
 
-auto ProcessorThread::RunProcessor(std::stop_token token_v, VirtualMachine& machine_v, win32::WHvProcessor processor_v) -> void
+auto ProcessorThread::RunProcessor(std::stop_token token_v, VirtualMachine& machine_v, std::uint32_t vcpuindex_v) -> void
 {
+	using namespace win32;
 	using utils::logger;
-	std::stop_callback callback_v(token_v, [&processor_v] { 
+	std::stop_callback callback_v(token_v, [&machine_v, vcpuindex_v] {
+		WHvProcessor processor_v { machine_v.Partition(), vcpuindex_v };
 		processor_v.Cancel(); 
 	});
 	try
 	{
+		WHvProcessor processor_v{ machine_v.Partition(), vcpuindex_v };
 		while (!token_v.stop_requested()) 
-		{
+		{			
 			WHV_RUN_VP_EXIT_CONTEXT exit_v { };
 			WIN32_ERROR_ASSERT(processor_v.Run(exit_v));	
-			machine_v.ProcessorExit(exit_v, machine_v, processor_v);
+			machine_v.ProcessorExit(exit_v, vcpuindex_v);
 		}
 	}
 	catch (std::exception const& e)
 	{
-		logger::error("{}: {}", __func__, e.what());
+		logger::error(logger::deflog, "{}: {}", __func__, e.what());
 	}
 }
 

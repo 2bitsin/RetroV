@@ -29,7 +29,7 @@ namespace win32
 		auto SetRegisters(std::span<WHV_REGISTER_NAME const> rnames_v, std::span<WHV_REGISTER_VALUE const> values_v) const -> HRESULT;
 		auto SetRegister(WHV_REGISTER_NAME rname_v, WHV_REGISTER_VALUE value_v) const -> HRESULT;
 		auto GetRegister(WHV_REGISTER_NAME rname_v, WHV_REGISTER_VALUE& value_v) const -> HRESULT;
-		auto TranslateGva(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v) const -> std::tuple<HRESULT, WHV_TRANSLATE_GVA_RESULT, std::uint64_t>;
+		auto TranslateGva(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v) const -> std::tuple<HRESULT, WHV_TRANSLATE_GVA_RESULT_CODE, std::uint64_t>;
 		auto MemFetchSome(std::uint64_t physaddr_v, std::span<std::byte> buffer_v, WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) const -> std::tuple<HRESULT, std::size_t>;
 		auto MemWriteSome(std::uint64_t physaddr_v, std::span<std::byte const> buffer_v, WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) const -> std::tuple<HRESULT, std::size_t>;
 

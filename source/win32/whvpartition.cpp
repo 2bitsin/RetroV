@@ -1,9 +1,10 @@
 #include <win32/whvpartition.hpp>
-
 #include <win32/error.hpp>
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
 #include <win32/whvprocessor.hpp>
+
+#include <utils/logger.hpp>
 
 #include <utility>
 using std::exchange;
@@ -43,6 +44,7 @@ WHvPartition::WHvPartition(std::initializer_list<std::pair<WHV_PARTITION_PROPERT
 
 auto WHvPartition::MapGpaRange(void* buffer_v, std::uint64_t physaddr_v, std::uint64_t length_v, core::Access flags_v) const -> HRESULT
 {
+	using utils::logger;
 	WHV_MAP_GPA_RANGE_FLAGS whv_flags_v{ };
 	using enum core::Access;
 
@@ -50,11 +52,15 @@ auto WHvPartition::MapGpaRange(void* buffer_v, std::uint64_t physaddr_v, std::ui
 	if (flags_v & kAccessWrite   ) whv_flags_v |= WHvMapGpaRangeFlagWrite;
 	if (flags_v & kAccessExecute ) whv_flags_v |= WHvMapGpaRangeFlagExecute;		
 	
+	logger::trace (logger::deflog, "{}: buffer_v={:#018x}, physaddr_v={:#018x}, length_v={:#018x}, flags_v={:#05b}", __func__, (std::uintptr_t)buffer_v, physaddr_v, length_v, (uint32_t)flags_v);
 	return ::WHvMapGpaRange(m_Handle, buffer_v, physaddr_v, length_v, whv_flags_v);
 }
 
 auto WHvPartition::UnmapGpaRange(std::uint64_t physaddr_v, std::uint64_t length_v) const -> HRESULT
 {
+	using utils::logger;
+
+	logger::trace(logger::deflog, "{}: physaddr_v={:#018x}, length_v={:#018x}", __func__, physaddr_v, length_v);
 	return ::WHvUnmapGpaRange(m_Handle, physaddr_v, length_v);
 }
 

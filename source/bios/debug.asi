@@ -1,6 +1,7 @@
 Debug:
   .Print:
-    push    ax cx dx si di
+    push    ax cx dx si di es ds
+    pop     es
     cld
     mov     cx,     0xffff
     mov     di,     si
@@ -9,7 +10,7 @@ Debug:
     neg     cx
     mov     dx,     0xe9
     rep     outsb
-    pop     di si dx cx ax
+    pop     es di si dx cx ax
     ret
 
 

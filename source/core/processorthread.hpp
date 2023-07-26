@@ -28,11 +28,11 @@ namespace core
 
 		~ProcessorThread () noexcept;
 
-		auto Start(VirtualMachine& machine_v, win32::WHvProcessor processor_v) -> void;
+		auto Start(VirtualMachine& machine_v, std::uint32_t vcpuindex_v) -> void;
 		auto Stop() -> void;
 
 	protected:		
-		auto RunProcessor(std::stop_token token_v, VirtualMachine& machine_v, win32::WHvProcessor processor_v) -> void;
+		auto RunProcessor(std::stop_token token_v, VirtualMachine& machine_v, std::uint32_t vcpuindex_v) -> void;
 
 	private:
 		mutable std::shared_mutex m_Mutex;

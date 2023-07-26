@@ -2,6 +2,7 @@
 #include <core/constants.hpp>
 #include <win32/whvpartition.hpp>
 #include <utils/paths.hpp>
+#include <utils/logger.hpp>
 
 #include <system_error>
 #include <fstream>
@@ -98,6 +99,7 @@ auto VirtualMemory::Data() const noexcept -> std::byte*
 
 auto VirtualMemory::Load(std::filesystem::path path_v, std::uint64_t dst_offset_v, std::uint64_t src_offset_v, std::uint64_t src_length_v) -> std::size_t
 {
+	using utils::logger;
 	path_v = utils::path_substitute(path_v);
 	if (!m_Data) throw std::runtime_error("Memory is not allocated");	
 	if (!std::filesystem::exists(path_v)) 
@@ -120,6 +122,8 @@ auto VirtualMemory::Load(std::filesystem::path path_v, std::uint64_t dst_offset_
 		m_Size - dst_offset_v));
 	if (src_length_v < 1u)
 		return 0u;		
+	logger::trace(logger::deflog, "{}: path_v={} dst_offset_v={:#x} src_offset_v={:#x} src_length_v={:#x} base={:#x} size={:#x}",
+		__func__, path_v.string(), dst_offset_v, src_offset_v, src_length_v, m_Base, m_Size);
 	std::ifstream file_v{ path_v, std::ios::binary };
 	if (!file_v.is_open())
 		throw std::system_error(

@@ -12,12 +12,12 @@ WHvProcessor::WHvProcessor(WHvPartition const& partition_v, std::uint32_t vcpuin
 {}
 
 auto WHvProcessor::TranslateGva(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v) const
-	-> std::tuple<HRESULT, WHV_TRANSLATE_GVA_RESULT, std::uint64_t> 
+	-> std::tuple<HRESULT, WHV_TRANSLATE_GVA_RESULT_CODE, std::uint64_t> 
 {
 	WHV_TRANSLATE_GVA_RESULT code_v{};
 	std::uint64_t physaddr_v{};
 	auto result_v = ::WHvTranslateGva(m_Partition.GetHandle(), m_VcpuIndex, virtaddr_v, flags_v, &code_v, &physaddr_v);
-	return { result_v, code_v, physaddr_v };
+	return { result_v, code_v.ResultCode, physaddr_v };
 }
 
 auto WHvProcessor::Reset() const -> HRESULT
