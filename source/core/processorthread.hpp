@@ -31,8 +31,7 @@ namespace core
 		auto Start(VirtualMachine& machine_v, win32::WHvProcessor processor_v) -> void;
 		auto Stop() -> void;
 
-
-	protected:
+	protected:		
 		auto RunProcessor(std::stop_token token_v, VirtualMachine& machine_v, win32::WHvProcessor processor_v) -> void;
 
 	private:

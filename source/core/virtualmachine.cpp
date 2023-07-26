@@ -9,7 +9,7 @@ using core::VirtualMachine;
 
 VirtualMachine::VirtualMachine(Configuration const& config_v)
 	: m_Partition { win32::WHvPartition::Create() }
-	, m_Emulator  { win32::WHvEmulator::Create() }	
+	, m_Emulator  { win32::WHvEmulator::Create() }
 {
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
@@ -105,4 +105,17 @@ auto VirtualMachine::ConfigureBiosROM(Configuration const&) -> void
 	auto addr_v = 1_MiB - size_v;
 	m_Memory.emplace_back(m_Partition, addr_v / kPageSize, size_v / kPageSize, kAccessReadOnly);
 	m_Memory.back().Load(path_v);
+}
+
+auto VirtualMachine::ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, win32::WHvProcessor const& processor_v) -> void
+{
+	switch (exit_v.ExitReason) 
+	{
+	case WHvRunVpExitReasonX64IoPortAccess:
+		m_Emulator.TryIoEmulation(processor_v, exit_v.VpContext, exit_v.IoPortAccess);
+
+	
+	
+
+	}
 }

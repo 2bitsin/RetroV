@@ -31,8 +31,13 @@ namespace core
 		auto RunMain	 () -> void;
 	
 	protected:
+		friend ProcessorThread;
+
 		auto Partition ()	const -> win32::WHvPartition const& { return m_Partition; }
-		auto Emulator  ()	const -> win32::WHvEmulator  const& { return m_Emulator;  }		
+		auto Emulator  ()	const -> win32::WHvEmulator const&  { return m_Emulator;  }
+
+		auto ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, win32::WHvProcessor const& processor_v) -> void;
+		
 	
 		auto ConfigureMemory(Configuration const&) -> void;
 		auto ConfigureBiosROM(Configuration const&) -> void;
