@@ -14,37 +14,18 @@ VirtualProcessor::VirtualProcessor(VirtualMachine& machine_v, std::uint32_t vcpu
 VirtualProcessor::~VirtualProcessor()
 {}
 
-auto VirtualProcessor::IoPortAccess(bool is_write_v, std::uint16_t port_v, std::uint8_t size_v, utils::bytes<4u>& data_v) -> std::int32_t
+auto VirtualProcessor::IoPortAccess(bool is_write_v, std::uint16_t port_v, std::uint8_t size_v, std::span<std::byte, 4u> data_v) -> std::int32_t
 {
 	return m_Machine.IoPortAccess(is_write_v, port_v, size_v, data_v);
 }
 
-auto VirtualProcessor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, std::uint8_t size_v, utils::bytes<8u>& data_v) -> std::int32_t
+auto VirtualProcessor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, std::uint8_t size_v, std::span<std::byte, 8u> data_v) -> std::int32_t
 {
 	using namespace win32;
-	/*
-	static const WHV_REGISTER_NAME names_v [9] = {
-		WHvX64RegisterDs,
-		WHvX64RegisterEs,
-		WHvX64RegisterFs,
-		WHvX64RegisterGs,
-		WHvX64RegisterSs,
-		WHvX64RegisterRdi,
-		WHvX64RegisterRsi,
-		WHvX64RegisterRbp,
-		WHvX64RegisterRsp
-	};
-	WHV_REGISTER_VALUE values_v [9] = { 0 };
-	*/
-
 	std::size_t _{ 0 };
 	WHvProcessor processor_v{ m_Machine.Partition(), m_VcpuIndex };	
 	std::int32_t result_v{ 0 };
-	if (is_write_v) {
-		std::tie(result_v, _) = processor_v.MemWriteSome(physaddr_v, { data_v, size_v });	
-	} else {
-		std::tie(result_v, _) = processor_v.MemFetchSome(physaddr_v, { data_v, size_v });
-	}
+	processor_v.MemoryAccess(is_write_v, physaddr_v, size_v, data_v);
 	return result_v;
 }
 

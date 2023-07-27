@@ -12,6 +12,14 @@ VirtualMachine::VirtualMachine(Configuration const& config_v)
 	, m_Emulator  { win32::WHvEmulator::Create() }
 	, m_Processor { *this, 0u }
 {
+
+	WHV_SYNTHETIC_PROCESSOR_FEATURES_BANKS banks_v{ };
+	WIN32_ERROR_ASSERT(m_Partition.GetProperty(WHvPartitionPropertyCodeSyntheticProcessorFeaturesBanks, banks_v));
+	banks_v.Bank0.AccessSyntheticTimerRegs = 1u;
+	WIN32_ERROR_ASSERT(m_Partition.SetProperty(WHvPartitionPropertyCodeSyntheticProcessorFeaturesBanks, banks_v));
+
+	//m_Partition.SetProperty
+
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);
@@ -123,7 +131,7 @@ auto VirtualMachine::ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, std::uint32_
 	}
 }
 
-auto VirtualMachine::IoPortAccess(bool is_write_v, std::uint16_t port_v, std::uint8_t size_v, utils::bytes<4u>& data_v) -> std::int32_t
+auto VirtualMachine::IoPortAccess(bool is_write_v, std::uint16_t port_v, std::uint8_t size_v, std::span<std::byte, 4u> data_v) -> std::int32_t
 {
 	switch (port_v) {
 	case 0xe9: 
@@ -132,7 +140,7 @@ auto VirtualMachine::IoPortAccess(bool is_write_v, std::uint16_t port_v, std::ui
 	return 0;
 }
 
-auto core::VirtualMachine::MemoryAccess(bool is_write_v, std::uint64_t addr_v, std::uint8_t size_v, utils::bytes<8u>& data_v) -> std::int32_t
+auto core::VirtualMachine::MemoryAccess(bool is_write_v, std::uint64_t addr_v, std::uint8_t size_v, std::span<std::byte, 8u> data_v) -> std::int32_t
 {
 	return std::int32_t();
 }

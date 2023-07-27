@@ -39,9 +39,8 @@ namespace core
 		auto Emulator  ()	const -> win32::WHvEmulator const&  { return m_Emulator;  }
 
 		auto ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, std::uint32_t vcpuindex_v) -> void;		
-		auto IoPortAccess(bool is_write_v, std::uint16_t port_v, std::uint8_t size_v, utils::bytes<4u>& data_v) -> std::int32_t;
-		auto MemoryAccess(bool is_write_v, std::uint64_t addr_v, std::uint8_t size_v, utils::bytes<8u>& data_v) -> std::int32_t;
-		
+		auto IoPortAccess(bool is_write_v, std::uint16_t port_v, std::uint8_t size_v, std::span<std::byte, 4u> data_v) -> std::int32_t;
+		auto MemoryAccess(bool is_write_v, std::uint64_t addr_v, std::uint8_t size_v, std::span<std::byte, 8u> data_v) -> std::int32_t;		
 	
 		auto ConfigureMemory(Configuration const&) -> void;
 		auto ConfigureBiosROM(Configuration const&) -> void;

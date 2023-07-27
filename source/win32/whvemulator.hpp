@@ -4,7 +4,7 @@
 #include <win32/winhvpx.hpp>
 #include <win32/error.hpp>
 
-#include <utils/bitmanip.hpp>
+#include <utils/span.hpp>
 
 #include <type_traits>
 #include <concepts>
@@ -19,14 +19,14 @@ namespace win32
 
 		template <typename ObjectT>
 		concept Has_IoPortAccess = requires(ObjectT&& object_v, 
-			bool is_write_v, std::uint16_t addr_v, std::uint8_t size_v, utils::bytes<4u>& data_v)
+			bool is_write_v, std::uint16_t addr_v, std::uint8_t size_v, std::span<std::byte, 4u> data_v)
 		{		
 			{ object_v.IoPortAccess(is_write_v, addr_v, size_v, data_v) } -> std::same_as<std::int32_t>;
 		};
 
 		template <typename ObjectT>
 		concept Has_MemoryAccess = requires(ObjectT&& object_v, 
-			bool is_write_v, std::uint64_t addr_v, std::uint8_t size_v, utils::bytes<8u>& data_v)
+			bool is_write_v, std::uint64_t addr_v, std::uint8_t size_v, std::span<std::byte, 8u> data_v)
 		{		
 			{ object_v.MemoryAccess(is_write_v, addr_v, size_v, data_v) } -> std::same_as<std::int32_t>;
 		};
@@ -120,7 +120,7 @@ namespace win32
 						(bool)access_v->Direction, 
 						(std::uint16_t)access_v->Port,
 						(std::uint8_t)access_v->AccessSize, 
-						*(utils::bytes<4>*)std::addressof(access_v->Data));
+						utils::as_static_mutable_bytes(access_v->Data));
 				};
 			}
 
@@ -133,7 +133,7 @@ namespace win32
 						(bool)access_v->Direction,
 						(std::uint64_t)access_v->GpaAddress,
 						(std::uint8_t)access_v->AccessSize,
-						*(utils::bytes<8>*)std::addressof(access_v->Data));
+						utils::as_static_mutable_bytes(access_v->Data));
 				};
 			}
 

@@ -45,4 +45,16 @@ namespace utils
 	static inline auto span_as(std::span<Q const> input_v) -> std::span<T const> {
 		return { reinterpret_cast<T const*>(input_v.data()), input_v.size_bytes() / sizeof(T) };
 	}
+
+	template <typename T> requires (std::is_trivial_v<T>)
+	static inline auto as_static_bytes(T const& value_v) -> std::span<std::byte const, sizeof(T)> {
+		using type = std::byte const [sizeof(T)];
+		return { reinterpret_cast<type&>(value_v) };
+	}
+
+	template <typename T> requires (std::is_trivial_v<T>)
+	static inline auto as_static_mutable_bytes(T& value_v) -> std::span<std::byte, sizeof(T)> {
+		using type = std::byte [sizeof(T)];
+		return { reinterpret_cast<type&>(value_v) };
+	}
 }

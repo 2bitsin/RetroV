@@ -15,6 +15,4 @@ namespace utils {
 		return crossover_mask(lhs_v, rhs_v, mask_v);
 	}
 
-	template<std::size_t N> 
-	using bytes = std::byte[N];
 }

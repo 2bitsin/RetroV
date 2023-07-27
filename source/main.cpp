@@ -28,6 +28,8 @@ int main(int argc, char** argv) try
 		.parent_path()
 		.parent_path());
 
+	win32::WHvCapabilities::LogInformation();
+
 	using core::VirtualMachine;
 	using core::Configuration;
 
