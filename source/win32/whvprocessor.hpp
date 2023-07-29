@@ -4,6 +4,7 @@
 #include <win32/winhvpx.hpp>
 #include <win32/error.hpp>
 #include <core/constants.hpp>
+#include <utils/span.hpp>
 
 #include <cstdint>
 #include <cstddef>
@@ -28,7 +29,7 @@ namespace win32
 		auto SetRegister(WHV_REGISTER_NAME rname_v, WHV_REGISTER_VALUE value_v) const -> HRESULT;
 		auto GetRegister(WHV_REGISTER_NAME rname_v, WHV_REGISTER_VALUE& value_v) const -> HRESULT;
 		auto TranslateGva(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v) const -> std::tuple<HRESULT, WHV_TRANSLATE_GVA_RESULT_CODE, std::uint64_t>;
-		auto MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, std::uint8_t size_v, std::span<std::byte, 8u> data_v, WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) const -> std::tuple<HRESULT, std::size_t>;
+		auto MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 8u> data_v, WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) const -> HRESULT;
 
 	private:
 		win32::WHvPartition const& m_Partition;

@@ -1,4 +1,4 @@
-#include <core/virtualmemory.hpp>
+#include <core/memory.hpp>
 #include <core/constants.hpp>
 #include <win32/whvpartition.hpp>
 #include <utils/paths.hpp>
@@ -8,9 +8,9 @@
 #include <fstream>
 #include <utility>
 
-using core::VirtualMemory;
+using core::Memory;
 
-VirtualMemory::VirtualMemory(win32::WHvPartition const& partition_v, std::uint64_t base_v, std::uint64_t size_v, Access prot_v)
+Memory::Memory(win32::WHvPartition const& partition_v, std::uint64_t base_v, std::uint64_t size_v, Access prot_v)
 	: m_Partition { &partition_v }
 	, m_Data      { nullptr }
 	, m_Base      { 0 }
@@ -47,7 +47,7 @@ VirtualMemory::VirtualMemory(win32::WHvPartition const& partition_v, std::uint64
 
 using std::exchange;
 
-VirtualMemory::VirtualMemory(VirtualMemory&& from_v) noexcept
+Memory::Memory(Memory&& from_v) noexcept
 	: m_Partition{ from_v.m_Partition }
 	, m_Size{ exchange(from_v.m_Size, 0) }
 	, m_Base{ exchange(from_v.m_Base, 0) }
@@ -56,7 +56,7 @@ VirtualMemory::VirtualMemory(VirtualMemory&& from_v) noexcept
 
 }
 
-auto VirtualMemory::operator=(VirtualMemory&& from_v) noexcept -> VirtualMemory&
+auto Memory::operator=(Memory&& from_v) noexcept -> Memory&
 {
 	if (&from_v != this) {
 		auto temp_v{ std::move(from_v) };
@@ -66,7 +66,7 @@ auto VirtualMemory::operator=(VirtualMemory&& from_v) noexcept -> VirtualMemory&
 	return *this;
 }
 
-auto VirtualMemory::swap(VirtualMemory& other_v) noexcept -> void
+auto Memory::swap(Memory& other_v) noexcept -> void
 {
 	std::swap(m_Partition, other_v.m_Partition);
 	std::swap(m_Size, other_v.m_Size);
@@ -74,7 +74,7 @@ auto VirtualMemory::swap(VirtualMemory& other_v) noexcept -> void
 	std::swap(m_Data, other_v.m_Data);
 }
 
-VirtualMemory::~VirtualMemory()
+Memory::~Memory()
 {
 	if (m_Data) {
 		m_Partition->UnmapGpaRange(m_Base, m_Size);
@@ -82,22 +82,22 @@ VirtualMemory::~VirtualMemory()
 	}
 }
 
-auto VirtualMemory::Base() const noexcept -> std::uint64_t
+auto Memory::Base() const noexcept -> std::uint64_t
 {
 	return m_Base / kPageSize;
 }
 
-auto VirtualMemory::Size() const noexcept -> std::uint64_t
+auto Memory::Size() const noexcept -> std::uint64_t
 {
 	return m_Size / kPageSize;
 }
 
-auto VirtualMemory::Data() const noexcept -> std::byte*
+auto Memory::Data() const noexcept -> std::byte*
 {
 	return m_Data;
 }
 
-auto VirtualMemory::Load(std::filesystem::path path_v, std::uint64_t dst_offset_v, std::uint64_t src_offset_v, std::uint64_t src_length_v) -> std::size_t
+auto Memory::Load(std::filesystem::path path_v, std::uint64_t dst_offset_v, std::uint64_t src_offset_v, std::uint64_t src_length_v) -> std::size_t
 {
 	using utils::logger;
 	path_v = utils::path_substitute(path_v);

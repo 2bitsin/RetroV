@@ -1,65 +1,53 @@
 #include <win32/whvcapabilities.hpp>
-#include <core/virtualmachine.hpp>
+#include <core/machine.hpp>
 #include <utils/literals.hpp>
 #include <utils/paths.hpp>
+#include <utils/span.hpp>
+
 
 using namespace size_literals;
 
-using core::VirtualMachine;
+using core::Machine;
 
-VirtualMachine::VirtualMachine(Configuration const& config_v)
+Machine::Machine(Configuration const& config_v)
 	: m_Partition { win32::WHvPartition::Create() }
 	, m_Emulator  { win32::WHvEmulator::Create() }
 	, m_Processor { *this, 0u }
 {
-
-	WHV_SYNTHETIC_PROCESSOR_FEATURES_BANKS banks_v{ };
-	WIN32_ERROR_ASSERT(m_Partition.GetProperty(WHvPartitionPropertyCodeSyntheticProcessorFeaturesBanks, banks_v));
-	banks_v.Bank0.AccessSyntheticTimerRegs = 1u;
-	WIN32_ERROR_ASSERT(m_Partition.SetProperty(WHvPartitionPropertyCodeSyntheticProcessorFeaturesBanks, banks_v));
-
-	//m_Partition.SetProperty
-
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);
 }
 
-VirtualMachine::~VirtualMachine() 
+Machine::~Machine() 
 {}
 
-auto VirtualMachine::Start() -> void
-{
-	using namespace win32;
-	m_ProcessorThread.Start(*this, 0u);
-}
-
-auto VirtualMachine::Stop() -> void
-{
-	m_ProcessorThread.Stop();
-}
-
-auto VirtualMachine::Reset() -> void
-{
-	using namespace win32;
-	Stop();
-	WHvProcessor(m_Partition, 0u).Reset();
-	Start();
-}
-
-auto VirtualMachine::RunMain() -> void
+auto Machine::Start() -> void
 {
 }
 
-auto VirtualMachine::ConfigurePartition(Configuration const&) -> void
+auto Machine::Stop() -> void
+{
+}
+
+auto Machine::Reset() -> void
+{
+}
+
+auto Machine::RunMain() -> void
+{
+}
+
+auto Machine::ConfigurePartition(Configuration const&) -> void
 {
 	WIN32_ERROR_ASSERT(m_Partition.Setup({
 		{ WHvPartitionPropertyCodeProcessorCount,  { .ProcessorCount = 1u } },
-		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .HypercallExit = 1u } } }
+		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .HypercallExit = 1u } } },
+		
 	}));
 }
 
-auto VirtualMachine::ConfigureMemory(Configuration const&) -> void
+auto Machine::ConfigureMemory(Configuration const&) -> void
 {
 	WIN32_ERROR_ASSERT(m_Partition.Reset());	
 	std::uint64_t memory_size_v = 16_MiB;
@@ -89,7 +77,7 @@ auto VirtualMachine::ConfigureMemory(Configuration const&) -> void
 	}	
 }
 
-auto VirtualMachine::ConfigureBiosROM(Configuration const&) -> void
+auto Machine::ConfigureBiosROM(Configuration const&) -> void
 {
 	std::filesystem::path path_v;
 	if (win32::WHvCapabilities::IsVendorAMD()) {
@@ -115,7 +103,7 @@ auto VirtualMachine::ConfigureBiosROM(Configuration const&) -> void
 	m_Memory.back().Load(path_v);
 }
 
-auto VirtualMachine::ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, std::uint32_t vcpuindex_v) -> void
+auto Machine::ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, std::uint32_t vcpuindex_v) -> void
 {
 	switch (exit_v.ExitReason) 
 	{
@@ -131,7 +119,7 @@ auto VirtualMachine::ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, std::uint32_
 	}
 }
 
-auto VirtualMachine::IoPortAccess(bool is_write_v, std::uint16_t port_v, std::uint8_t size_v, std::span<std::byte, 4u> data_v) -> std::int32_t
+auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
 	switch (port_v) {
 	case 0xe9: 
@@ -140,7 +128,7 @@ auto VirtualMachine::IoPortAccess(bool is_write_v, std::uint16_t port_v, std::ui
 	return 0;
 }
 
-auto core::VirtualMachine::MemoryAccess(bool is_write_v, std::uint64_t addr_v, std::uint8_t size_v, std::span<std::byte, 8u> data_v) -> std::int32_t
+auto Machine::MemoryAccess(bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t
 {
 	return std::int32_t();
 }

@@ -4,8 +4,10 @@
 #include <win32/windows.hpp>
 #include <win32/whvcapabilities.hpp>
 #include <win32/whvregisters.hpp>
+#include <win32/workqueue.hpp>
 
-#include <core/virtualmachine.hpp>
+#include <core/machine.hpp>
+
 #include <utils/literals.hpp>
 #include <utils/logger.hpp>
 
@@ -28,9 +30,21 @@ int main(int argc, char** argv) try
 		.parent_path()
 		.parent_path());
 
+	using namespace win32;
+
+
+	WorkQueue workqueue_v;
+
+	Work work_v([] (Work& work_v, auto&&...) {
+
+	});
+
+	workqueue_v.Submit(work_v);
+
+#if 0
 	win32::WHvCapabilities::LogInformation();
 
-	using core::VirtualMachine;
+	using core::Machine;
 	using core::Configuration;
 
 	SDL_Init(SDL_INIT_EVERYTHING);
@@ -43,7 +57,7 @@ int main(int argc, char** argv) try
 		800, 600, 
 		SDL_WINDOW_SHOWN);
 
-	VirtualMachine vmcore_v{ Configuration() };
+	Machine vmcore_v{ Configuration() };
 	vmcore_v.Start();
 
 	while (true)
@@ -69,6 +83,7 @@ int main(int argc, char** argv) try
 
 	vmcore_v.Stop();	
 	SDL_DestroyWindow(window_v);
+#endif
 	return 0;
 }
 catch (std::exception const& ex) 

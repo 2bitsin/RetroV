@@ -19,16 +19,16 @@ namespace win32
 
 		template <typename ObjectT>
 		concept Has_IoPortAccess = requires(ObjectT&& object_v, 
-			bool is_write_v, std::uint16_t addr_v, std::uint8_t size_v, std::span<std::byte, 4u> data_v)
+			bool is_write_v, std::uint16_t addr_v, utils::limited_span<std::byte, 4u> data_v)
 		{		
-			{ object_v.IoPortAccess(is_write_v, addr_v, size_v, data_v) } -> std::same_as<std::int32_t>;
+			{ object_v.IoPortAccess(is_write_v, addr_v, data_v) } -> std::same_as<std::int32_t>;
 		};
 
 		template <typename ObjectT>
 		concept Has_MemoryAccess = requires(ObjectT&& object_v, 
-			bool is_write_v, std::uint64_t addr_v, std::uint8_t size_v, std::span<std::byte, 8u> data_v)
+			bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v)
 		{		
-			{ object_v.MemoryAccess(is_write_v, addr_v, size_v, data_v) } -> std::same_as<std::int32_t>;
+			{ object_v.MemoryAccess(is_write_v, addr_v, data_v) } -> std::same_as<std::int32_t>;
 		};
 
 		template <typename ObjectT>
@@ -118,9 +118,9 @@ namespace win32
 						return E_INVALIDARG;
 					return static_cast<T*>(context_v)->IoPortAccess(
 						(bool)access_v->Direction, 
-						(std::uint16_t)access_v->Port,
-						(std::uint8_t)access_v->AccessSize, 
-						utils::as_static_mutable_bytes(access_v->Data));
+						(std::uint16_t)access_v->Port,						
+						utils::as_static_mutable_bytes(access_v->Data)
+							.first(access_v->AccessSize));
 				};
 			}
 
@@ -132,8 +132,8 @@ namespace win32
 					return static_cast<T*>(context_v)->MemoryAccess(
 						(bool)access_v->Direction,
 						(std::uint64_t)access_v->GpaAddress,
-						(std::uint8_t)access_v->AccessSize,
-						utils::as_static_mutable_bytes(access_v->Data));
+						utils::as_static_mutable_bytes(access_v->Data)
+							.first(access_v->AccessSize));
 				};
 			}
 

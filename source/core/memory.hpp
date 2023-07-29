@@ -15,7 +15,7 @@ namespace core
 {
 	
 
-	struct VirtualMemory
+	struct Memory
 	{ 
 		/****************************************
 		 * 
@@ -23,17 +23,17 @@ namespace core
 		 * 
 		 ****************************************/
 		 
-		VirtualMemory (win32::WHvPartition const& partition_v, std::uint64_t base_v, std::uint64_t size_v, Access prot_v);
+		Memory (win32::WHvPartition const& partition_v, std::uint64_t base_v, std::uint64_t size_v, Access prot_v);
 
-		VirtualMemory (VirtualMemory const&) = delete;
-		auto operator = (VirtualMemory const&) = delete;
+		Memory (Memory const&) = delete;
+		auto operator = (Memory const&) = delete;
 
-		VirtualMemory (VirtualMemory&&) noexcept;
-		auto operator = (VirtualMemory&&) noexcept -> VirtualMemory&;
+		Memory (Memory&&) noexcept;
+		auto operator = (Memory&&) noexcept -> Memory&;
 
-		auto swap (VirtualMemory& other_v) noexcept -> void;
+		auto swap (Memory& other_v) noexcept -> void;
 
-		~VirtualMemory ();
+		~Memory ();
 
 		auto Base () const noexcept -> std::uint64_t;
 		auto Size () const noexcept -> std::uint64_t;

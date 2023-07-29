@@ -7,10 +7,11 @@
 #include <win32/whvpartition.hpp>
 #include <win32/whvprocessor.hpp>
 
-#include <core/virtualmemory.hpp>
-#include <core/virtualprocessor.hpp>
+#include <core/memory.hpp>
+#include <core/processor.hpp>
 #include <core/configuration.hpp>
-#include <core/processorthread.hpp>
+
+#include <utils/span.hpp>
 
 #include <shared_mutex>
 #include <memory>
@@ -20,10 +21,10 @@
 
 namespace core
 {
-	struct VirtualMachine
+	struct Machine
 	{
-		VirtualMachine(Configuration const&);
-		~VirtualMachine();
+		Machine(Configuration const&);
+		~Machine();
 
 		auto Start     () -> void;
 		auto Stop      () -> void;
@@ -32,15 +33,14 @@ namespace core
 		auto RunMain	 () -> void;
 	
 	protected:
-		friend ProcessorThread;
-		friend VirtualProcessor;
+		friend Processor;
 
 		auto Partition ()	const -> win32::WHvPartition const& { return m_Partition; }
 		auto Emulator  ()	const -> win32::WHvEmulator const&  { return m_Emulator;  }
 
 		auto ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, std::uint32_t vcpuindex_v) -> void;		
-		auto IoPortAccess(bool is_write_v, std::uint16_t port_v, std::uint8_t size_v, std::span<std::byte, 4u> data_v) -> std::int32_t;
-		auto MemoryAccess(bool is_write_v, std::uint64_t addr_v, std::uint8_t size_v, std::span<std::byte, 8u> data_v) -> std::int32_t;		
+		auto IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
+		auto MemoryAccess(bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t;		
 	
 		auto ConfigureMemory(Configuration const&) -> void;
 		auto ConfigureBiosROM(Configuration const&) -> void;
@@ -51,9 +51,8 @@ namespace core
 		std::shared_mutex m_StateMutex;
 		win32::WHvPartition m_Partition;
 		win32::WHvEmulator m_Emulator;
-		std::list<VirtualMemory> m_Memory;
-		VirtualProcessor m_Processor;
-		ProcessorThread m_ProcessorThread;
+		std::list<Memory> m_Memory;
+		Processor m_Processor;
 	};
 
 }
