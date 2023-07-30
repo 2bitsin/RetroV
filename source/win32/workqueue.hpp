@@ -81,8 +81,7 @@ namespace win32
 
 		template<typename Callback>
 		auto Submit(Callback&& callback_v) -> std::shared_ptr<WorkItem> {
-			auto work_ptr = std::make_shared<WorkItem>(*this, 
-				std::forward<Callback>(callback_v));
+			auto work_ptr = std::make_shared<WorkItem>(*this, std::forward<Callback>(callback_v));
 			::SubmitThreadpoolWork(work_ptr->Handle());
 			return work_ptr;
 		}
