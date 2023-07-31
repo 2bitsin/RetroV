@@ -34,6 +34,7 @@ auto WorkInstance::InitiateLongRunningTask() const -> bool
 
 WorkItem::~WorkItem() {
 	if (nullptr != m_Handle) {	
+		::WaitForThreadpoolWorkCallbacks(m_Handle, TRUE);
 		::CloseThreadpoolWork(m_Handle);
 	}
 }
@@ -62,16 +63,35 @@ auto WorkItem::Handle() const noexcept -> PTP_WORK
 	return m_Handle;
 }
 
-auto WorkItem::Join(bool cancel_v) const -> void
+auto WorkItem::Wait() const -> void
 {
-	::WaitForThreadpoolWorkCallbacks(m_Handle, cancel_v?TRUE:FALSE);
+	::WaitForThreadpoolWorkCallbacks(m_Handle, FALSE);
+}
+
+auto WorkItem::Cancel() const -> void
+{
+	::WaitForThreadpoolWorkCallbacks(m_Handle, TRUE);
+}
+
+auto WorkItem::Submit(WorkQueue& queue_v) -> void
+{
+	if (nullptr != m_Handle) { 
+		::CloseThreadpoolWork(m_Handle);
+	}
+
+	m_Handle = ::CreateThreadpoolWork(&EntryPoint, this, &queue_v.Cbkenv());
+
+	if (nullptr != m_Handle) {
+		return ::SubmitThreadpoolWork(m_Handle);
+	}
+
+	throw error(error::last_error());	
 }
 
 void WorkItem::EntryPoint(PTP_CALLBACK_INSTANCE instance_v, void* context_v, PTP_WORK work_v)
 {
-	auto* work_ptr = static_cast<std::shared_ptr<WorkItem>*>(context_v);
-	(*work_ptr)->m_Cbkfun(WorkInstance(instance_v), *(*work_ptr));
-	delete work_ptr;
+	auto const work_ptr = static_cast<WorkItem*>(context_v);
+	work_ptr->m_Cbkfun(WorkInstance(instance_v), *work_ptr);
 }
 
 ////////////////////////////
@@ -118,6 +138,11 @@ auto WorkQueue::swap(WorkQueue& from_v) -> void
 {
 	std::swap(m_Handle, from_v.m_Handle);
 	std::swap(m_Cbkenv, from_v.m_Cbkenv);
+}
+
+auto WorkQueue::Submit(WorkItem& work_v) -> void
+{
+	work_v.Submit(*this);
 }
 
 auto WorkQueue::Cbkenv() noexcept -> TP_CALLBACK_ENVIRON&

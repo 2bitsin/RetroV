@@ -86,11 +86,19 @@ int main(int argc, char** argv) try
 
 
 	WorkQueue workqueue_v;
-	
+
+	WorkItem work_v{ Hello("WORKQUEUE") };
+
+	for (auto i = 0; i < 10; ++i) 
 	{
-	auto p = workqueue_v.Submit(Hello("World"));
-	std::cin.get();
+		workqueue_v.Submit([i] (WorkInstance instance_v) -> void {
+			std::cout << std::format("Submitting callback nr : {}\n", i);
+		});
+		workqueue_v.Submit(work_v);
 	}
+
+	std::cin.get();
+	
 
 #if 0
 	win32::WHvCapabilities::LogInformation();

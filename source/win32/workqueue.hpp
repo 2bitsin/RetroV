@@ -26,7 +26,6 @@ namespace win32
 		PTP_CALLBACK_INSTANCE m_Handle{ nullptr };
 	};
 
-
 	/////////////////
 	// 
 	// WorkItem
@@ -36,7 +35,9 @@ namespace win32
 	struct WorkItem: std::enable_shared_from_this<WorkItem>
 	{
 		template <typename Callback>
-		WorkItem(WorkQueue& queue_v, Callback&& callback_v);
+		requires (std::is_invocable_v<Callback, WorkInstance, WorkItem&>)
+		WorkItem(Callback&& callback_v);
+
 		~WorkItem();
 
 		WorkItem(WorkItem const&) = delete;
@@ -49,9 +50,14 @@ namespace win32
 
 		auto Handle() const noexcept -> PTP_WORK;
 
-		auto Join(bool cancel_v) const -> void;
+		auto Wait() const -> void;
+		auto Cancel () const -> void;
 
 	protected:
+		
+		friend struct WorkQueue;
+
+		auto Submit(WorkQueue& queue_v) -> void;
 
 		static void NTAPI EntryPoint(PTP_CALLBACK_INSTANCE instance_v, void* context_v, PTP_WORK work_v);
 
@@ -79,12 +85,11 @@ namespace win32
 
 		auto swap(WorkQueue&) -> void;
 
-		template<typename Callback>
-		auto Submit(Callback&& callback_v) -> std::shared_ptr<WorkItem> {
-			auto work_ptr = std::make_shared<WorkItem>(*this, std::forward<Callback>(callback_v));
-			::SubmitThreadpoolWork(work_ptr->Handle());
-			return work_ptr;
-		}
+		template <typename Callback>
+		requires (std::is_invocable_v<Callback, WorkInstance>)
+		auto Submit(Callback&&) -> bool;
+
+		auto Submit(WorkItem& work_v) -> void;
 
 		auto Handle() const noexcept -> PTP_POOL;
 		auto Cbkenv() noexcept -> TP_CALLBACK_ENVIRON&;
@@ -95,6 +100,20 @@ namespace win32
 		TP_CALLBACK_ENVIRON m_Cbkenv;
 	};
 
+	template<typename Callback>
+	requires (std::is_invocable_v<Callback, WorkInstance>)
+	inline auto WorkQueue::Submit(Callback&& callback_v) -> bool
+	{
+		using callback_type = std::remove_cvref_t<Callback>;
+		return !!::TrySubmitThreadpoolCallback(
+			[] (PTP_CALLBACK_INSTANCE instance_v, void* context_v) noexcept {
+				auto const callback_v = static_cast<Callback*>(context_v);
+				(*callback_v)(WorkInstance{ instance_v }); 
+				delete callback_v; }, 
+			new callback_type{ std::forward<Callback>(callback_v) },
+			&m_Cbkenv);
+	}
+
 
 	/////////////////
 	// 
@@ -102,18 +121,11 @@ namespace win32
 	// 
 	/////////////////
 
-
 	template<typename Callback>
-	inline WorkItem::WorkItem(WorkQueue& queue_v, Callback&& callback_v)
+	requires (std::is_invocable_v<Callback, WorkInstance, WorkItem&>)
+	inline WorkItem::WorkItem( Callback&& callback_v)
 		: m_Cbkfun(std::forward<Callback>(callback_v))
-		, m_Handle(::CreateThreadpoolWork(
-				&WorkItem::EntryPoint, 
-				new std::shared_ptr<WorkItem>(shared_from_this()),
-				&queue_v.Cbkenv()
-			))
-	{
-		if (nullptr== m_Handle) {
-			throw error(error::last_error());
-		}
-	}
+		, m_Handle(nullptr)
+	{}
+
 }
