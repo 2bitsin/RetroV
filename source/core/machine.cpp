@@ -24,14 +24,21 @@ Machine::~Machine()
 
 auto Machine::Start() -> void
 {
+	m_CpuThread.Start(*this);
 }
 
 auto Machine::Stop() -> void
 {
+	m_CpuThread.Stop();
 }
 
 auto Machine::Reset() -> void
 {
+	m_CpuThread.Stop();
+	m_Processor.Reset();
+	m_Partition.Reset();
+	m_Debugger.Reset();
+	m_CpuThread.Start(*this);
 }
 
 auto Machine::RunMain() -> void
@@ -41,10 +48,12 @@ auto Machine::RunMain() -> void
 auto Machine::ConfigurePartition(Configuration const&) -> void
 {
 	WIN32_ERROR_ASSERT(m_Partition.Setup({
-		{ WHvPartitionPropertyCodeProcessorCount,  { .ProcessorCount = 1u } },
+		{ WHvPartitionPropertyCodeProcessorCount, { .ProcessorCount = 1u } },
 		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .HypercallExit = 1u } } },
-		
+		{ WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeX2Apic } }
 	}));
+	
+
 }
 
 auto Machine::ConfigureMemory(Configuration const&) -> void
@@ -122,8 +131,7 @@ auto Machine::ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, std::uint32_t vcpui
 auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
 	switch (port_v) {
-	case 0xe9: 
-		return 0;
+	case 0xe9: return m_Debugger.IoPortAccess(is_write_v, port_v, data_v);
 	}
 	return 0;
 }

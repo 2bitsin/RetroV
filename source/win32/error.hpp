@@ -10,9 +10,8 @@ namespace win32
 	struct error
 		: public std::runtime_error
 	{
-		error(std::int32_t errvalue_v = last_error(), 
-			std::source_location location_v = std::source_location::current(),
-			std::string_view code_v = "");
+		error(std::int32_t errvalue_v = last_error(), std::string_view code_v = "",
+			std::source_location location_v = std::source_location::current());
 	
 		inline auto errvalue() const -> std::int32_t { return m_errvalue; }
 		inline auto location() const -> std::source_location { return m_location; }
@@ -48,7 +47,7 @@ namespace win32
 		inline auto rethrow_error() -> void {			
 			using namespace std;
 			if (0u==uncaught_exceptions() && 0u!=m_value) {
-				throw error(exchange(m_value, 0u), m_srcloc);
+				throw error(exchange(m_value, 0u), "", m_srcloc);
 			}
 		}
 

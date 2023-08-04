@@ -24,17 +24,17 @@ auto error::to_string(std::int32_t result) -> std::string
 auto error::__assert__(std::int32_t errvalue_v, std::source_location location_v, std::string_view code_v) -> void
 {
 	if (errvalue_v != ERROR_SUCCESS) {		
-		throw error(errvalue_v, std::move(location_v), code_v);
+		throw error(errvalue_v, code_v, std::move(location_v));
 	}
 }
 
 auto error::throw_last_error(std::source_location location_v) -> void
 {
-	throw error(last_error(), std::move(location_v));
+	throw error(last_error(), "", std::move(location_v));
 }
 
 using namespace std::string_literals;
-error::error(std::int32_t errvalue_v, std::source_location location_v, std::string_view code_v)
+error::error(std::int32_t errvalue_v, std::string_view code_v, std::source_location location_v)
 	: std::runtime_error(std::format("{}:{}:{}: {}",  		
 		location_v.file_name(), 
 		location_v.line(), 

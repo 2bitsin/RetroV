@@ -11,7 +11,7 @@ WHvEmulator::WHvEmulator(WHV_EMULATOR_HANDLE handle_v) noexcept
 	: m_Handle{ handle_v }
 {}
 
-auto win32::WHvEmulator::TryIoEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) noexcept 
+auto win32::WHvEmulator::TryIoEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) const noexcept 
 	-> std::tuple<HRESULT, WHV_EMULATOR_STATUS>
 {
 	WHV_EMULATOR_STATUS status_v;
@@ -19,7 +19,7 @@ auto win32::WHvEmulator::TryIoEmulation(void* context_v, WHV_VP_EXIT_CONTEXT con
 	return{ result_v, status_v };
 }
 
-auto win32::WHvEmulator::TryMmioEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_MEMORY_ACCESS_CONTEXT const& mmctx_v) noexcept 
+auto win32::WHvEmulator::TryMmioEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_MEMORY_ACCESS_CONTEXT const& mmctx_v) const noexcept 
 	-> std::tuple<HRESULT, WHV_EMULATOR_STATUS>
 {
   WHV_EMULATOR_STATUS status_v;
@@ -81,12 +81,14 @@ auto WHvEmulator::Create(WHV_EMULATOR_CALLBACKS const& callbacks_v) -> WHV_EMULA
 auto WHvEmulator::MemoryAccess(void* context_v, WHV_EMULATOR_MEMORY_ACCESS_INFO* info_v) -> HRESULT
 {	
 	auto const& context_r = *(InvocationContext*)context_v;
+	assert (nullptr != context_r.MemoryAccess);
 	return context_r.MemoryAccess(context_r.ObjectPointer, info_v);
 }
 
 auto WHvEmulator::IoPortAccess(void* context_v, WHV_EMULATOR_IO_ACCESS_INFO* info_v) -> HRESULT
 {
 	auto const& context_r = *(InvocationContext*)context_v;
+	assert (nullptr != context_r.IoPortAccess);
 	return context_r.IoPortAccess(context_r.ObjectPointer, info_v);
 }
 
@@ -94,6 +96,7 @@ auto WHvEmulator::GetRegisters(void* context_v,
 	const WHV_REGISTER_NAME* names_v, uint32_t count_v, WHV_REGISTER_VALUE* values_v) -> HRESULT
 {
 	auto const& context_r = *(InvocationContext*)context_v;
+	assert (nullptr != context_r.GetRegisters);
 	return context_r.GetRegisters(context_r.ObjectPointer, names_v, count_v, values_v);
 }
 
@@ -101,6 +104,7 @@ auto WHvEmulator::SetRegisters(void* context_v,
 	const WHV_REGISTER_NAME* names_v, uint32_t count_v, const WHV_REGISTER_VALUE* values_v) -> HRESULT
 {
 	auto const& context_r = *(InvocationContext*)context_v;
+	assert (nullptr != context_r.SetRegisters);
 	return context_r.SetRegisters(context_r.ObjectPointer, names_v, count_v, values_v);
 }
 
@@ -108,5 +112,6 @@ auto WHvEmulator::TranslateGvaPage(void* context_v, WHV_GUEST_VIRTUAL_ADDRESS vi
 	WHV_TRANSLATE_GVA_FLAGS falgs_v, WHV_TRANSLATE_GVA_RESULT_CODE* code_v, WHV_GUEST_PHYSICAL_ADDRESS* physaddr_v) -> HRESULT
 {
 	auto const& context_r = *(InvocationContext*)context_v;
+	assert (nullptr != context_r.TranslateGvaPage);
 	return context_r.TranslateGvaPage(context_r.ObjectPointer, virtaddr_v, falgs_v, code_v, physaddr_v);
 }

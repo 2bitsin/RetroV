@@ -73,7 +73,7 @@ namespace win32
 		auto GetHandle() const noexcept -> WHV_EMULATOR_HANDLE;
 
 		template <typename ObjectT>
-		auto TryIoEmulation(ObjectT& object_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) noexcept 
+		auto TryIoEmulation(ObjectT& object_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) const noexcept 
 			-> std::tuple<HRESULT, WHV_EMULATOR_STATUS>
 		{
 			InvocationContext callbacks_v;
@@ -82,7 +82,7 @@ namespace win32
 		}
 
 		template <typename ObjectT>
-		auto TryMmioEmulation(ObjectT& object_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_MEMORY_ACCESS_CONTEXT const& mmctx_v) noexcept 
+		auto TryMmioEmulation(ObjectT& object_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_MEMORY_ACCESS_CONTEXT const& mmctx_v) const noexcept 
 			-> std::tuple<HRESULT, WHV_EMULATOR_STATUS>
 		{
 			InvocationContext callbacks_v;
@@ -92,9 +92,9 @@ namespace win32
 		
 	protected:
 
-		auto TryIoEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) noexcept 
+		auto TryIoEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) const noexcept 
 			-> std::tuple<HRESULT, WHV_EMULATOR_STATUS>;
-		auto TryMmioEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_MEMORY_ACCESS_CONTEXT const& mmctx_v) noexcept 
+		auto TryMmioEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_MEMORY_ACCESS_CONTEXT const& mmctx_v) const noexcept 
 			-> std::tuple<HRESULT, WHV_EMULATOR_STATUS>;
 
 		struct InvocationContext
@@ -110,8 +110,9 @@ namespace win32
 		template <typename T>
 		static auto MakeInvocationContext(T& object_v, InvocationContext& callbacks_v) noexcept -> void 
 		{
-			callbacks_v.ObjectPointer = std::addressof(object_v);
+			callbacks_v.ObjectPointer = (void*)std::addressof(object_v);
 			callbacks_v.IoPortAccess = nullptr;
+			static_assert(detail::Has_IoPortAccess<T>);
 			if constexpr (detail::Has_IoPortAccess<T>) {
 				callbacks_v.IoPortAccess = [](void* context_v, WHV_EMULATOR_IO_ACCESS_INFO* access_v) -> HRESULT {
 					if (context_v == nullptr)
@@ -125,6 +126,7 @@ namespace win32
 			}
 
 			callbacks_v.MemoryAccess = nullptr;
+			static_assert(detail::Has_MemoryAccess<T>);
 			if constexpr (detail::Has_MemoryAccess<T>) {
 				callbacks_v.MemoryAccess = [](void* context_v, WHV_EMULATOR_MEMORY_ACCESS_INFO* access_v) -> HRESULT {
 					if (context_v == nullptr)
@@ -138,6 +140,7 @@ namespace win32
 			}
 
 			callbacks_v.GetRegisters = nullptr;
+			static_assert(detail::Has_GetRegisters<T>);
 			if constexpr (detail::Has_GetRegisters<T>) {
 				callbacks_v.GetRegisters = [](void* context_v, WHV_REGISTER_NAME const* rnames_v, uint32_t count_v, WHV_REGISTER_VALUE* values_v) -> HRESULT {
 					if (context_v == nullptr)
@@ -149,6 +152,7 @@ namespace win32
 			}
 
 			callbacks_v.SetRegisters = nullptr;
+			static_assert(detail::Has_SetRegisters<T>);
 			if constexpr (detail::Has_SetRegisters<T>) {
 				callbacks_v.SetRegisters = [](void* context_v, WHV_REGISTER_NAME const* rnames_v, uint32_t count_v, 
 					WHV_REGISTER_VALUE const* values_v) -> HRESULT
@@ -162,6 +166,7 @@ namespace win32
 			}
 
 			callbacks_v.TranslateGvaPage = nullptr;
+			static_assert(detail::Has_TranslateGvaPage<T>);
 			if constexpr (detail::Has_TranslateGvaPage<T>) {
 				callbacks_v.TranslateGvaPage = [](void* context_v, uint64_t gva_v, WHV_TRANSLATE_GVA_FLAGS flags_v, 
 					WHV_TRANSLATE_GVA_RESULT_CODE* code_v, uint64_t* gpa_v) -> HRESULT

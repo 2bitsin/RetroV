@@ -125,6 +125,13 @@ auto WHvPartition::Setup(std::span<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PA
 	if (S_OK != result_v)
 		return result_v;
 	
+
+	auto prop_v = GetProperty(WHvPartitionPropertyCodeSyntheticProcessorFeaturesBanks);
+	//prop_v.SyntheticProcessorFeaturesBanks.Bank0.AccessSynicRegs = 1u;
+	//prop_v.SyntheticProcessorFeaturesBanks.Bank0.DirectSyntheticTimers = 1u;
+	//prop_v.SyntheticProcessorFeaturesBanks.Bank0.AccessSyntheticTimerRegs = 1u;
+	WIN32_ERROR_ASSERT(SetProperty(WHvPartitionPropertyCodeSyntheticProcessorFeaturesBanks, prop_v));
+
 	std::uint32_t vcpucount_v{ 0u };
 	result_v = GetProperty(WHvPartitionPropertyCodeProcessorCount, vcpucount_v);
 	if (S_OK != result_v) 

@@ -4,6 +4,7 @@
 
 #include <type_traits>
 #include <functional>
+#include <chrono>
 #include <memory>
 
 namespace win32
@@ -20,7 +21,7 @@ namespace win32
 	{
 		WorkInstance(PTP_CALLBACK_INSTANCE instance_v) noexcept;
 
-		auto InitiateLongRunningTask() const -> bool;
+		auto MayRunLong() const -> bool;
 
 	private:
 		PTP_CALLBACK_INSTANCE m_Handle{ nullptr };
@@ -53,11 +54,7 @@ namespace win32
 		auto Wait() const -> void;
 		auto Cancel () const -> void;
 
-	protected:
-		
-		friend struct WorkQueue;
-
-		auto Submit(WorkQueue& queue_v) -> void;
+		auto SubmitTo(WorkQueue& queue_v) -> void;
 
 		static void NTAPI EntryPoint(PTP_CALLBACK_INSTANCE instance_v, void* context_v, PTP_WORK work_v);
 
@@ -65,6 +62,67 @@ namespace win32
 		std::function<void(WorkInstance, WorkItem&)> m_Cbkfun;
 		PTP_WORK m_Handle{ nullptr };
 	};
+
+
+	template<typename Callback>
+		requires (std::is_invocable_v<Callback, WorkInstance, WorkItem&>)
+	inline WorkItem::WorkItem(Callback&& callback_v)
+		: m_Cbkfun(std::forward<Callback>(callback_v))
+		, m_Handle(nullptr)
+	{}
+
+	/////////////////
+	// 
+	// WorkTimer
+	// 
+	/////////////////
+
+	struct WorkTimer
+	{
+		using duration_type = std::chrono::milliseconds;
+		using time_point_type = std::chrono::system_clock::time_point;
+
+		template <typename Callback>
+		requires (std::is_invocable_v<Callback, WorkInstance, WorkTimer&>)
+		WorkTimer(Callback&& callback_v);
+
+		~WorkTimer();
+
+		WorkTimer(WorkTimer const&) = delete;
+		auto operator=(WorkTimer const&) -> WorkTimer & = delete;
+
+		WorkTimer(WorkTimer &&) noexcept;
+		auto operator=(WorkTimer &&) noexcept -> WorkTimer &;
+
+		auto swap(WorkTimer&) -> void;
+
+		auto Handle() const noexcept -> PTP_TIMER;		
+		auto Cancel() -> void;
+		
+		auto SubmitTo(WorkQueue& queue_v, time_point_type expire_v,
+			duration_type period_v = duration_type::zero()) -> void;
+
+		
+		auto SubmitTo(WorkQueue& queue_v, duration_type expire_v,
+			duration_type period_v = duration_type::zero()) -> void;
+
+
+	protected:
+		static auto ToFileTime(std::chrono::system_clock::time_point time_v) -> FILETIME;
+		auto SubmitTo(WorkQueue& queue_v, FILETIME expire_v, std::uint32_t period_millisec_v) -> void;
+
+		static auto NTAPI EntryPoint(PTP_CALLBACK_INSTANCE instance_v, void* context_v, PTP_TIMER timer_v) -> void;
+	private:
+		std::function<void(WorkInstance, WorkTimer&)> m_Cbkfun;
+		PTP_TIMER m_Handle{ nullptr };
+	};
+
+	template<typename Callback>
+	requires (std::is_invocable_v<Callback, WorkInstance, WorkTimer&>)
+	inline WorkTimer::WorkTimer(Callback&& callback_v)
+		: m_Cbkfun(std::forward<Callback>(callback_v))
+		, m_Handle(nullptr)
+	{}
 
 	/////////////////
 	// 
@@ -91,6 +149,9 @@ namespace win32
 
 		auto Submit(WorkItem& work_v) -> void;
 
+		template <typename... Args>
+		auto Submit(WorkTimer& work_v, Args&&... args_v) -> void;
+
 		auto Handle() const noexcept -> PTP_POOL;
 		auto Cbkenv() noexcept -> TP_CALLBACK_ENVIRON&;
 		auto Cbkenv() const noexcept -> TP_CALLBACK_ENVIRON const&;
@@ -114,18 +175,9 @@ namespace win32
 			&m_Cbkenv);
 	}
 
-
-	/////////////////
-	// 
-	// WorkItem
-	// 
-	/////////////////
-
-	template<typename Callback>
-	requires (std::is_invocable_v<Callback, WorkInstance, WorkItem&>)
-	inline WorkItem::WorkItem( Callback&& callback_v)
-		: m_Cbkfun(std::forward<Callback>(callback_v))
-		, m_Handle(nullptr)
-	{}
-
+	template<typename ...Args>
+	inline auto WorkQueue::Submit(WorkTimer& timer_v, Args&&... args_v) -> void
+	{
+		return timer_v.SubmitTo(*this, std::forward<Args>(args_v)...);
+	}
 }

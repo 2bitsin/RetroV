@@ -96,7 +96,7 @@ namespace utils
 			return { m_data + offset_v, std::min(size_v, m_size - offset_v) };		
 		}
 
-		constexpr inline auto operator [](size_type index_v) const noexcept -> value_type& {
+		constexpr inline auto operator [](size_type index_v) const -> value_type& {
 			if (index_v >= m_size)
 				throw std::out_of_range{ "index out of range" };			
 			return m_data[index_v];

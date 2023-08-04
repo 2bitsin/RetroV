@@ -55,10 +55,18 @@ namespace win32
 			return SetProperty(property_v, utils::as_bytes(value_v));
 		}
 
-		template <typename T> requires (std::is_trivial_v<T>)
+		template <typename T = WHV_PARTITION_PROPERTY> requires (std::is_trivial_v<T>)
 		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, T& value_v) const -> HRESULT
 		{
 			return GetProperty(property_v, utils::as_mutable_bytes(value_v));
+		}
+
+		template <typename T = WHV_PARTITION_PROPERTY> requires (std::is_trivial_v<T>)
+			auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v) const -> T
+		{
+			T value_v{};
+			WIN32_ERROR_ASSERT(GetProperty(property_v, value_v));
+			return value_v;
 		}
 
 		auto MapGpaRange(void* buffer_v, std::uint64_t physaddr_v, std::uint64_t length_v, core::Access flags_v) const-> HRESULT;

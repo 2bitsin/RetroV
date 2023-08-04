@@ -6,10 +6,13 @@
 #include <win32/whvemulator.hpp>
 #include <win32/whvpartition.hpp>
 #include <win32/whvprocessor.hpp>
+#include <win32/workqueue.hpp>
 
+#include <core/configuration.hpp>
 #include <core/memory.hpp>
 #include <core/processor.hpp>
-#include <core/configuration.hpp>
+#include <core/cputhread.hpp>
+#include <core/debugger.hpp>
 
 #include <utils/span.hpp>
 
@@ -26,17 +29,18 @@ namespace core
 		Machine(Configuration const&);
 		~Machine();
 
-		auto Start     () -> void;
-		auto Stop      () -> void;
-		auto Reset     () -> void;
-
-		auto RunMain	 () -> void;
+		auto Start() -> void;
+		auto Stop() -> void;
+		auto Reset() -> void;
+		auto RunMain() -> void;
 	
 	protected:
 		friend Processor;
+		friend CpuThread;
 
-		auto Partition ()	const -> win32::WHvPartition const& { return m_Partition; }
-		auto Emulator  ()	const -> win32::WHvEmulator const&  { return m_Emulator;  }
+		auto Partition() const -> win32::WHvPartition const& { return m_Partition; }
+		auto Emulator() const -> win32::WHvEmulator const& { return m_Emulator;  }
+		auto Processor() const -> Processor const& { return m_Processor; }
 
 		auto ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, std::uint32_t vcpuindex_v) -> void;		
 		auto IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
@@ -47,12 +51,13 @@ namespace core
 		auto ConfigurePartition(Configuration const&) -> void;
 
 	private:
-
 		std::shared_mutex m_StateMutex;
 		win32::WHvPartition m_Partition;
 		win32::WHvEmulator m_Emulator;
 		std::list<Memory> m_Memory;
-		Processor m_Processor;
+		core::Processor m_Processor;
+		core::CpuThread m_CpuThread;
+		core::Debugger m_Debugger;
 	};
 
 }

@@ -21,55 +21,6 @@
 #include <format>
 #include <chrono>
 
-struct Hello {
-	static inline std::atomic<std::size_t> s_Inst = 0;
-
-	Hello(std::string_view what_v)
-		: m_What(what_v) 
-		, m_Inst(++s_Inst)
-	{
-		std::cout << std::format("Hello(\"{}\", {})\n", m_What, m_Inst);
-	}
-
-	Hello(Hello const& from_v)
-		: m_What(from_v.m_What) 
-		, m_Inst(++s_Inst)
-	{
-		std::cout << std::format("Hello(Hello const& \"{}\", {})\n", m_What, m_Inst);
-	}
-
-	Hello(Hello&& from_v) noexcept
-		: m_What(std::move(from_v.m_What))
-		, m_Inst(++s_Inst)
-	{
-		std::cout << std::format("Hello(Hello&& \"{}\", {})\n", m_What, m_Inst);
-	}
-
-	auto operator=(Hello const& from_v) -> Hello& 
-	{ 
-		m_What = from_v.m_What;	
-		std::cout << std::format("operator=(Hello const& \"{}\", {})\n", m_What, m_Inst);
-		return *this; 
-	}
-
-	auto operator=(Hello&& from_v) noexcept->Hello& {
-		m_What = std::move(from_v.m_What);	
-		std::cout << std::format("operator=(Hello&& \"{}\", {})\n", m_What, m_Inst);
-		return *this; 
-	}
-
-  ~Hello() { 
-		std::cout << std::format("~Hello(\"{}\", {})\n", m_What, m_Inst);
-	}
-
-	auto operator()(win32::WorkInstance instance_v, win32::WorkItem& work_v) const -> void { 
-		std::cout << std::format("Hello \"{}\"! //{}\n", m_What, m_Inst);
-	}
-
-	std::string m_What;
-	std::size_t m_Inst;
-};
-
 #undef main
 int main(int argc, char** argv) try
 {	
@@ -84,23 +35,7 @@ int main(int argc, char** argv) try
 
 	using namespace win32;
 
-
-	WorkQueue workqueue_v;
-
-	WorkItem work_v{ Hello("WORKQUEUE") };
-
-	for (auto i = 0; i < 10; ++i) 
-	{
-		workqueue_v.Submit([i] (WorkInstance instance_v) -> void {
-			std::cout << std::format("Submitting callback nr : {}\n", i);
-		});
-		workqueue_v.Submit(work_v);
-	}
-
-	std::cin.get();
-	
-
-#if 0
+#if 1
 	win32::WHvCapabilities::LogInformation();
 
 	using core::Machine;

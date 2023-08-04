@@ -45,6 +45,11 @@ namespace utils
 		static constexpr const auto cout_sink = [](auto&& level_v, auto&& what_v) { std::cout << what_v << std::endl; };
 		static constexpr const auto cerr_sink = [](auto&& level_v, auto&& what_v) { std::cerr << what_v << std::endl; };
 
+		extern "C" void __stdcall OutputDebugStringA(char const* string_v);
+		static constexpr const auto wdbg_sink = [](auto&& level_v, auto&& what_v) { 						
+			OutputDebugStringA(what_v.c_str());
+		};
+
 		static inline constexpr const auto file_sink = [](auto&& level_v, auto&& what_v) {
 			static std::unordered_map<std::string_view, std::ofstream> m_logs;
 			static std::mutex m_mutex;
@@ -68,14 +73,21 @@ namespace utils
 				type(Sink&& sink_v, std::format_string<Args...> fmt_s, Args&&...args_v,
 					std::source_location srcloc_v = std::source_location::current())
 				{
-					sink_v(level, std::format("[{:%d-%m-%Y %H:%M:%OS} {}] {} ({}:{}:{})",
-						std::chrono::system_clock::now(),
+					sink_v(level, std::format("[{:%d-%m-%Y %H:%M:%OS} {}] {}"
+					#if 0
+						" ({}:{}:{})"
+					#endif
+						,
+						std::chrono::system_clock::now(), 
 						level.value,
-						std::format(fmt_s,
-							std::forward<Args>(args_v)...),
+						std::format(fmt_s, std::forward<Args>(args_v)...)
+					#if 0
+						,
 						srcloc_v.file_name(),
 						srcloc_v.line(),
-						srcloc_v.column()));
+						srcloc_v.column()
+					#endif
+						));
 				}
 			};
 
@@ -97,13 +109,14 @@ namespace utils
 			return [&](auto&& level_v, auto&& what_v) {
 				((sink_v(level_v, what_v)), ... );
 			};
-		};
+		};		
 
 		static inline auto const& cerr = detail::cerr_sink;
 		static inline auto const& cout = detail::cout_sink;
 		static inline auto const& file = detail::file_sink;
+		static inline auto const& wdbg = detail::wdbg_sink;
 
-		static inline auto const deflog = logger::cat(logger::file, logger::cerr);
+		static inline auto const deflog = logger::cat(logger::file, logger::cerr, logger::wdbg);
 
 	};
 
