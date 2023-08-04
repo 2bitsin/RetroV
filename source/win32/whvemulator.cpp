@@ -12,7 +12,7 @@ WHvEmulator::WHvEmulator(WHV_EMULATOR_HANDLE handle_v) noexcept
 {}
 
 auto win32::WHvEmulator::TryIoEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) const noexcept 
-	-> std::tuple<HRESULT, WHV_EMULATOR_STATUS>
+	-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>
 {
 	WHV_EMULATOR_STATUS status_v;
   auto result_v = WHvEmulatorTryIoEmulation(m_Handle, context_v, &vpctx_v, &ioctx_v, &status_v);
@@ -20,7 +20,7 @@ auto win32::WHvEmulator::TryIoEmulation(void* context_v, WHV_VP_EXIT_CONTEXT con
 }
 
 auto win32::WHvEmulator::TryMmioEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_MEMORY_ACCESS_CONTEXT const& mmctx_v) const noexcept 
-	-> std::tuple<HRESULT, WHV_EMULATOR_STATUS>
+	-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>
 {
   WHV_EMULATOR_STATUS status_v;
 	auto result_v = WHvEmulatorTryMmioEmulation(m_Handle, context_v, &vpctx_v, &mmctx_v, &status_v);

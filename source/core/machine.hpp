@@ -52,8 +52,8 @@ namespace core
 
 	private:
 		std::shared_mutex m_StateMutex;
-		win32::WHvPartition m_Partition;
 		win32::WHvEmulator m_Emulator;
+		win32::WHvPartition m_Partition;
 		std::list<Memory> m_Memory;
 		core::Processor m_Processor;
 		core::CpuThread m_CpuThread;

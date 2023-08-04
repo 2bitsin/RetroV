@@ -81,7 +81,7 @@ namespace win32
 			return m_Value[offset_v];			
 		}
 
-		inline auto ApplyTo(win32::WHvProcessor const& processor_v) const -> HRESULT {
+		inline auto ApplyTo(win32::WHvProcessor const& processor_v) const -> std::int32_t {
 			return processor_v.SetRegisters({ m_Names, m_Size }, { m_Value, m_Size });
 		}
 

@@ -10,8 +10,8 @@ using namespace size_literals;
 using core::Machine;
 
 Machine::Machine(Configuration const& config_v)
-	: m_Partition { win32::WHvPartition::Create() }
-	, m_Emulator  { win32::WHvEmulator::Create() }
+	: m_Emulator  { nullptr }
+	, m_Partition { nullptr }
 	, m_Processor { *this, 0u }
 {
 	ConfigurePartition(config_v);
@@ -47,12 +47,10 @@ auto Machine::RunMain() -> void
 
 auto Machine::ConfigurePartition(Configuration const&) -> void
 {
-	WIN32_ERROR_ASSERT(m_Partition.Setup({
-		{ WHvPartitionPropertyCodeProcessorCount, { .ProcessorCount = 1u } },
-		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .HypercallExit = 1u } } },
-		{ WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeX2Apic } }
-	}));
 	
+	m_Partition = win32::WHvPartition::Create(1u, {
+		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .HypercallExit = 1u } } }	  
+	});
 
 }
 

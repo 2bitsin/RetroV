@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cassert>
+#include <ranges>
 
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
@@ -16,68 +17,23 @@ namespace win32
 {
 
 	struct WHvPartition 
-	{	
-		static auto Create() -> WHV_PARTITION_HANDLE;
-	
-		WHvPartition();
-		WHvPartition(WHV_PARTITION_HANDLE handle_v) noexcept;
-		WHvPartition(std::initializer_list<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY>> props_v);
-		~WHvPartition() noexcept(false);
-	
-		WHvPartition(WHvPartition&& other_v) noexcept;
-		auto operator=(WHvPartition&& other_v) noexcept -> WHvPartition&;
-	
-		WHvPartition(WHvPartition const&) = delete;
-		auto operator=(WHvPartition const&) -> WHvPartition& = delete;
+	{
+		using property_pair = std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY>;
 
-		auto swap(WHvPartition& other_v) noexcept -> void;
-	
-		auto GetHandle() const noexcept -> WHV_PARTITION_HANDLE;
-		auto Reset () const -> HRESULT;
+		WHvPartition (WHV_PARTITION_HANDLE handle_v) noexcept;
+		~WHvPartition (); 
 
-		auto Setup () const -> HRESULT;
+		static auto Create(std::uint32_t vcpucount_v, std::initializer_list<property_pair const> props_v) -> WHV_PARTITION_HANDLE;
 
-		auto Setup (std::initializer_list<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY> const> props_v) const -> HRESULT {
-			return Setup(std::span(props_v)); 
-		}
+		auto GetHandle() const -> WHV_PARTITION_HANDLE;
 
-		auto Setup (std::span<std::pair<WHV_PARTITION_PROPERTY_CODE, WHV_PARTITION_PROPERTY> const> props_v) const -> HRESULT;
+		auto Reset() const -> std::int32_t;
 
-		auto SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, std::span<std::byte const> value_v) const -> HRESULT;
-		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, std::span<std::byte>& span_v) const -> HRESULT;
-		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, std::span<std::byte>&& span_v) const -> HRESULT {
-			return GetProperty(property_v, span_v);
-		}
 
-		template <typename T> requires (std::is_trivial_v<T>)
-		auto SetProperty(WHV_PARTITION_PROPERTY_CODE property_v, T const& value_v) const -> HRESULT
-		{
-			return SetProperty(property_v, utils::as_bytes(value_v));
-		}
+		auto MapGpaRange(void*, std::uint64_t, std::uint64_t, core::Access) const -> std::int32_t;
+		auto UnmapGpaRange(std::uint64_t, std::uint64_t) const -> std::int32_t;
 
-		template <typename T = WHV_PARTITION_PROPERTY> requires (std::is_trivial_v<T>)
-		auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v, T& value_v) const -> HRESULT
-		{
-			return GetProperty(property_v, utils::as_mutable_bytes(value_v));
-		}
 
-		template <typename T = WHV_PARTITION_PROPERTY> requires (std::is_trivial_v<T>)
-			auto GetProperty(WHV_PARTITION_PROPERTY_CODE property_v) const -> T
-		{
-			T value_v{};
-			WIN32_ERROR_ASSERT(GetProperty(property_v, value_v));
-			return value_v;
-		}
-
-		auto MapGpaRange(void* buffer_v, std::uint64_t physaddr_v, std::uint64_t length_v, core::Access flags_v) const-> HRESULT;
-		auto UnmapGpaRange(std::uint64_t physaddr_v, std::uint64_t length_v) const-> HRESULT;
-
-		auto Processor(std::uint32_t apicid_v) const -> win32::WHvProcessor;
-		auto NumberOfProcessors() const -> std::uint32_t;
-		auto InitializeProcessor(std::uint32_t index_v) const -> HRESULT;
-	
-	private:
-		WHV_PARTITION_HANDLE m_Handle{ nullptr };		
 	};
 
 }
