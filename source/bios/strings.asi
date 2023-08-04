@@ -1,4 +1,5 @@
 
 Strings:
-    .Hello: db "Booting HvDOS ...", 13, 10, 0
-    .Delay: db "Spinning for a while ...", 13, 10, 0
+    .Hello: db "Booting HvDOS ..."
+    .CrLf:  db 13, 10, 0
+    .IntV:  db "Interrupt vector: ", 0

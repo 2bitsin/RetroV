@@ -1,5 +1,5 @@
 Debug:
-  .Print:
+  .PrintString:
     push    ax cx dx si di es ds
     pop     es
     cld
@@ -13,4 +13,31 @@ Debug:
     pop     es di si dx cx ax
     ret
 
+  .PrintChar:
+    ; al = char    
+    out     0xe9,   al
+    ret
 
+  .PrintHex16:
+    ; ax = 16bit value
+    ; cx = bits to print in 4 bit increments or 0 for default
+    pusha
+    or      cx,     cx 
+    jnz     .PrintHex16.loop
+    mov     cx,     16    
+  .PrintHex16.loop:
+    sub     cx,     4
+    push    ax
+    shr     ax,     cl
+    and     ax,     0xf
+    cmp     ax,     10
+    jl      .PrintHex16.digit
+    add     ax,     'a' - '0' - 10
+  .PrintHex16.digit:
+    add     ax,     '0'
+    call    .PrintChar
+    pop     ax
+    test    cx,     cx
+    jnz     .PrintHex16.loop
+    popa
+    ret

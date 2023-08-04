@@ -4,10 +4,20 @@ IVT:
   { 
     align 4
   .Entry#Number:
-    jmp $+4
-    dw Number
-    VMCallInstruction    
-    iret
+    push    ds  
+    push    si
+    mov     si,     BIOS_SEGMENT
+    mov     ds,     si
+    mov     si,     Strings.IntV
+    call    Debug.PrintString
+    mov     ax,     Number-1
+    call    Debug.PrintHex16
+    mov     si,     Strings.CrLf
+    call    Debug.PrintString
+    pop     si
+    pop     ds
+    iret      
+
   }
 
 

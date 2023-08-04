@@ -56,9 +56,7 @@ Memory::Memory(Memory&& from_v) noexcept
 	, m_Size{ exchange(from_v.m_Size, 0) }
 	, m_Base{ exchange(from_v.m_Base, 0) }
 	, m_Data{ exchange(from_v.m_Data, nullptr) }
-{
-
-}
+{}
 
 auto Memory::operator=(Memory&& from_v) noexcept -> Memory&
 {
@@ -70,44 +68,37 @@ auto Memory::operator=(Memory&& from_v) noexcept -> Memory&
 	return *this;
 }
 
-auto Memory::swap(Memory& other_v) noexcept -> void
-{
+auto Memory::swap(Memory& other_v) noexcept -> void {
 	std::swap(m_Partition, other_v.m_Partition);
 	std::swap(m_Size, other_v.m_Size);
 	std::swap(m_Base, other_v.m_Base);
 	std::swap(m_Data, other_v.m_Data);
 }
 
-Memory::~Memory()
-{
+Memory::~Memory() {
 	using utils::logger;
 	if (m_Data) 
 	{
 		m_Partition->UnmapGpaRange(m_Base, m_Size);
-
-		logger::trace(logger::deflog, "Unmapping {:#016x} ... {:#016x}",
-			m_Base, m_Base+m_Size);
-
+		logger::trace(logger::deflog, "Unmapping {:#016x} ... {:#016x}", m_Base, m_Base+m_Size);
 		::VirtualFree(m_Data, 0, MEM_RELEASE);
 	}
 }
 
-auto Memory::Base() const noexcept -> std::uint64_t
-{
+auto Memory::Base() const noexcept -> std::uint64_t {
 	return m_Base / kPageSize;
 }
 
-auto Memory::Size() const noexcept -> std::uint64_t
-{
+auto Memory::Size() const noexcept -> std::uint64_t {
 	return m_Size / kPageSize;
 }
 
-auto Memory::Data() const noexcept -> std::byte*
-{
+auto Memory::Data() const noexcept -> std::byte* {
 	return m_Data;
 }
 
-auto Memory::Load(std::filesystem::path path_v, std::uint64_t dst_offset_v, std::uint64_t src_offset_v, std::uint64_t src_length_v) -> std::size_t
+auto Memory::Load(std::filesystem::path path_v, std::uint64_t dst_offset_v, 
+	std::uint64_t src_offset_v, std::uint64_t src_length_v) -> std::size_t 
 {
 	using utils::logger;
 	path_v = utils::path_substitute(path_v);
