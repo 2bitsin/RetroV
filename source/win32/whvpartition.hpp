@@ -23,17 +23,46 @@ namespace win32
 		WHvPartition (WHV_PARTITION_HANDLE handle_v) noexcept;
 		~WHvPartition (); 
 
-		static auto Create(std::uint32_t vcpucount_v, std::initializer_list<property_pair const> props_v) -> WHV_PARTITION_HANDLE;
+		auto swap (WHvPartition& with_v) noexcept -> void;
+		WHvPartition (WHvPartition&& from_v) noexcept;
+		auto operator = (WHvPartition&& from_v) noexcept -> WHvPartition&;
+
+		WHvPartition (WHvPartition const& other_v) = delete;
+		auto operator = (WHvPartition const& other_v) -> WHvPartition& = delete;
+
+		static auto Create(std::uint32_t vcpucount_v, std::span<property_pair const> props_v) -> WHV_PARTITION_HANDLE; 
+
+		static auto Create(std::uint32_t vcpucount_v, std::initializer_list<property_pair const> props_v) -> WHV_PARTITION_HANDLE {
+			return Create(vcpucount_v, std::span{ props_v });
+		}
 
 		auto GetHandle() const -> WHV_PARTITION_HANDLE;
-
 		auto Reset() const -> std::int32_t;
-
-
 		auto MapGpaRange(void*, std::uint64_t, std::uint64_t, core::Access) const -> std::int32_t;
 		auto UnmapGpaRange(std::uint64_t, std::uint64_t) const -> std::int32_t;
 
+	protected:
+		static auto GetProcessorCount(WHV_PARTITION_HANDLE handle_v) -> std::tuple<std::int32_t, std::uint32_t>;
+		static auto SetProcessorCount(WHV_PARTITION_HANDLE handle_v, std::uint32_t count_v) -> std::int32_t;
 
+		static auto SetProperty(WHV_PARTITION_HANDLE handle_v, WHV_PARTITION_PROPERTY_CODE code_v, std::span<std::byte const> value_v) -> std::int32_t;
+		static auto GetProperty(WHV_PARTITION_HANDLE handle_v, WHV_PARTITION_PROPERTY_CODE code_v, std::span<std::byte>& value_v) -> std::int32_t;
+		static auto GetProperty(WHV_PARTITION_HANDLE handle_v, WHV_PARTITION_PROPERTY_CODE code_v, std::span<std::byte>&& value_v) -> std::int32_t {
+			return GetProperty(handle_v, code_v, value_v);
+		}
+
+		template <typename T> requires (std::is_trivial_v<T>)
+		static auto SetProperty(WHV_PARTITION_HANDLE handle_v, WHV_PARTITION_PROPERTY_CODE code_v, T const& value_v) -> std::int32_t {
+			return SetProperty(handle_v, code_v, utils::as_bytes(value_v));
+		}
+
+		template <typename T> requires (std::is_trivial_v<T>)
+		static auto GetProperty(WHV_PARTITION_HANDLE handle_v, WHV_PARTITION_PROPERTY_CODE code_v, T& value_v) -> std::int32_t {
+			return GetProperty(handle_v, code_v, utils::as_mutable_bytes(value_v));
+		}
+
+	private:
+		WHV_PARTITION_HANDLE m_Handle;
 	};
 
 }

@@ -8,3 +8,135 @@
 
 #include <utility>
 using std::exchange;
+
+using win32::WHvPartition;
+
+WHvPartition::WHvPartition(WHV_PARTITION_HANDLE handle_v) noexcept
+	: m_Handle{ handle_v }
+{}
+
+WHvPartition::~WHvPartition()
+{
+	using utils::logger;
+	if (nullptr != m_Handle)
+	{		
+		auto [result_v, vcpucount_v] = GetProcessorCount(m_Handle);
+		if (result_v == S_OK)
+		{
+			for (std::uint32_t vcpuindex_v = 0u; 
+				vcpuindex_v < vcpucount_v;
+				vcpuindex_v += 1u) 
+			{
+				result_v = ::WHvDeleteVirtualProcessor(m_Handle, vcpuindex_v);
+				if (result_v != S_OK) {
+					logger::error(logger::deflog, "WHvDeleteVirtualProcessor failed with error code: {:#x} {}", 
+						result_v, win32::error::to_string(result_v));
+				}
+			}
+		}
+		else
+		{
+			logger::error(logger::deflog, "WHvGetPartitionProperty failed with error code: {:#x} {}",
+				result_v, win32::error::to_string(result_v));
+		}
+		result_v = ::WHvDeletePartition(m_Handle);
+		if (result_v != S_OK) {
+			logger::error(logger::deflog, "WHvDeletePartition failed with error code: {:#x} {}",
+				result_v, win32::error::to_string(result_v));
+		}
+	}
+}
+
+auto WHvPartition::swap(WHvPartition& with_v) noexcept -> void {
+	std::swap(m_Handle, with_v.m_Handle);
+}
+
+WHvPartition::WHvPartition(WHvPartition&& from_v) noexcept 
+	: m_Handle{ exchange(from_v.m_Handle, nullptr) }
+{}
+
+auto WHvPartition::operator=(WHvPartition&& from_v) noexcept -> WHvPartition& {	
+	if (this != &from_v) {
+		auto temp_v{ std::move(from_v) };
+		temp_v.swap(*this);
+	}
+	return *this;
+}
+
+auto WHvPartition::SetProperty(WHV_PARTITION_HANDLE handle_v, WHV_PARTITION_PROPERTY_CODE code_v, std::span<std::byte const> value_v) -> std::int32_t
+{
+	return ::WHvSetPartitionProperty(handle_v, code_v, value_v.data(), value_v.size());
+}
+
+auto WHvPartition::GetProperty(WHV_PARTITION_HANDLE handle_v, WHV_PARTITION_PROPERTY_CODE code_v, std::span<std::byte>& value_v) -> std::int32_t
+{
+	std::uint32_t size_o{ 0u };
+	auto result_v = ::WHvGetPartitionProperty(handle_v, code_v, value_v.data(), value_v.size(), &size_o);
+	value_v = value_v.first(size_o);
+	return result_v;
+}
+
+auto WHvPartition::Create(std::uint32_t vcpucount_v, std::span<property_pair const> properties_v) -> WHV_PARTITION_HANDLE
+{
+	using utils::logger;
+	WHV_PARTITION_HANDLE handle_v{ nullptr };
+	try
+	{
+		vcpucount_v = std::max(vcpucount_v, 1u);
+		WIN32_ERROR_ASSERT(::WHvCreatePartition(&handle_v));
+		WIN32_ERROR_ASSERT(SetProcessorCount(handle_v, vcpucount_v));
+		for (auto const& [prop_k, prop_v] : properties_v)
+			WIN32_ERROR_ASSERT(SetProperty(handle_v, prop_k, prop_v));
+		WIN32_ERROR_ASSERT(::WHvSetupPartition(handle_v));
+		for (std::uint32_t vcpuindex_v = 0u; vcpuindex_v < vcpucount_v; vcpuindex_v += 1u)
+			WIN32_ERROR_ASSERT(::WHvCreateVirtualProcessor(handle_v, vcpuindex_v, 0u));		
+		return handle_v;
+	}
+	catch (std::exception const& ex)
+	{	
+		if (nullptr != handle_v) {
+			auto const result_v = ::WHvDeletePartition(handle_v);
+			if (result_v != S_OK) {
+				logger::error(logger::deflog, "WHvDeletePartition failed with error code: {:#x} {}", 
+					result_v, win32::error::to_string(result_v));
+			}
+		}
+		logger::error(logger::deflog, "{} failed: {}", __func__, ex.what());
+	}
+	return nullptr;
+}
+
+auto WHvPartition::GetHandle() const -> WHV_PARTITION_HANDLE
+{
+	return m_Handle;
+}
+
+auto WHvPartition::Reset() const -> std::int32_t
+{
+	return ::WHvResetPartition(m_Handle);
+}
+
+auto WHvPartition::MapGpaRange(void* src_addr_v, std::uint64_t dst_addr_v, std::uint64_t size_v, core::Access access_v) const -> std::int32_t
+{
+	using enum core::Access;
+	WHV_MAP_GPA_RANGE_FLAGS flags_v{ };
+	if (kAccessFetch   & access_v) flags_v |= WHvMapGpaRangeFlagRead;
+	if (kAccessWrite   & access_v) flags_v |= WHvMapGpaRangeFlagWrite;
+	if (kAccessExecute & access_v) flags_v |= WHvMapGpaRangeFlagExecute;
+	return ::WHvMapGpaRange(m_Handle, src_addr_v, dst_addr_v, size_v, flags_v);
+}
+
+auto WHvPartition::UnmapGpaRange(std::uint64_t dst_addr_v, std::uint64_t size_v) const -> std::int32_t
+{
+	return ::WHvUnmapGpaRange(m_Handle, dst_addr_v, size_v);
+}
+
+auto WHvPartition::GetProcessorCount(WHV_PARTITION_HANDLE handle_v) -> std::tuple<std::int32_t, std::uint32_t> {
+	std::uint32_t vcpucount_v{ 0u };
+	auto result_v = GetProperty(handle_v, WHvPartitionPropertyCodeProcessorCount, vcpucount_v);
+	return { result_v, vcpucount_v };
+}
+
+auto WHvPartition::SetProcessorCount(WHV_PARTITION_HANDLE handle_v, std::uint32_t vcpucount_v) -> std::int32_t {
+	return SetProperty(handle_v, WHvPartitionPropertyCodeProcessorCount, vcpucount_v);	
+}

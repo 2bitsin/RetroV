@@ -47,7 +47,9 @@ namespace utils
 
 		extern "C" void __stdcall OutputDebugStringA(char const* string_v);
 		static constexpr const auto wdbg_sink = [](auto&& level_v, auto&& what_v) { 						
-			OutputDebugStringA(what_v.c_str());
+			std::string temp_v = what_v;
+			temp_v.append("\r\n");
+			OutputDebugStringA(temp_v.c_str());
 		};
 
 		static inline constexpr const auto file_sink = [](auto&& level_v, auto&& what_v) {

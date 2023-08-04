@@ -16,6 +16,8 @@ Memory::Memory(win32::WHvPartition const& partition_v, std::uint64_t base_v, std
 	, m_Base      { 0 }
 	, m_Size      { 0 }
 {
+	using utils::logger;
+
 	if (size_v < 1u) {
 		throw std::invalid_argument(
 			"Must be atleast one page");
@@ -39,6 +41,8 @@ Memory::Memory(win32::WHvPartition const& partition_v, std::uint64_t base_v, std
 		win32::error::throw_last_error();
 	}	
 
+	logger::trace(logger::deflog, "Mapping {:#016x} ... {:#016x} -> {:#016x} | {:#04b}", 
+		base_v, base_v+size_v, (std::uintptr_t)m_Data, (std::uint32_t)prot_v);
 	WIN32_ERROR_ASSERT(partition_v.MapGpaRange(m_Data, base_v, size_v, prot_v));
 
 	m_Base = base_v;
@@ -76,8 +80,14 @@ auto Memory::swap(Memory& other_v) noexcept -> void
 
 Memory::~Memory()
 {
-	if (m_Data) {
+	using utils::logger;
+	if (m_Data) 
+	{
 		m_Partition->UnmapGpaRange(m_Base, m_Size);
+
+		logger::trace(logger::deflog, "Unmapping {:#016x} ... {:#016x}",
+			m_Base, m_Base+m_Size);
+
 		::VirtualFree(m_Data, 0, MEM_RELEASE);
 	}
 }
@@ -122,8 +132,14 @@ auto Memory::Load(std::filesystem::path path_v, std::uint64_t dst_offset_v, std:
 		m_Size - dst_offset_v));
 	if (src_length_v < 1u)
 		return 0u;		
-	logger::trace(logger::deflog, "{}: path_v={} dst_offset_v={:#x} src_offset_v={:#x} src_length_v={:#x} base={:#x} size={:#x}",
-		__func__, path_v.string(), dst_offset_v, src_offset_v, src_length_v, m_Base, m_Size);
+	logger::trace(logger::deflog, 
+		"Mapping {:#016x} ... {:#016x} -> {} @ {:#016x} ... {:#016x}",
+		m_Base + src_offset_v, 
+		m_Base + src_offset_v + m_Size,
+		path_v.string(),
+		dst_offset_v, 
+		src_length_v
+	);
 	std::ifstream file_v{ path_v, std::ios::binary };
 	if (!file_v.is_open())
 		throw std::system_error(

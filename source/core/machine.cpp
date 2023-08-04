@@ -14,6 +14,8 @@ Machine::Machine(Configuration const& config_v)
 	, m_Partition { nullptr }
 	, m_Processor { *this, 0u }
 {
+	using win32::WHvEmulator;
+	m_Emulator = WHvEmulator(WHvEmulator::Create());
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);

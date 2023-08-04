@@ -19,7 +19,10 @@ auto CpuThread::Start(Machine& machine_v) -> void
 
 auto CpuThread::Stop() -> void
 {	
-	m_Thread = std::jthread();
+	if (m_Thread.joinable())
+	{
+		m_Thread = std::jthread();
+	}
 }
 
 auto CpuThread::EntryPoint(std::stop_token stopper_v, Machine& machine_v) -> void
