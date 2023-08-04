@@ -18,8 +18,10 @@ auto WHvCapabilities::LogInformation() -> void
 	auto hypervisor_present_v = Get<BOOL>(WHvCapabilityCodeHypervisorPresent);
 	auto processor_vendor_v = Get<WHV_PROCESSOR_VENDOR>(WHvCapabilityCodeProcessorVendor);
 	auto processor_features_v = Get<WHV_PROCESSOR_FEATURES>(WHvCapabilityCodeProcessorFeatures);
+	auto synthetic_features_v = Get<WHV_SYNTHETIC_PROCESSOR_FEATURES_BANKS>(WHvCapabilityCodeSyntheticProcessorFeaturesBanks);
 
-#define Q(X, Y) std::format("\n  * {:.<25} {}", #Y, (X.Y ? ": Yes" : ": No"))
+
+#define Q(X, Y) std::format("\n  * {:.<55} {}", #Y, (X.Y ? ": Yes" : ": No"))
 
 	logger::info(logger::deflog, 
 		"\n  Hypervisor present ........ : {}."
@@ -93,6 +95,29 @@ auto WHvCapabilities::LogInformation() -> void
 			+ Q(processor_features_v, MdClearSupport)
 			+ Q(processor_features_v, TaaNoSupport)
 			+ Q(processor_features_v, TsxCtrlSupport)
+
+			+ Q(synthetic_features_v, Bank0.HypervisorPresent)
+			+ Q(synthetic_features_v, Bank0.Hv1)
+			+ Q(synthetic_features_v, Bank0.AccessVpRunTimeReg)
+			+ Q(synthetic_features_v, Bank0.AccessPartitionReferenceCounter)
+			+ Q(synthetic_features_v, Bank0.AccessSynicRegs)
+			+ Q(synthetic_features_v, Bank0.AccessSyntheticTimerRegs)
+			+ Q(synthetic_features_v, Bank0.AccessIntrCtrlRegs)
+			+ Q(synthetic_features_v, Bank0.AccessHypercallRegs)
+			+ Q(synthetic_features_v, Bank0.AccessVpIndex)
+			+ Q(synthetic_features_v, Bank0.AccessPartitionReferenceTsc)
+			+ Q(synthetic_features_v, Bank0.AccessGuestIdleReg)
+			+ Q(synthetic_features_v, Bank0.AccessFrequencyRegs)
+			+ Q(synthetic_features_v, Bank0.EnableExtendedGvaRangesForFlushVirtualAddressList)
+			+ Q(synthetic_features_v, Bank0.FastHypercallOutput)
+			+ Q(synthetic_features_v, Bank0.DirectSyntheticTimers)
+			+ Q(synthetic_features_v, Bank0.ExtendedProcessorMasks)
+			+ Q(synthetic_features_v, Bank0.TbFlushHypercalls)
+			+ Q(synthetic_features_v, Bank0.SyntheticClusterIpi)
+			+ Q(synthetic_features_v, Bank0.NotifyLongSpinWait)
+			+ Q(synthetic_features_v, Bank0.QueryNumaDistance)
+			+ Q(synthetic_features_v, Bank0.SignalEvents)
+			+ Q(synthetic_features_v, Bank0.RetargetDeviceInterrupt)	
 			);
 
 #undef Q
