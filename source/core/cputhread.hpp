@@ -3,6 +3,8 @@
 #include <thread>
 #include <mutex>
 
+#include <utils/barrier.hpp>
+
 namespace core
 {
 
@@ -22,10 +24,14 @@ namespace core
 		auto Start(Machine& machine_v) -> void;
 		auto Stop() -> void;
 
+		auto Suspend() -> void;
+		auto Resume() -> void;
+
 	protected:
-		static auto EntryPoint (std::stop_token stopper_v, Machine& machine_v) -> void;
+		static auto EntryPoint (std::stop_token stopper_v, Machine& machine_v, CpuThread& this_v) -> void;
 
 	private:
+		utils::barrier m_Barrier;
 		std::jthread m_Thread;
 	};
 }

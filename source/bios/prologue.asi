@@ -17,10 +17,8 @@ Prologue:
    
     mov         si,     Strings.Hello
     call        Debug.PrintString   
-    int         0x00
-    int         0x01
-    int         0x02
-    int         0x03
+    hlt
+
     ; Make a big big loop
     mov         eax,    0xFFFFFFFF
   .L1:          
@@ -32,5 +30,6 @@ Prologue:
     jnz         .L1
     ; End of big big loop
 
-    int         0x19 ; BOOT
+  .L2:
     hlt
+    jmp         .L2
