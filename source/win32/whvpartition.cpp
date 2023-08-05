@@ -21,29 +21,18 @@ WHvPartition::~WHvPartition()
 	if (nullptr != m_Handle)
 	{		
 		auto [result_v, vcpucount_v] = GetProcessorCount(m_Handle);
+		WIN32_ERROR_NOTIFY(result_v);
 		if (result_v == S_OK)
 		{
 			for (std::uint32_t vcpuindex_v = 0u; 
 				vcpuindex_v < vcpucount_v;
-				vcpuindex_v += 1u) 
+				vcpuindex_v += 1u)			
 			{
-				result_v = ::WHvDeleteVirtualProcessor(m_Handle, vcpuindex_v);
-				if (result_v != S_OK) {
-					logger::error(logger::deflog, "WHvDeleteVirtualProcessor failed with error code: {:#x} {}", 
-						result_v, win32::error::to_string(result_v));
-				}
-			}
+				WIN32_ERROR_NOTIFY(::WHvDeleteVirtualProcessor(m_Handle, vcpuindex_v));
+			}			
 		}
-		else
-		{
-			logger::error(logger::deflog, "WHvGetPartitionProperty failed with error code: {:#x} {}",
-				result_v, win32::error::to_string(result_v));
-		}
-		result_v = ::WHvDeletePartition(m_Handle);
-		if (result_v != S_OK) {
-			logger::error(logger::deflog, "WHvDeletePartition failed with error code: {:#x} {}",
-				result_v, win32::error::to_string(result_v));
-		}
+		WIN32_ERROR_NOTIFY(::WHvDeletePartition(m_Handle));
+		
 	}
 }
 
@@ -94,13 +83,8 @@ auto WHvPartition::Create(std::uint32_t vcpucount_v, std::span<property_pair con
 	}
 	catch (std::exception const& ex)
 	{	
-		if (nullptr != handle_v) {
-			auto const result_v = ::WHvDeletePartition(handle_v);
-			if (result_v != S_OK) {
-				logger::error(logger::deflog, "WHvDeletePartition failed with error code: {:#x} {}", 
-					result_v, win32::error::to_string(result_v));
-			}
-		}
+		if (nullptr != handle_v) 
+			WIN32_ERROR_NOTIFY(::WHvDeletePartition(handle_v));
 		logger::error(logger::deflog, "{} failed: {}", __func__, ex.what());
 	}
 	return nullptr;

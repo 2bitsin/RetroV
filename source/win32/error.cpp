@@ -3,6 +3,8 @@
 
 #include <format>
 
+#include <utils/logger.hpp>
+
 using win32::error;
 
 auto error::last_error() -> std::int32_t
@@ -25,6 +27,15 @@ auto error::__assert__(std::int32_t errvalue_v, std::source_location location_v,
 {
 	if (errvalue_v != ERROR_SUCCESS) {		
 		throw error(errvalue_v, code_v, std::move(location_v));
+	}
+}
+
+auto error::__notify__(std::int32_t errvalue_v, std::source_location location_v, std::string_view code_line) -> void
+{
+	using utils::logger;
+	if (errvalue_v != ERROR_SUCCESS) {
+		logger::error(logger::deflog, "{} failed : {} ({}:{}:{})", code_line, to_string(errvalue_v), 
+			location_v.file_name(), location_v.line(), location_v.column());
 	}
 }
 

@@ -41,8 +41,7 @@ WHvEmulator::WHvEmulator(WHvEmulator&& other_v) noexcept
 	: m_Handle{ exchange(other_v.m_Handle, nullptr) }
 {}
 
-auto WHvEmulator::operator=(WHvEmulator&& other_v) noexcept -> WHvEmulator&
-{
+auto WHvEmulator::operator=(WHvEmulator&& other_v) noexcept -> WHvEmulator& {
 	if (this != &other_v) {
 		auto temp_v{ std::move(other_v) };
 		temp_v.swap(*this);
@@ -50,8 +49,7 @@ auto WHvEmulator::operator=(WHvEmulator&& other_v) noexcept -> WHvEmulator&
 	return *this;	
 }
 
-auto WHvEmulator::swap(WHvEmulator& other_v) noexcept -> void
-{
+auto WHvEmulator::swap(WHvEmulator& other_v) noexcept -> void {
 	std::swap(m_Handle, other_v.m_Handle);
 }
 
@@ -66,27 +64,23 @@ auto win32::WHvEmulator::Create() -> WHV_EMULATOR_HANDLE {
 	});
 }
 
-auto WHvEmulator::GetHandle() const noexcept -> WHV_EMULATOR_HANDLE
-{
+auto WHvEmulator::GetHandle() const noexcept -> WHV_EMULATOR_HANDLE {
 	return m_Handle;
 }
 
-auto WHvEmulator::Create(WHV_EMULATOR_CALLBACKS const& callbacks_v) -> WHV_EMULATOR_HANDLE
-{
+auto WHvEmulator::Create(WHV_EMULATOR_CALLBACKS const& callbacks_v) -> WHV_EMULATOR_HANDLE {
 	WHV_EMULATOR_HANDLE handle_v{ nullptr };
 	WIN32_ERROR_ASSERT(::WHvEmulatorCreateEmulator(&callbacks_v, &handle_v));
 	return handle_v;
 }
 
-auto WHvEmulator::MemoryAccess(void* context_v, WHV_EMULATOR_MEMORY_ACCESS_INFO* info_v) -> HRESULT
-{	
+auto WHvEmulator::MemoryAccess(void* context_v, WHV_EMULATOR_MEMORY_ACCESS_INFO* info_v) -> HRESULT {	
 	auto const& context_r = *(InvocationContext*)context_v;
 	assert (nullptr != context_r.MemoryAccess);
 	return context_r.MemoryAccess(context_r.ObjectPointer, info_v);
 }
 
-auto WHvEmulator::IoPortAccess(void* context_v, WHV_EMULATOR_IO_ACCESS_INFO* info_v) -> HRESULT
-{
+auto WHvEmulator::IoPortAccess(void* context_v, WHV_EMULATOR_IO_ACCESS_INFO* info_v) -> HRESULT {
 	auto const& context_r = *(InvocationContext*)context_v;
 	assert (nullptr != context_r.IoPortAccess);
 	return context_r.IoPortAccess(context_r.ObjectPointer, info_v);

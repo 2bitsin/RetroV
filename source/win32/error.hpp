@@ -18,7 +18,9 @@ namespace win32
 		
 		static auto last_error() -> std::int32_t;
 		static auto to_string(std::int32_t value_v) -> std::string;
+
 		static auto __assert__(std::int32_t errvalue_v, std::source_location location_v, std::string_view clode_line = "") -> void;
+		static auto __notify__(std::int32_t errvalue_v, std::source_location location_v, std::string_view clode_line = "") -> void;
 	
 		static auto throw_last_error (std::source_location location_v = std::source_location::current()) -> void;
 
@@ -62,3 +64,4 @@ namespace win32
 
 }
 #define WIN32_ERROR_ASSERT(expression) ::win32::error::__assert__(expression, std::source_location::current(), #expression)
+#define WIN32_ERROR_NOTIFY(expression) ::win32::error::__notify__(expression, std::source_location::current(), #expression)

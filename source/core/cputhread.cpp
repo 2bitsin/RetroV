@@ -12,15 +12,12 @@ CpuThread::CpuThread()
 CpuThread::~CpuThread()
 {}
 
-auto CpuThread::Start(Machine& machine_v) -> void
-{	
+auto CpuThread::Start(Machine& machine_v) -> void {	
 	m_Thread = std::jthread(&EntryPoint, std::ref(machine_v));
 }
 
-auto CpuThread::Stop() -> void
-{	
-	if (m_Thread.joinable())
-	{
+auto CpuThread::Stop() -> void {	
+	if (m_Thread.joinable()) {
 		m_Thread = std::jthread();
 	}
 }
