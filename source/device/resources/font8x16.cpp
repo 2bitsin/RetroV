@@ -1,8 +1,9 @@
-#include <device/resources/font.hpp>
+#include <device/video/font.hpp>
 
 #include <utils/literals.hpp>
 
 using namespace misc_literals;
+using device::video::font;
 
 static inline constexpr std::byte const font_8x16_bytes[] = 
 {
@@ -350,6 +351,6 @@ static inline constexpr std::byte const font_8x16_bytes[] =
 	0x00_b, 0x00_b, 0x00_b, 0x00_b
 };
 
-auto device::font::font_8x16() -> std::span<std::byte const> {
-	return font_8x16_bytes;
+auto font::get_8x16() -> font {
+	return font { 8u, 16u, 1u, font_8x16_bytes };	
 }
