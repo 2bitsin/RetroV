@@ -68,6 +68,12 @@ auto WHvEmulator::GetHandle() const noexcept -> WHV_EMULATOR_HANDLE {
 	return m_Handle;
 }
 
+auto WHvEmulator::SetHandle(WHV_EMULATOR_HANDLE handle_v) noexcept -> void
+{
+	WHvEmulator::~WHvEmulator();
+	m_Handle = handle_v;
+}
+
 auto WHvEmulator::Create(WHV_EMULATOR_CALLBACKS const& callbacks_v) -> WHV_EMULATOR_HANDLE {
 	WHV_EMULATOR_HANDLE handle_v{ nullptr };
 	WIN32_ERROR_ASSERT(::WHvEmulatorCreateEmulator(&callbacks_v, &handle_v));

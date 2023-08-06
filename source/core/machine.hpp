@@ -33,6 +33,8 @@ namespace core
 		auto Stop() -> void;
 		auto Reset() -> void;
 		auto RunMain() -> void;
+
+		auto Interrupt(std::uint8_t vector_v) -> void;
 	
 	protected:
 		friend Processor;
@@ -42,7 +44,6 @@ namespace core
 		auto Emulator() const -> win32::WHvEmulator const& { return m_Emulator;  }
 		auto Processor() const -> Processor const& { return m_Processor; }
 
-		auto ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, std::uint32_t vcpuindex_v) -> void;		
 		auto IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
 		auto MemoryAccess(bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t;		
 	

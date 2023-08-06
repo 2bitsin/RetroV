@@ -71,6 +71,7 @@ namespace win32
 		auto swap(WHvEmulator& other_v) noexcept -> void;
 
 		auto GetHandle() const noexcept -> WHV_EMULATOR_HANDLE;
+		auto SetHandle(WHV_EMULATOR_HANDLE handle_v) noexcept -> void;
 
 		template <typename ObjectT>
 		auto TryIoEmulation(ObjectT& object_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) const noexcept 

@@ -17,19 +17,6 @@ Prologue:
    
     mov         si,     Strings.Hello
     call        Debug.PrintString   
-    hlt
-
-    ; Make a big big loop
-    mov         eax,    0xFFFFFFFF
-  .L1:          
-    mov         ecx,    0xFFFFFFFF
-  .L0: 
-    xor         edx,    eax
-    loop        .L0
-    dec         eax
-    jnz         .L1
-    ; End of big big loop
-
   .L2:
     hlt
     jmp         .L2

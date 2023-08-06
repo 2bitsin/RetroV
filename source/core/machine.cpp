@@ -10,12 +10,12 @@ using namespace size_literals;
 using core::Machine;
 
 Machine::Machine(Configuration const& config_v)
-	: m_Emulator  { nullptr }
-	, m_Partition { nullptr }
+	
+	: m_Partition { nullptr }
 	, m_Processor { *this, 0u }
+	, m_Debugger  { }
+	, m_CpuThread { }
 {
-	using win32::WHvEmulator;
-	m_Emulator = WHvEmulator(WHvEmulator::Create());
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);
@@ -26,7 +26,7 @@ Machine::~Machine()
 
 auto Machine::Start() -> void
 {
-	m_CpuThread.Start(*this);
+	m_CpuThread.Start(m_Processor);
 }
 
 auto Machine::Stop() -> void
@@ -40,11 +40,16 @@ auto Machine::Reset() -> void
 	m_Processor.Reset();
 	m_Partition.Reset();
 	m_Debugger.Reset();
-	m_CpuThread.Start(*this);
+	m_CpuThread.Start(m_Processor);
 }
 
 auto Machine::RunMain() -> void
 {
+}
+
+auto Machine::Interrupt(std::uint8_t vector_v) -> void
+{
+	WIN32_ERROR_ASSERT(m_Processor.RequestInterrupt(vector_v));
 }
 
 auto Machine::ConfigurePartition(Configuration const&) -> void
@@ -110,22 +115,6 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 	auto addr_v = 1_MiB - size_v;
 	m_Memory.emplace_back(m_Partition, addr_v / kPageSize, size_v / kPageSize, kAccessReadOnly);
 	m_Memory.back().Load(path_v);
-}
-
-auto Machine::ProcessorExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v, std::uint32_t vcpuindex_v) -> void
-{
-	switch (exit_v.ExitReason) 
-	{
-	case WHvRunVpExitReasonX64IoPortAccess:
-		m_Emulator.TryIoEmulation(m_Processor, exit_v.VpContext, exit_v.IoPortAccess);
-		break;
-	case WHvRunVpExitReasonMemoryAccess:
-		m_Emulator.TryMmioEmulation(m_Processor, exit_v.VpContext, exit_v.MemoryAccess);
-		break;
-	default:
-		__debugbreak();	
-		break;
-	}
 }
 
 auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t

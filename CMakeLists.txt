@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(HvDOS)
 
 set (VCPKG_TARGET_TRIPLET "x64-windows-static")
+set (CMAKE_SYSTEM_VERSION "10.0.22621.0")
 
 # include some misc fucntionality
 include(${CMAKE_SOURCE_DIR}/cmake/stack.cmake)

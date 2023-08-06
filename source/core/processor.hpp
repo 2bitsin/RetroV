@@ -4,10 +4,13 @@
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
 #include <win32/whvprocessor.hpp>
+#include <win32/whvemulator.hpp>
 
 #include <utils/bitmanip.hpp>
 #include <utils/span.hpp>
 
+#include <stop_token>
+#include <semaphore>
 #include <cstdint>
 #include <cstddef>
 #include <span>
@@ -28,7 +31,21 @@ namespace core
 		auto SetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE const> values_v) const -> std::int32_t;
 		auto TranslateGvaPage(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v, WHV_TRANSLATE_GVA_RESULT_CODE& code_v, std::uint64_t& physaddr_v) const -> std::int32_t;
 
+		auto Run(std::stop_token stopper_v) const -> std::tuple<std::int32_t, WHV_RUN_VP_EXIT_CONTEXT>;
+
+		auto RequestInterrupt(std::uint8_t vector_v) const -> std::int32_t;
+		auto RequestNonMaskable() const -> std::int32_t;
+
+	protected:
+
+ 		static auto Emulator () -> win32::WHvEmulator&;
+
+		auto InterruptsEnabled() const -> bool;
+		auto AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& vpcontext_v) const -> std::int32_t;
+
 	private:
 		Machine& m_Machine;		
+		mutable std::binary_semaphore m_Halt;
+
 	};
 }
