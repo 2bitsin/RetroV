@@ -6,7 +6,7 @@ using namespace std::string_literals;
 using core::Configuration;
 
 auto Configuration::GetPropertyIint64(std::string_view key_v) const -> std::int64_t 
-{ 
+{
 	std::size_t index_v{ 0 };
 	auto const string_v = GetPropertyString(key_v);
 	auto const value_v = std::stoll(string_v, &index_v);

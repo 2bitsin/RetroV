@@ -3,6 +3,10 @@
 #include <win32/whvprocessor.hpp>
 #include <win32/whvpartition.hpp>
 
+#include <utils/literals.hpp>
+
+using namespace size_literals;
+
 using core::Processor;
 
 Processor::Processor(Machine& machine_v, std::uint32_t vcpuindex_v)
@@ -21,7 +25,14 @@ auto Processor::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limit
 
 auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 8u> data_v) const -> std::int32_t
 {	
-	return WHvProcessor::MemoryAccess(is_write_v, physaddr_v, data_v);
+	using T = WHvProcessor;
+	if (auto result_v = T::MemoryAccess(is_write_v, physaddr_v, data_v); result_v) {
+		if (ERROR_ACCESS_DENIED == HRESULT_CODE(result_v))
+			return m_Machine.MemoryAccess(is_write_v, physaddr_v, data_v);		
+		__debugbreak();
+		return result_v;
+	}			
+	return ERROR_SUCCESS;
 }
 
 auto Processor::GetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE> values_v) const -> std::int32_t
@@ -61,7 +72,7 @@ auto Processor::Run(std::stop_token stopper_v) const -> std::tuple<std::int32_t,
 			continue;
 		case WHvRunVpExitReasonX64MsrAccess:
 			emulator_v.TryMmioEmulation(*this, context_v.VpContext, context_v.MemoryAccess);
-			continue;
+			continue;		
 		case WHvRunVpExitReasonX64Halt:
 			if (InterruptsEnabled()) { 
 				m_Halt.acquire();
@@ -97,7 +108,19 @@ auto Processor::RequestInterrupt(std::uint8_t vector_v) const -> std::int32_t
 
 auto Processor::RequestNonMaskable() const -> std::int32_t
 {
-	return RequestInterrupt(2u);
+	auto const result_v = SetRegister(WHvRegisterPendingInterruption, {
+		.PendingInterruption = {
+			.InterruptionPending = 1u,
+			.InterruptionType = WHvX64PendingNmi,
+			.DeliverErrorCode = 0u,
+			.InstructionLength = 0u,
+			.NestedEvent = 0u,
+			.InterruptionVector = 2u,
+			.ErrorCode = 0u
+		}
+		});
+	m_Halt.release();
+	return result_v;
 }
 
 auto Processor::Emulator() -> win32::WHvEmulator&

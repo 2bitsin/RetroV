@@ -42,8 +42,8 @@ namespace win32
 			rethrow_error();
 		}
 
-		inline auto drop_error() {
-			m_value = 0u;
+		inline auto drop_error() -> std::int32_t {
+			return std::exchange(m_value, 0);
 		}
 
 		inline auto rethrow_error() -> void {			

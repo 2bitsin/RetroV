@@ -42,7 +42,6 @@ namespace core
 
 		auto InterruptsEnabled() const -> bool;
 		auto AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& vpcontext_v) const -> std::int32_t;
-
 	private:
 		Machine& m_Machine;		
 		mutable std::binary_semaphore m_Halt;

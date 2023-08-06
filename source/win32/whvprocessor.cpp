@@ -71,8 +71,7 @@ auto WHvProcessor::GetRegister(WHV_REGISTER_NAME rname_v, WHV_REGISTER_VALUE& va
 auto WHvProcessor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 8u> buffer_v, WHV_CACHE_TYPE cache_v) const -> std::int32_t
 {
 	auto const cc_v = WHV_ACCESS_GPA_CONTROLS{ .CacheType = cache_v };
-	
-	if (!is_write_v) {
+		if (!is_write_v) {
 		return ::WHvReadGpaRange(m_Partition.GetHandle(), m_VcpuIndex, physaddr_v, cc_v, buffer_v.data(), buffer_v.size());
 	} else {
 		return ::WHvWriteGpaRange(m_Partition.GetHandle(), m_VcpuIndex, physaddr_v, cc_v, buffer_v.data(), buffer_v.size());
