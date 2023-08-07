@@ -4,6 +4,9 @@
 #include <win32/whvpartition.hpp>
 
 #include <utils/literals.hpp>
+#include <utils/lambda.hpp>
+
+#include <future>
 
 using namespace size_literals;
 
@@ -12,7 +15,7 @@ using core::Processor;
 Processor::Processor(Machine& machine_v, std::uint32_t vcpuindex_v)
 	: WHvProcessor{ machine_v.Partition(), vcpuindex_v }
 	, m_Machine{ machine_v }
-	, m_Halt{ 0u }
+	, m_Suspend{ 0u }
 {}
 
 Processor::~Processor()
@@ -51,20 +54,21 @@ auto Processor::TranslateGvaPage(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLA
 	addr_o = addr_v; code_o = code_v; return status_v;
 }
 
-auto Processor::Run(std::stop_token stopper_v) const -> std::tuple<std::int32_t, WHV_RUN_VP_EXIT_CONTEXT>
+auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 {
-	std::stop_callback stopcbk_v(stopper_v, [this] { 
-		m_Halt.release();
-		Cancel();
-	});
+	std::stop_callback stopcbk_v{ stoppee_v, [this] { 
+		WHvProcessor::Cancel();
+		m_Suspend.release();
+	}};
+
+	std::unique_lock lock_v{ m_IsRunning };
 	auto& emulator_v = Emulator();
-	std::int32_t status_v{ 0 };
-	WHV_RUN_VP_EXIT_CONTEXT context_v{};
-	while (!stopper_v.stop_requested())
+	while (!stoppee_v.stop_requested())
 	{		
-		WIN32_ERROR_ASSERT(std::get<std::int32_t&>(
-			std::tie(status_v, context_v) = WHvProcessor::Run()
-		));
+		auto const result_v = WHvProcessor::Run();
+		auto const [status_v, context_v] = result_v;
+		if (!SUCCEEDED(status_v))
+			return result_v;		
 		switch (context_v.ExitReason)
 		{
 		case WHvRunVpExitReasonX64IoPortAccess:
@@ -75,21 +79,44 @@ auto Processor::Run(std::stop_token stopper_v) const -> std::tuple<std::int32_t,
 			continue;		
 		case WHvRunVpExitReasonX64Halt:
 			if (InterruptsEnabled()) { 
-				m_Halt.acquire();
+				m_Suspend.acquire();
 				continue;
 			}			
 			[[fallthrough]];
 		case WHvRunVpExitReasonCanceled:
-			return { status_v, context_v };
+			return result_v;
 		default:
-			__debugbreak();
-			return { status_v, context_v };
+			return result_v;
 		}
 	}
-	return { status_v, context_v };
+	// Discard injected cacel event
+	return WHvProcessor::Run();
 }
 
-auto Processor::RequestInterrupt(std::uint8_t vector_v) const -> std::int32_t
+auto Processor::RunAsync() -> exit_future_type
+{
+	std::unique_lock lock_v{ m_IsRunning, std::try_to_lock };
+	if (!lock_v.owns_lock()) {
+		if (m_FutureExit.valid())
+			return m_FutureExit;
+		throw std::runtime_error(
+			"Processor already running, but no future available"
+		);
+	}
+	m_Stopper = std::stop_source{};
+	m_FutureExit = std::async(std::launch::async, utils::lambda(this, &Processor::Run),
+		m_Stopper.get_token()).share();
+	return m_FutureExit;
+}
+
+auto Processor::CancelAsync() -> void {
+	std::unique_lock lock_v{ m_IsRunning, std::try_to_lock };
+	if (lock_v.owns_lock()) return;	
+	m_Stopper.request_stop();
+	lock_v.lock();
+}
+
+auto Processor::RequestInterrupt(std::uint8_t vector_v) -> std::int32_t
 {	
 	auto const result_v = SetRegister(WHvRegisterPendingInterruption, {
 		.PendingInterruption = {
@@ -102,11 +129,11 @@ auto Processor::RequestInterrupt(std::uint8_t vector_v) const -> std::int32_t
 			.ErrorCode = 0u
 		}
 	});
-	m_Halt.release();
+	m_Suspend.release();
 	return result_v;
 }
 
-auto Processor::RequestNonMaskable() const -> std::int32_t
+auto Processor::RequestNonMaskable() -> std::int32_t
 {
 	auto const result_v = SetRegister(WHvRegisterPendingInterruption, {
 		.PendingInterruption = {
@@ -119,7 +146,7 @@ auto Processor::RequestNonMaskable() const -> std::int32_t
 			.ErrorCode = 0u
 		}
 		});
-	m_Halt.release();
+	m_Suspend.release();
 	return result_v;
 }
 

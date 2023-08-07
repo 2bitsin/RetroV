@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace device::video
+namespace device::resources
 {
 	struct font 
 	{

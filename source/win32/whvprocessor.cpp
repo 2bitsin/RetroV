@@ -30,6 +30,11 @@ auto WHvProcessor::Run(WHV_RUN_VP_EXIT_CONTEXT& exit_v) const -> std::int32_t
 	return ::WHvRunVirtualProcessor(m_Partition.GetHandle(), m_VcpuIndex, &exit_v, sizeof(exit_v));
 }
 
+auto WHvProcessor::GetIndex() const -> std::uint32_t
+{
+	return m_VcpuIndex;
+}
+
 auto WHvProcessor::Run() const -> std::tuple<std::int32_t, WHV_RUN_VP_EXIT_CONTEXT>
 {
 	WHV_RUN_VP_EXIT_CONTEXT exit_v{};

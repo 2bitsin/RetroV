@@ -101,11 +101,9 @@ namespace win32
 		
 		auto SubmitTo(WorkQueue& queue_v, time_point_type expire_v,
 			duration_type period_v = duration_type::zero()) -> void;
-
 		
 		auto SubmitTo(WorkQueue& queue_v, duration_type expire_v,
 			duration_type period_v = duration_type::zero()) -> void;
-
 
 	protected:
 		static auto ToFileTime(std::chrono::system_clock::time_point time_v) -> FILETIME;

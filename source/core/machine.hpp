@@ -11,7 +11,6 @@
 #include <core/configuration.hpp>
 #include <core/memory.hpp>
 #include <core/processor.hpp>
-#include <core/cputhread.hpp>
 #include <core/debugger.hpp>
 
 #include <utils/span.hpp>
@@ -38,7 +37,6 @@ namespace core
 	
 	protected:
 		friend Processor;
-		friend CpuThread;
 
 		auto Partition() const -> win32::WHvPartition const& { return m_Partition; }
 		auto Emulator() const -> win32::WHvEmulator const& { return m_Emulator;  }
@@ -57,7 +55,7 @@ namespace core
 		win32::WHvPartition m_Partition;
 		std::list<Memory> m_Memory;
 		core::Processor m_Processor;
-		core::CpuThread m_CpuThread;
+		core::Processor::exit_future_type m_ProcessorExit;
 		core::Debugger m_Debugger;
 	};
 

@@ -18,6 +18,8 @@ namespace win32
 	{		
 		WHvProcessor(WHvPartition const& partition_v, std::uint32_t vcpuindex_v=0u);
 	  ~WHvProcessor() = default;
+		
+		auto GetIndex() const -> std::uint32_t;
 
 		auto Run() const -> std::tuple<std::int32_t, WHV_RUN_VP_EXIT_CONTEXT>;
 		auto Reset() const -> std::int32_t;
@@ -33,6 +35,6 @@ namespace win32
 
 	private:
 		win32::WHvPartition const& m_Partition;
-		std::uint32_t m_VcpuIndex;		
+		std::uint32_t m_VcpuIndex;
 	};
 }

@@ -1,9 +1,9 @@
-#include <device/video/font.hpp>
+#include <device/resources/font.hpp>
 
 #include <utils/literals.hpp>
 
 using namespace misc_literals;
-using device::video::font;
+using device::resources::font;
 
 static inline constexpr std::byte const font_8x16_bytes[] = 
 {

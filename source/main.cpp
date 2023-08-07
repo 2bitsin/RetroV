@@ -64,10 +64,10 @@ int main(int argc, char** argv) try
 			{
 				switch (event_v.key.keysym.sym) 
 				{
-				case SDLK_F12: vmcore_v.Stop(); break;
-				case SDLK_F11: vmcore_v.Start(); break;
+				case SDLK_F8: vmcore_v.Stop(); break;
+				case SDLK_F9: vmcore_v.Start(); break;
 				case SDLK_F10: vmcore_v.Reset(); break;
-				case SDLK_F9: vmcore_v.Interrupt(0x9); break;
+				case SDLK_F11: vmcore_v.Interrupt(0x11); break;
 				}
 			}
 			continue;

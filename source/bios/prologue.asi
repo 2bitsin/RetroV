@@ -18,15 +18,15 @@ Prologue:
     mov         si,     Strings.Hello
     call        Debug.PrintString   
 
-    push        ds si cx dx
-    mov         si,     0x9FFF
-    mov         ds,     si
-    mov         si,     0xF
-    cld
-    mov         dx,     0xFFFF
-    mov         cx,     0x10
-    rep         outsw
-    pop         dx cx si ds
+;    push        ds si cx dx
+;    mov         si,     0x9FFF
+;    mov         ds,     si
+;    mov         si,     0xF
+;    cld
+;    mov         dx,     0xFFFF
+;    mov         cx,     0x10
+;    rep         outsw
+;    pop         dx cx si ds
 
   .L2:
     hlt

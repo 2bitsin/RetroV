@@ -13,6 +13,8 @@
 #include <semaphore>
 #include <cstdint>
 #include <cstddef>
+#include <future>
+#include <tuple>
 #include <span>
 
 namespace core
@@ -22,6 +24,9 @@ namespace core
 	struct Processor: 
 		public win32::WHvProcessor
 	{
+		using exit_result_type = std::tuple<std::int32_t, WHV_RUN_VP_EXIT_CONTEXT>;
+		using exit_future_type = std::shared_future<exit_result_type>;
+
 		Processor(Machine& machine_v, std::uint32_t vcpuindex_v);
 		~Processor();
 
@@ -31,10 +36,12 @@ namespace core
 		auto SetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE const> values_v) const -> std::int32_t;
 		auto TranslateGvaPage(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v, WHV_TRANSLATE_GVA_RESULT_CODE& code_v, std::uint64_t& physaddr_v) const -> std::int32_t;
 
-		auto Run(std::stop_token stopper_v) const -> std::tuple<std::int32_t, WHV_RUN_VP_EXIT_CONTEXT>;
+		auto Run(std::stop_token stoppee_v) -> exit_result_type;
+		auto RunAsync() -> exit_future_type;
+		auto CancelAsync() -> void;
 
-		auto RequestInterrupt(std::uint8_t vector_v) const -> std::int32_t;
-		auto RequestNonMaskable() const -> std::int32_t;
+		auto RequestInterrupt(std::uint8_t vector_v) -> std::int32_t;
+		auto RequestNonMaskable() -> std::int32_t;
 
 	protected:
 
@@ -44,7 +51,9 @@ namespace core
 		auto AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& vpcontext_v) const -> std::int32_t;
 	private:
 		Machine& m_Machine;		
-		mutable std::binary_semaphore m_Halt;
-
+		std::mutex m_IsRunning;
+		std::binary_semaphore m_Suspend;
+		std::stop_source m_Stopper;
+		exit_future_type m_FutureExit;
 	};
 }

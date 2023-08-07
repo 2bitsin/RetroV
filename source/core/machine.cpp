@@ -1,6 +1,7 @@
 #include <win32/whvcapabilities.hpp>
 #include <core/machine.hpp>
 #include <utils/literals.hpp>
+#include <utils/logger.hpp>
 #include <utils/paths.hpp>
 #include <utils/span.hpp>
 
@@ -14,7 +15,6 @@ Machine::Machine(Configuration const& config_v)
 	: m_Partition { nullptr }
 	, m_Processor { *this, 0u }
 	, m_Debugger  { }
-	, m_CpuThread { }
 {
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
@@ -26,25 +26,54 @@ Machine::~Machine()
 
 auto Machine::Start() -> void
 {
-	m_CpuThread.Start(m_Processor);
+	using utils::logger;
+	logger::info(logger::deflog, "Starting machine...");
+	m_ProcessorExit = m_Processor.RunAsync();
 }
 
 auto Machine::Stop() -> void
 {
-	m_CpuThread.Stop();
+	using utils::logger;
+	logger::info(logger::deflog, "Stopping machine...");
+	m_Processor.CancelAsync();
+	if (m_ProcessorExit.valid()) {
+		m_ProcessorExit.wait();
+	}
 }
 
 auto Machine::Reset() -> void
 {
-	m_CpuThread.Stop();
+	Stop();
 	m_Processor.Reset();
 	m_Partition.Reset();
 	m_Debugger.Reset();
-	m_CpuThread.Start(m_Processor);
+	Start();
 }
 
 auto Machine::RunMain() -> void
 {
+	using utils::logger;
+	using namespace std::chrono_literals;	
+	if (!m_ProcessorExit.valid() || std::future_status::ready != m_ProcessorExit.wait_for(0s))
+		return;
+	auto const [status_v, context_v] = m_ProcessorExit.get();
+	std::exchange(m_ProcessorExit, {});
+	if (status_v != ERROR_SUCCESS) {
+		throw win32::error(status_v);
+	}	
+	switch (context_v.ExitReason)
+	{
+	case WHvRunVpExitReasonCanceled:
+		logger::info(logger::deflog, "CPU[{}] exited, reason=Cancelled",
+			m_Processor.GetIndex(),
+			(std::uint32_t)context_v.ExitReason);
+		return;
+	default:
+		logger::error(logger::deflog, "CPU[{}] exited unexpectedly with reason={:#x}, rebooting...", 
+			m_Processor.GetIndex(),
+			(std::uint32_t)context_v.ExitReason);
+		return Reset();
+	}
 }
 
 auto Machine::Interrupt(std::uint8_t vector_v) -> void
