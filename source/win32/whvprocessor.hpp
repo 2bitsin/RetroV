@@ -30,8 +30,18 @@ namespace win32
 		auto SetRegisters(std::span<WHV_REGISTER_NAME const> rnames_v, std::span<WHV_REGISTER_VALUE const> values_v) const -> std::int32_t;
 		auto SetRegister(WHV_REGISTER_NAME rname_v, WHV_REGISTER_VALUE value_v) const -> std::int32_t;
 		auto GetRegister(WHV_REGISTER_NAME rname_v, WHV_REGISTER_VALUE& value_v) const -> std::int32_t;
+
+		template <typename T = WHV_REGISTER_VALUE> 
+		requires (sizeof(T) <= sizeof(WHV_REGISTER_VALUE) && std::is_trivial_v<T>)
+		inline auto GetRegister(WHV_REGISTER_NAME rname_v) const -> T {
+			WHV_REGISTER_VALUE value_v{};
+			WIN32_ERROR_ASSERT(GetRegister(rname_v, value_v));
+			return reinterpret_cast<T const&>(value_v);
+		}
+
 		auto TranslateGva(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v) const -> std::tuple<std::int32_t, WHV_TRANSLATE_GVA_RESULT_CODE, std::uint64_t>;
 		auto MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 8u> data_v, WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) const -> std::int32_t;
+		auto RequestIRQ(WHV_INTERRUPT_CONTROL const& irq_v) -> std::int32_t;
 
 	private:
 		win32::WHvPartition const& m_Partition;

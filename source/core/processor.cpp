@@ -19,7 +19,10 @@ Processor::Processor(Machine& machine_v, std::uint32_t vcpuindex_v)
 {}
 
 Processor::~Processor()
-{}
+{ 
+	m_Stopper.request_stop();
+	m_Suspend.release();
+}
 
 auto Processor::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) const -> std::int32_t
 {
@@ -28,14 +31,14 @@ auto Processor::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limit
 
 auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 8u> data_v) const -> std::int32_t
 {	
-	using T = WHvProcessor;
-	if (auto result_v = T::MemoryAccess(is_write_v, physaddr_v, data_v); result_v) {
-		if (ERROR_ACCESS_DENIED == HRESULT_CODE(result_v))
-			return m_Machine.MemoryAccess(is_write_v, physaddr_v, data_v);		
-		__debugbreak();
+	std::int32_t result_v{ ERROR_SUCCESS };
+	result_v = WHvProcessor::MemoryAccess(is_write_v, physaddr_v, data_v);
+	if (SUCCEEDED(result_v))
 		return result_v;
-	}			
-	return ERROR_SUCCESS;
+	result_v = m_Machine.MemoryAccess(is_write_v, physaddr_v, data_v);		
+	if (SUCCEEDED(result_v))
+		return result_v;
+	return result_v;
 }
 
 auto Processor::GetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE> values_v) const -> std::int32_t
@@ -56,6 +59,12 @@ auto Processor::TranslateGvaPage(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLA
 
 auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 {
+	HRESULT r;
+	r = ::SetThreadDescription(
+		::GetCurrentThread(),
+		L"Processor::Run (CPU Thread)"
+	);
+
 	std::stop_callback stopcbk_v{ stoppee_v, [this] { 
 		WHvProcessor::Cancel();
 		m_Suspend.release();
@@ -89,7 +98,8 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 			return result_v;
 		}
 	}
-	// Discard injected cacel event
+	// In case the cpu was suspended, 
+	// eat the injected cacel event
 	return WHvProcessor::Run();
 }
 
@@ -116,8 +126,11 @@ auto Processor::CancelAsync() -> void {
 	lock_v.lock();
 }
 
-auto Processor::RequestInterrupt(std::uint8_t vector_v) -> std::int32_t
+auto Processor::RequestIRQ(std::uint8_t vector_v) -> std::int32_t
 {	
+#if 0
+	if (!InterruptsEnabled())
+		return ERROR_SUCCESS;
 	auto const result_v = SetRegister(WHvRegisterPendingInterruption, {
 		.PendingInterruption = {
 			.InterruptionPending = 1u,
@@ -129,7 +142,16 @@ auto Processor::RequestInterrupt(std::uint8_t vector_v) -> std::int32_t
 			.ErrorCode = 0u
 		}
 	});
+#else
+	WHV_INTERRUPT_CONTROL irq_v{ };
+	irq_v.Type = WHvX64InterruptTypeFixed;
+	irq_v.DestinationMode = WHvX64InterruptDestinationModeLogical;
+	irq_v.TriggerMode = WHvX64InterruptTriggerModeEdge;
+	irq_v.Destination = WHvProcessor::GetIndex();
+	irq_v.Vector = 16 + vector_v;
+	auto const result_v = WHvProcessor::RequestIRQ(irq_v);
 	m_Suspend.release();
+#endif
 	return result_v;
 }
 
@@ -168,6 +190,6 @@ auto Processor::AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& vpcontext_v) const
 {
 	return SetRegister(WHvX64RegisterRip, { 
 		.Reg64 = vpcontext_v.InstructionLength
-		       + vpcontext_v.Rip		       
+		       + vpcontext_v.Rip
 	});
 }

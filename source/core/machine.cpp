@@ -19,6 +19,14 @@ Machine::Machine(Configuration const& config_v)
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);
+
+	auto q = m_Processor.GetRegister(WHvX64RegisterApicBase);
+
+	WIN32_ERROR_ASSERT(m_Processor.SetRegister(WHvX64RegisterApicBase, { .Reg64 = 0xE0000u + 0x900u }));
+
+	std::uint32_t sir_v{ 0x1FFu };
+	WIN32_ERROR_ASSERT(m_Processor.MemoryAccess(true, 0xE00F0u, utils::as_static_mutable_bytes(sir_v)));
+
 }
 
 Machine::~Machine() 
@@ -64,30 +72,32 @@ auto Machine::RunMain() -> void
 	switch (context_v.ExitReason)
 	{
 	case WHvRunVpExitReasonCanceled:
-		logger::info(logger::deflog, "CPU[{}] exited, reason=Cancelled",
-			m_Processor.GetIndex(),
-			(std::uint32_t)context_v.ExitReason);
+		logger::info(logger::deflog, "CPU[{}] exited, reason=Cancelled", 
+			m_Processor.GetIndex(), (std::uint32_t)context_v.ExitReason);
 		return;
 	default:
 		logger::error(logger::deflog, "CPU[{}] exited unexpectedly with reason={:#x}, rebooting...", 
-			m_Processor.GetIndex(),
-			(std::uint32_t)context_v.ExitReason);
+			m_Processor.GetIndex(), (std::uint32_t)context_v.ExitReason);
 		return Reset();
 	}
 }
 
-auto Machine::Interrupt(std::uint8_t vector_v) -> void
+auto Machine::RaiseIRQ(std::uint8_t vector_v) -> void
 {
-	WIN32_ERROR_ASSERT(m_Processor.RequestInterrupt(vector_v));
+	using utils::logger;
+	logger::info(logger::deflog, "CPU[{}] raised IRQ[{}]", m_Processor.GetIndex(), vector_v);
+	WIN32_ERROR_ASSERT(m_Processor.RequestIRQ(vector_v));
 }
 
 auto Machine::ConfigurePartition(Configuration const&) -> void
 {
-	
+	using namespace win32;
 	m_Partition = win32::WHvPartition::Create(1u, {
-		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .HypercallExit = 1u } } }	  
+		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .HypercallExit = 1u } } },
+		{ WHvPartitionPropertyCodeProcessorCount, { .ProcessorCount = 1u } },
+		{ WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeXApic } },
+		{ WHvPartitionPropertyCodeProcessorFeatures, { .ProcessorFeatures = WHvCapabilities::Get<WHV_PROCESSOR_FEATURES>(WHvCapabilityCodeProcessorFeatures) } }
 	});
-
 }
 
 auto Machine::ConfigureMemory(Configuration const&) -> void
@@ -148,8 +158,18 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 
 auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
+	std::uint32_t what_v{ 0 };
+	std::int32_t result_v{ };
 	switch (port_v) {
 	case 0xe9: return m_Debugger.IoPortAccess(is_write_v, port_v, data_v);
+	case 0x20: 
+		result_v = m_Processor.MemoryAccess(true, 0xFEE000B0u, utils::
+			as_static_mutable_bytes(what_v));
+		if (result_v != ERROR_SUCCESS)
+			__debugbreak();		
+		return result_v;
+	default:
+		__debugbreak();
 	}
 	return 0;
 }

@@ -61,6 +61,30 @@ namespace win32
 			return GetProperty(handle_v, code_v, utils::as_mutable_bytes(value_v));
 		}
 
+		static auto SetProperties(WHV_PARTITION_HANDLE handle_v, std::span<property_pair const> props_v) -> std::int32_t;
+
+	public:
+		template <typename... T> requires
+		requires (WHV_PARTITION_HANDLE m_Handle, WHV_PARTITION_PROPERTY_CODE code_v, T&&... args_v) {
+		{ WHvPartition::SetProperty(m_Handle, code_v, std::forward<T>(args_v)...) } -> std::same_as<std::int32_t>; }
+		inline auto SetProperty(WHV_PARTITION_PROPERTY_CODE code_v, T&&... args_v) const -> std::int32_t {
+			return WHvPartition::SetProperty(m_Handle, code_v, std::forward<T>(args_v)...);
+		}
+
+		template <typename... T> requires
+		requires (WHV_PARTITION_HANDLE m_Handle, WHV_PARTITION_PROPERTY_CODE code_v, T&&... args_v) {
+		{  WHvPartition::GetProperty(m_Handle, code_v, std::forward<T>(args_v)...) } -> std::same_as<std::int32_t>; }
+		inline auto GetProperty(WHV_PARTITION_PROPERTY_CODE code_v, T&&... args_v) const -> std::int32_t {
+			return WHvPartition::GetProperty(m_Handle, code_v, std::forward<T>(args_v)...);
+		}
+
+		template <typename T>
+		inline auto GetProperty(WHV_PARTITION_PROPERTY_CODE code_v) const -> T {
+			T value{}; WIN32_ERROR_ASSERT(GetProperty(code_v, value));
+			return value;
+		}
+
+
 	private:
 		WHV_PARTITION_HANDLE m_Handle;
 	};

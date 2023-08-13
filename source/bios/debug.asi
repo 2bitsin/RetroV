@@ -7,7 +7,9 @@ Debug:
     mov     di,     si
     xor     al,     al
     repne   scasb
-    neg     cx
+    mov     dx,     0xffff
+    sub     dx,     cx
+    mov     cx,     dx
     mov     dx,     0xe9
     rep     outsb
     pop     es di si dx cx ax
@@ -40,4 +42,38 @@ Debug:
     test    cx,     cx
     jnz     .PrintHex16.loop
     popa
+    ret
+
+  .BigFingLoop:  
+    push    eax ecx
+
+    mov     si,     Strings.LoopBegin    
+    call    .PrintString    
+
+    mov     eax,    0
+  .BigFingLoopOuter:    
+    mov     ecx,    0
+  .BigFingLoopInner:
+    dec     ecx
+    jnz     .BigFingLoopInner
+
+    mov     si,     Strings.LoopTock
+    call    .PrintString
+
+    push    ax
+    neg     ax
+    mov     cx,     16
+    call    .PrintHex16
+    pop     ax
+
+    mov     si,     Strings.CrLf
+    call    .PrintString
+
+    dec     eax
+    jnz     .BigFingLoopOuter
+
+    mov     si,     Strings.LoopEnd
+    call    .PrintString
+
+    pop     ecx eax
     ret

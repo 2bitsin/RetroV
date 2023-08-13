@@ -82,3 +82,7 @@ auto WHvProcessor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils
 		return ::WHvWriteGpaRange(m_Partition.GetHandle(), m_VcpuIndex, physaddr_v, cc_v, buffer_v.data(), buffer_v.size());
 	}
 }
+
+auto win32::WHvProcessor::RequestIRQ(WHV_INTERRUPT_CONTROL const& irq_v) -> std::int32_t {
+  return ::WHvRequestInterrupt(m_Partition.GetHandle(), &irq_v, sizeof(irq_v));
+}

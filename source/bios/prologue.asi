@@ -13,20 +13,18 @@ Prologue:
 
     cld
     call        IVT.Initialize
+
+    mov         edx,    0x0
+    mov         eax,    0xe0900
+    mov         ecx,    0x0000001b
+    wrmsr       
+
     sti
+
+    call        Debug.BigFingLoop
    
     mov         si,     Strings.Hello
     call        Debug.PrintString   
-
-;    push        ds si cx dx
-;    mov         si,     0x9FFF
-;    mov         ds,     si
-;    mov         si,     0xF
-;    cld
-;    mov         dx,     0xFFFF
-;    mov         cx,     0x10
-;    rep         outsw
-;    pop         dx cx si ds
 
   .L2:
     hlt

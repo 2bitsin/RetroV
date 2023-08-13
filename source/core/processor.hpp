@@ -40,7 +40,7 @@ namespace core
 		auto RunAsync() -> exit_future_type;
 		auto CancelAsync() -> void;
 
-		auto RequestInterrupt(std::uint8_t vector_v) -> std::int32_t;
+		auto RequestIRQ(std::uint8_t vector_v) -> std::int32_t;
 		auto RequestNonMaskable() -> std::int32_t;
 
 	protected:

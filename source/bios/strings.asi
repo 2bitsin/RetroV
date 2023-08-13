@@ -1,5 +1,9 @@
 
 Strings:
-    .Hello: db "Booting HvDOS ..."
-    .CrLf:  db 13, 10, 0
-    .IntV:  db "Interrupt vector: ", 0
+    .LoopBegin: db "BigFingLoop starting...", 13, 10, 0
+    .LoopEnd:   db "BigFingLoop ending...", 13, 10, 0
+    .LoopTock:  db "BigFingLoop going: ", 0
+
+    .Hello:     db "Booting HvDOS ..."
+    .CrLf:      db 13, 10, 0
+    .IntV:      db "Interrupt vector: ", 0

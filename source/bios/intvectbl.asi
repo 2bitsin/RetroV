@@ -4,22 +4,34 @@ IVT:
   { 
     align 4
   .Entry#Number:
-    push    ax
+    pushad
+    push    ds es fs gs
+
+    mov     ax,     cs
+    mov     es,     ax   
+    mov     ds,     ax
+    mov     fs,     ax
+    mov     gs,     ax
+
     mov     ax,     Number-1
     jmp     .PrintInterrupt
   }
 
-  align 16
-.Initial:
-  rept 256 Number
-  {
-    dw .Entry#Number, BIOS_SEGMENT
-  }
+.PrintInterrupt:
+  
+  mov       si,     Strings.IntV
+  call      Debug.PrintString
+  
+  ;         ax is already set to the interrupt number
+  mov       cx,     16
+  call      Debug.PrintHex16
 
-.SrcAddr: 
-  dw .Initial,BIOS_SEGMENT
-.DstAddr: 
-  dw 0, IVT_SEGMENT
+  mov       si,     Strings.CrLf
+  call      Debug.PrintString
+  
+  pop       gs fs es ds
+  popad
+  iret        
 
 .Initialize:
 
@@ -33,21 +45,17 @@ IVT:
   pop       cx di si es ds
   ret
 
-.PrintInterrupt:
-  push      ds si    
-  mov       si,     BIOS_SEGMENT
-  mov       ds,     si
-  mov       si,     Strings.IntV
-  call      Debug.PrintString
-  ;         ax is already set to the interrupt number
-  call      Debug.PrintHex16
-  mov       si,     Strings.CrLf
-  call      Debug.PrintString
-  pop       si ds
-  pop       ax
-  iret        
 
-
+  align 16
+.Initial:
+  rept 256 Number
+  {
+    dw .Entry#Number, BIOS_SEGMENT
+  }
+.SrcAddr: 
+  dw .Initial,BIOS_SEGMENT
+.DstAddr: 
+  dw 0, IVT_SEGMENT
 
 
 

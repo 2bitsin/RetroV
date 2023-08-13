@@ -65,27 +65,44 @@ auto WHvPartition::GetProperty(WHV_PARTITION_HANDLE handle_v, WHV_PARTITION_PROP
 	return result_v;
 }
 
+auto WHvPartition::SetProperties(WHV_PARTITION_HANDLE handle_v, std::span<property_pair const> props_v) -> std::int32_t
+{
+	std::int32_t result_v{ ERROR_SUCCESS };
+	for (auto const& [prop_k, prop_v] : props_v) {
+		auto status_v = SetProperty(handle_v, prop_k, prop_v);
+		if (ERROR_SUCCESS != status_v)
+			result_v = status_v;		
+	}
+	return result_v;
+}
+
 auto WHvPartition::Create(std::uint32_t vcpucount_v, std::span<property_pair const> properties_v) -> WHV_PARTITION_HANDLE
 {
 	using utils::logger;
 	WHV_PARTITION_HANDLE handle_v{ nullptr };
+	std::uint32_t try_again_count_v{ 0u };
+	Again:
 	try
 	{
 		vcpucount_v = std::max(vcpucount_v, 1u);
 		WIN32_ERROR_ASSERT(::WHvCreatePartition(&handle_v));
-		WIN32_ERROR_ASSERT(SetProcessorCount(handle_v, vcpucount_v));
-		for (auto const& [prop_k, prop_v] : properties_v)
-			WIN32_ERROR_ASSERT(SetProperty(handle_v, prop_k, prop_v));
+		//WIN32_ERROR_ASSERT(SetProcessorCount(handle_v, vcpucount_v));		
+		WIN32_ERROR_ASSERT(SetProperties(handle_v, properties_v));
 		WIN32_ERROR_ASSERT(::WHvSetupPartition(handle_v));
 		for (std::uint32_t vcpuindex_v = 0u; vcpuindex_v < vcpucount_v; vcpuindex_v += 1u)
 			WIN32_ERROR_ASSERT(::WHvCreateVirtualProcessor(handle_v, vcpuindex_v, 0u));		
 		return handle_v;
 	}
-	catch (std::exception const& ex)
+	catch (win32::error const& ex)
 	{	
-		if (nullptr != handle_v) 
-			WIN32_ERROR_NOTIFY(::WHvDeletePartition(handle_v));
 		logger::error(logger::deflog, "{} failed: {}", __func__, ex.what());
+		if (nullptr != handle_v) {
+			WIN32_ERROR_NOTIFY(::WHvDeletePartition(handle_v));
+		}
+		try_again_count_v += 1u;
+		if (try_again_count_v < 5u)
+			goto Again;
+		throw;
 	}
 	return nullptr;
 }

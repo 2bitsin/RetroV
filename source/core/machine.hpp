@@ -33,7 +33,7 @@ namespace core
 		auto Reset() -> void;
 		auto RunMain() -> void;
 
-		auto Interrupt(std::uint8_t vector_v) -> void;
+		auto RaiseIRQ(std::uint8_t vector_v) -> void;
 	
 	protected:
 		friend Processor;

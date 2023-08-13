@@ -81,6 +81,12 @@ namespace utils
 			, m_size{ std::min<size_type>(data_v.size(), limit) }
 		{}
 
+		template <auto Size> requires (Size <= limit)
+		constexpr inline limited_span(limited_span<value_type, Size>&& from_v) noexcept
+			: m_data{ from_v.data() }
+			, m_size{ std::min<size_type>(from_v.size(), limit) }
+		{}
+
 		constexpr inline auto size() const noexcept -> size_type { return m_size; }
 		constexpr inline auto data() const noexcept -> value_type* { return m_data; }
 
@@ -108,9 +114,9 @@ namespace utils
 			return { m_data, m_size };
 		}
 
-		constexpr inline operator std::span<value_type const>() const noexcept {
-			return { m_data, m_size };
-		}
+		//constexpr inline operator std::span<value_type const>() const noexcept {
+		//	return { m_data, m_size };
+		//}
 
 		constexpr inline auto begin() const noexcept -> value_type* { return m_data; }
 		constexpr inline auto end() const noexcept -> value_type* { return m_data + m_size; }
