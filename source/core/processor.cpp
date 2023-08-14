@@ -142,13 +142,22 @@ auto Processor::RequestIRQ(std::uint8_t vector_v) -> std::int32_t
 			.ErrorCode = 0u
 		}
 	});
+#elif 1
+	std::int32_t result_v{ 0 };
+	result_v = SetRegister(WHvRegisterPendingEvent, {
+		.ExtIntEvent = {
+			.EventPending = 1,
+			.EventType = WHvX64PendingEventExtInt,
+			.Vector = vector_v
+		}	
+	});
 #else
 	WHV_INTERRUPT_CONTROL irq_v{ };
 	irq_v.Type = WHvX64InterruptTypeFixed;
 	irq_v.DestinationMode = WHvX64InterruptDestinationModeLogical;
 	irq_v.TriggerMode = WHvX64InterruptTriggerModeEdge;
 	irq_v.Destination = WHvProcessor::GetIndex();
-	irq_v.Vector = 16 + vector_v;
+	irq_v.Vector = 32 + vector_v;
 	auto const result_v = WHvProcessor::RequestIRQ(irq_v);
 	m_Suspend.release();
 #endif

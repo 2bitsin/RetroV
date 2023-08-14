@@ -10,8 +10,7 @@ using namespace size_literals;
 
 using core::Machine;
 
-Machine::Machine(Configuration const& config_v)
-	
+Machine::Machine(Configuration const& config_v)	
 	: m_Partition { nullptr }
 	, m_Processor { *this, 0u }
 	, m_Debugger  { }
@@ -19,14 +18,6 @@ Machine::Machine(Configuration const& config_v)
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);
-
-	auto q = m_Processor.GetRegister(WHvX64RegisterApicBase);
-
-	WIN32_ERROR_ASSERT(m_Processor.SetRegister(WHvX64RegisterApicBase, { .Reg64 = 0xE0000u + 0x900u }));
-
-	std::uint32_t sir_v{ 0x1FFu };
-	WIN32_ERROR_ASSERT(m_Processor.MemoryAccess(true, 0xE00F0u, utils::as_static_mutable_bytes(sir_v)));
-
 }
 
 Machine::~Machine() 
@@ -72,12 +63,16 @@ auto Machine::RunMain() -> void
 	switch (context_v.ExitReason)
 	{
 	case WHvRunVpExitReasonCanceled:
-		logger::info(logger::deflog, "CPU[{}] exited, reason=Cancelled", 
-			m_Processor.GetIndex(), (std::uint32_t)context_v.ExitReason);
+		logger::info(logger::deflog, 
+			"CPU[{}] exited, reason=Cancelled", 
+			m_Processor.GetIndex(),
+			(std::uint32_t)context_v.ExitReason);
 		return;
 	default:
-		logger::error(logger::deflog, "CPU[{}] exited unexpectedly with reason={:#x}, rebooting...", 
-			m_Processor.GetIndex(), (std::uint32_t)context_v.ExitReason);
+		logger::error(logger::deflog, 
+			"CPU[{}] exited unexpectedly with reason={:#x}, rebooting...", 
+			m_Processor.GetIndex(),
+			(std::uint32_t)context_v.ExitReason);
 		return Reset();
 	}
 }
@@ -95,7 +90,7 @@ auto Machine::ConfigurePartition(Configuration const&) -> void
 	m_Partition = win32::WHvPartition::Create(1u, {
 		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .HypercallExit = 1u } } },
 		{ WHvPartitionPropertyCodeProcessorCount, { .ProcessorCount = 1u } },
-		{ WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeXApic } },
+		{ WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeX2Apic } },
 		{ WHvPartitionPropertyCodeProcessorFeatures, { .ProcessorFeatures = WHvCapabilities::Get<WHV_PROCESSOR_FEATURES>(WHvCapabilityCodeProcessorFeatures) } }
 	});
 }

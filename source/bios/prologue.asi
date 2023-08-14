@@ -14,13 +14,35 @@ Prologue:
     cld
     call        IVT.Initialize
 
+  ; Disable cache
+    mov         eax,    cr0
+    or          eax,    0x40000000      ; Set bit CD
+    and         eax,    0xDFFFFFFF      ; Clear bit NW
+    mov         cr0,    eax
+    wbinvd
+    xor         eax,    eax
+    xor         edx,    edx
+    mov         ecx,    0x2ff 
+    wrmsr
+    wbinvd
+
+  ; Remap APIC base
     mov         edx,    0x0
     mov         eax,    0xe0900
     mov         ecx,    0x0000001b
     wrmsr       
-
+    
+  ; Spurious interrupt vector setup
+    push        es
+    mov         di,     0xE000
+    mov         es,     di
+    mov         di,     0xf0
+    mov         [es:di],  dword 0x1ff
+    pop         es
+    
+  ; Enable interrupts
     sti
-
+    
     call        Debug.BigFingLoop
    
     mov         si,     Strings.Hello
