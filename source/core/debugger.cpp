@@ -1,4 +1,5 @@
 #include <core/debugger.hpp>
+#include <core/machine.hpp>
 
 #include <utils/logger.hpp>
 
@@ -6,11 +7,26 @@
 
 using core::Debugger;
 
+Debugger::Debugger(Machine& machine_v)
+	: m_Machine{ machine_v }
+{}
+
 auto Debugger::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
 	using utils::logger;
 	switch (port_v)
 	{
+	case 0xe8:
+		if (is_write_v) 
+		{			
+			switch(data_v.size())
+			{
+			case 1: logger::debug(logger::deflog, "PORT[0xe8] <= {:#04x}",  data_v.as<uint8_t >()) ; break;
+			case 2: logger::debug(logger::deflog, "PORT[0xe8] <= {:#06x}",  data_v.as<uint16_t>()) ; break;
+			case 4: logger::debug(logger::deflog, "PORT[0xe8] <= {:#010x}", data_v.as<uint32_t>()) ; break;
+			}			
+			return S_OK;
+		}
 	case 0xe9: 
 		if (!is_write_v) {
 			std::fill (data_v.begin(), data_v.end(), std::byte{});

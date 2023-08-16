@@ -13,7 +13,7 @@ using core::Machine;
 Machine::Machine(Configuration const& config_v)	
 	: m_Partition { nullptr }
 	, m_Processor { *this, 0u }
-	, m_Debugger  { }
+	, m_Debugger  { *this }
 {
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
@@ -87,6 +87,11 @@ auto Machine::RaiseIRQ(std::uint8_t vector_v) -> void
 auto Machine::ConfigurePartition(Configuration const&) -> void
 {
 	using namespace win32;
+
+	auto const synic_features_v = WHvCapabilities::Get
+		<WHV_SYNTHETIC_PROCESSOR_FEATURES_BANKS>
+		(WHvCapabilityCodeSyntheticProcessorFeaturesBanks);
+
 	m_Partition = win32::WHvPartition::Create(1u, {		
 		{ WHvPartitionPropertyCodeExceptionExitBitmap, { .ExceptionExitBitmap 
 			= (1u << WHvX64ExceptionTypeGeneralProtectionFault)
@@ -96,7 +101,8 @@ auto Machine::ConfigurePartition(Configuration const&) -> void
  		} },
 		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .ExceptionExit = 1u, .HypercallExit = 1u } } },
 		{ WHvPartitionPropertyCodeProcessorCount, { .ProcessorCount = 1u } },
-		{ WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeX2Apic } },
+		{ WHvPartitionPropertyCodeSyntheticProcessorFeaturesBanks, { .SyntheticProcessorFeaturesBanks = synic_features_v } },
+		{ WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeXApic } },
 		{ WHvPartitionPropertyCodeProcessorFeatures, { .ProcessorFeatures = WHvCapabilities::Get<WHV_PROCESSOR_FEATURES>(WHvCapabilityCodeProcessorFeatures) } }
 	});
 }
@@ -163,6 +169,7 @@ auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited
 	std::uint32_t what_v{ 0 };
 	std::int32_t result_v{ };
 	switch (port_v) {
+	case 0xe8: 
 	case 0xe9: return m_Debugger.IoPortAccess(is_write_v, port_v, data_v);
 	case 0xea: 
 		{

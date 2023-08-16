@@ -37,6 +37,7 @@ namespace core
 	
 	protected:
 		friend Processor;
+		friend Debugger;
 
 		auto Partition() const -> win32::WHvPartition const& { return m_Partition; }
 		auto Emulator() const -> win32::WHvEmulator const& { return m_Emulator;  }

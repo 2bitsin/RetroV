@@ -124,6 +124,11 @@ namespace utils
 		constexpr inline auto cend() const noexcept -> value_type const* { return m_data + m_size; }
 
 	
+		template <typename Q> requires (std::is_trivial_v<Q>)
+		constexpr inline auto as() const noexcept -> Q {
+			return *reinterpret_cast<Q const*>(m_data);
+		}
+
 	private:
 		value_type* m_data;
 		size_type m_size;

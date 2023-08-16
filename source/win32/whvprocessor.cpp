@@ -83,6 +83,23 @@ auto WHvProcessor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils
 	}
 }
 
-auto win32::WHvProcessor::RequestIRQ(WHV_INTERRUPT_CONTROL const& irq_v) -> std::int32_t {
+auto WHvProcessor::RequestIRQ(WHV_INTERRUPT_CONTROL irq_v) -> std::int32_t {
   return ::WHvRequestInterrupt(m_Partition.GetHandle(), &irq_v, sizeof(irq_v));
+}
+
+auto WHvProcessor::GetState(WHV_VIRTUAL_PROCESSOR_STATE_TYPE type_v, std::vector<std::byte>& buffer_v) const -> std::int32_t
+{
+	std::int32_t result_v{ 0 };
+	do {
+		std::uint32_t osize_v{ 0u };
+		result_v = ::WHvGetVirtualProcessorState(m_Partition.GetHandle(), m_VcpuIndex, 
+			type_v, buffer_v.data(), buffer_v.size(), &osize_v);
+		buffer_v.resize(osize_v);			
+	} while(result_v == WHV_E_INSUFFICIENT_BUFFER);
+	return result_v;
+}
+
+auto WHvProcessor::SetState(WHV_VIRTUAL_PROCESSOR_STATE_TYPE type_v, std::span<std::byte const> buffer_v) const -> std::int32_t
+{
+	return ::WHvSetVirtualProcessorState(m_Partition.GetHandle(), m_VcpuIndex, type_v, buffer_v.data(), buffer_v.size());
 }

@@ -13,14 +13,18 @@
 
 namespace core
 {
+	struct Machine;
+
 	struct Debugger
 	{
+		Debugger(Machine& machine_v);
 
 		auto IoPortAccess(bool is_write_v, std::uint16_t addr_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
 
 		auto Reset() -> void;
 
 	private:
+		Machine& m_Machine;
 		std::mutex m_Mutex;
 		std::string m_Buffer;
 	};
