@@ -87,8 +87,14 @@ auto Machine::RaiseIRQ(std::uint8_t vector_v) -> void
 auto Machine::ConfigurePartition(Configuration const&) -> void
 {
 	using namespace win32;
-	m_Partition = win32::WHvPartition::Create(1u, {
-		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .HypercallExit = 1u } } },
+	m_Partition = win32::WHvPartition::Create(1u, {		
+		{ WHvPartitionPropertyCodeExceptionExitBitmap, { .ExceptionExitBitmap 
+			= (1u << WHvX64ExceptionTypeGeneralProtectionFault)
+			| (1u << WHvX64ExceptionTypeDoubleFaultAbort)
+			| (1u << WHvX64ExceptionTypeInvalidOpcodeFault)
+			| (1u << WHvX64ExceptionTypeDebugTrapOrFault)
+ 		} },
+		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .ExceptionExit = 1u, .HypercallExit = 1u } } },
 		{ WHvPartitionPropertyCodeProcessorCount, { .ProcessorCount = 1u } },
 		{ WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeX2Apic } },
 		{ WHvPartitionPropertyCodeProcessorFeatures, { .ProcessorFeatures = WHvCapabilities::Get<WHV_PROCESSOR_FEATURES>(WHvCapabilityCodeProcessorFeatures) } }
@@ -153,16 +159,42 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 
 auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
+	using utils::logger;
 	std::uint32_t what_v{ 0 };
 	std::int32_t result_v{ };
 	switch (port_v) {
 	case 0xe9: return m_Debugger.IoPortAccess(is_write_v, port_v, data_v);
-	case 0x20: 
-		result_v = m_Processor.MemoryAccess(true, 0xFEE000B0u, utils::
-			as_static_mutable_bytes(what_v));
-		if (result_v != ERROR_SUCCESS)
-			__debugbreak();		
-		return result_v;
+	case 0xea: 
+		{
+			WHV_REGISTER_VALUE reg_v { };
+			if (is_write_v) {
+				logger::info(logger::deflog, "CPU[{}] flat real mode hack enabled!", m_Processor.GetIndex());
+				reg_v = m_Processor.GetRegister(WHvX64RegisterDs);
+				reg_v.Segment.Limit = 0xFFFFFFFFu;
+				reg_v.Segment.Base = 0u;
+				reg_v.Segment.Attributes = 0xCF93u;
+				m_Processor.SetRegister(WHvX64RegisterDs, reg_v);
+
+				reg_v = m_Processor.GetRegister(WHvX64RegisterEs);
+				reg_v.Segment.Limit = 0xFFFFFFFFu;
+				reg_v.Segment.Base = 0u;
+				reg_v.Segment.Attributes = 0xCF93u;
+				m_Processor.SetRegister(WHvX64RegisterEs, reg_v);
+
+				reg_v = m_Processor.GetRegister(WHvX64RegisterFs);
+				reg_v.Segment.Limit = 0xFFFFFFFFu;
+				reg_v.Segment.Base = 0u;
+				reg_v.Segment.Attributes = 0xCF93u;
+				m_Processor.SetRegister(WHvX64RegisterFs, reg_v);
+
+				reg_v = m_Processor.GetRegister(WHvX64RegisterGs);
+				reg_v.Segment.Limit = 0xFFFFFFFFu;
+				reg_v.Segment.Base = 0u;
+				reg_v.Segment.Attributes = 0xCF93u;
+				m_Processor.SetRegister(WHvX64RegisterGs, reg_v);
+			}
+			break;
+		}
 	default:
 		__debugbreak();
 	}

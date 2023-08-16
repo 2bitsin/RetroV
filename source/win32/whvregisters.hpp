@@ -101,11 +101,11 @@ namespace win32
 		const win32::WHvRegistersStatic state_v
 		({
 			{ WHvX64RegisterCs,     { .Segment = { .Base = 0xF0000u, .Limit = 0xFFFFu, .Selector = 0xF000u, .Attributes = 0x009Eu } } },
-			{ WHvX64RegisterDs,     { .Segment = { .Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } } },
-			{ WHvX64RegisterEs,     { .Segment = { .Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } } },
+			{ WHvX64RegisterEs,     { .Segment = { .Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0093u } } },
+			{ WHvX64RegisterDs,     { .Segment = { .Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0093u } } },
+			{ WHvX64RegisterFs,     { .Segment = { .Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0093u } } },
+			{ WHvX64RegisterGs,     { .Segment = { .Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0093u } } },
 			{ WHvX64RegisterSs,     { .Segment = { .Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } } },
-			{ WHvX64RegisterFs,     { .Segment = { .Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } } },
-			{ WHvX64RegisterGs,     { .Segment = { .Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } } },
 			{ WHvX64RegisterIdtr,   { .Table = { .Limit = 0x03FFu, .Base = 0x00000000u  } } },
 			{ WHvX64RegisterGdtr,   { .Table = { .Limit = 0x0000u, .Base = 0x00000000u  } } },
 			{ WHvX64RegisterRflags, { .Reg64 = 0x0000'0000'0000'0002u } },

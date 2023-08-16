@@ -6,43 +6,69 @@ Prologue:
     mov         sp,     STACK_OFFSSET
 
     mov         ax,     cs
+
     mov         ds,     ax
     mov         es,     ax
     mov         fs,     ax
     mov         gs,     ax
 
+
     cld
     call        IVT.Initialize
 
-  ; Disable cache
-    mov         eax,    cr0
-    or          eax,    0x40000000      ; Set bit CD
-    and         eax,    0xDFFFFFFF      ; Clear bit NW
-    mov         cr0,    eax
-    wbinvd
-    xor         eax,    eax
-    xor         edx,    edx
-    mov         ecx,    0x2ff 
-    wrmsr
-    wbinvd
+  ; Begin APIC Stuff
+    push        ds es
+    xor         ax,     ax
+    mov         ds,     ax
+    mov         es,     ax
 
-  ; Remap APIC base
-    mov         edx,    0x0
-    mov         eax,    0xe0900
-    mov         ecx,    0x0000001b
-    wrmsr       
-    
-  ; Spurious interrupt vector setup
-    push        es
-    mov         di,     0xE000
-    mov         es,     di
-    mov         di,     0xf0
-    mov         [es:di],  dword 0x1ff
-    pop         es
-    
-  ; Enable interrupts
-    sti
-    
+  EOI  equ 0xfee000b0
+  SVR  equ 0xfee000f0
+  LVT1 equ 0xfee00350
+  LVT2 equ 0xfee00360
+
+  APIC_ENABLED equ 0x100
+
+    mov         al,     0
+    out         0xea,   al
+
+    mov         edi,    0x100000
+    mov         [edi],  dword 0x0     ; TEST 32bit addressing
+
+    mov         ecx,    0x1B          ; IA32_APIC_BASE MSR    
+    rdmsr       
+    or          eax,    0x800         ; bit 11 = 1
+    wrmsr
+
+    mov         esi,    EOI    
+    mov         eax,    [esi]         ; read EOI
+    mov         [esi],  eax           ; write EOI
+
+    mov         esi,    SVR
+    mov         eax,    [esi]         ; read SVR
+    and         eax,    0xFFFFFF0F    ; clear spurious vector (use vector 00FH)
+    or          eax,    APIC_ENABLED  ; bit 8 = 1
+    mov         [esi],  eax           ; write SVR
+
+
+    mov         esi,    LVT1
+    mov         eax,    [esi]         ; read LVT1
+    and         eax,    0xFFFE00FF    ; not masked, edge, active high
+    or          eax,    0x00005700    ; ExtInt
+    mov         [esi],  eax           ; write LVT1    
+
+    mov         esi,    LVT2
+    mov         eax,    [esi]         ; read LVT2
+    and         eax,    0xFFFE00FF    ; not masked, edge, active high
+    or          eax,    0x00005400    ; NMI
+    mov         [esi],  eax           ; write LVT2
+
+  ; End of APIC Stuff
+
+    pop         es ds
+
+    sti    
+
     call        Debug.BigFingLoop
    
     mov         si,     Strings.Hello

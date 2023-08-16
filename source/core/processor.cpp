@@ -2,9 +2,13 @@
 #include <core/machine.hpp>
 #include <win32/whvprocessor.hpp>
 #include <win32/whvpartition.hpp>
+#include <win32/scope_name.hpp>
+
+#include <utils/capstone.hpp>
 
 #include <utils/literals.hpp>
 #include <utils/lambda.hpp>
+#include <utils/logger.hpp>
 
 #include <future>
 
@@ -59,12 +63,8 @@ auto Processor::TranslateGvaPage(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLA
 
 auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 {
-	HRESULT r;
-	r = ::SetThreadDescription(
-		::GetCurrentThread(),
-		L"Processor::Run (CPU Thread)"
-	);
-
+	win32::scope_name _tdesc{ "Processor::Run" };
+	using utils::logger;
 	std::stop_callback stopcbk_v{ stoppee_v, [this] { 
 		WHvProcessor::Cancel();
 		m_Suspend.release();
@@ -94,6 +94,22 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 			[[fallthrough]];
 		case WHvRunVpExitReasonCanceled:
 			return result_v;
+		case WHvRunVpExitReasonException:
+			logger::error(logger::deflog, "CPU[{}] raised exception: {:d}({:#04X}) at {:04X}:{:08X}.", 
+				GetIndex(), context_v.VpException.ExceptionType,
+				context_v.VpException.ExceptionType,
+				context_v.VpContext.Cs.Selector,
+				context_v.VpContext.Rip				
+			);
+			{
+				auto ds_v = GetRegister(WHvX64RegisterDs);
+				auto es_v = GetRegister(WHvX64RegisterEs);
+				auto fs_v = GetRegister(WHvX64RegisterFs);
+				auto gs_v = GetRegister(WHvX64RegisterGs);
+			__debugbreak();
+
+			}
+			[[fallthrough]];
 		default:
 			return result_v;
 		}
@@ -142,7 +158,7 @@ auto Processor::RequestIRQ(std::uint8_t vector_v) -> std::int32_t
 			.ErrorCode = 0u
 		}
 	});
-#elif 1
+#elif 0
 	std::int32_t result_v{ 0 };
 	result_v = SetRegister(WHvRegisterPendingEvent, {
 		.ExtIntEvent = {
