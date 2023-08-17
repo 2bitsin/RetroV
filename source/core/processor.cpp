@@ -80,10 +80,24 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 			return result_v;		
 		switch (context_v.ExitReason)
 		{
+		case WHvRunVpExitReasonX64MsrAccess:
+			if (context_v.MsrAccess.AccessInfo.IsWrite)
+			{
+				logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) write at {:#06x}:{:#010x}, EDX:EAX={:010X}:{:010X}", 
+					GetIndex(), context_v.MsrAccess.MsrNumber,context_v.VpContext.Cs.Selector, context_v.VpContext.Rip,
+					context_v.MsrAccess.Rdx, context_v.MsrAccess.Rax);
+			} 
+			else 
+			{
+				logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) read at {:#06x}:{:#010x}",
+					GetIndex(), context_v.MsrAccess.MsrNumber, context_v.VpContext.Cs.Selector, context_v.VpContext.Rip);
+			}
+			SetRegister(WHvX64RegisterRip, { .Reg64 = context_v.VpContext.Rip + context_v.VpContext.InstructionLength });			
+			continue;
 		case WHvRunVpExitReasonX64IoPortAccess:
 			emulator_v.TryIoEmulation(*this, context_v.VpContext, context_v.IoPortAccess);
 			continue;
-		case WHvRunVpExitReasonX64MsrAccess:
+		case WHvRunVpExitReasonMemoryAccess:
 			emulator_v.TryMmioEmulation(*this, context_v.VpContext, context_v.MemoryAccess);
 			continue;		
 		case WHvRunVpExitReasonX64Halt:
@@ -108,8 +122,8 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 				auto gs_v = GetRegister(WHvX64RegisterGs);
 			__debugbreak();
 
-			}
-			[[fallthrough]];
+			}		
+			[[fallthrough]];		
 		default:
 			return result_v;
 		}

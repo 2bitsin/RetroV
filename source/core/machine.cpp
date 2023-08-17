@@ -99,7 +99,8 @@ auto Machine::ConfigurePartition(Configuration const&) -> void
 			| (1u << WHvX64ExceptionTypeInvalidOpcodeFault)
 			| (1u << WHvX64ExceptionTypeDebugTrapOrFault)
  		} },
-		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .ExceptionExit = 1u, .HypercallExit = 1u } } },
+		{ WHvPartitionPropertyCodeX64MsrExitBitmap, {.X64MsrExitBitmap = {.UnhandledMsrs = 1 } } },
+		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .X64MsrExit = 1u, .ExceptionExit = 1u, .HypercallExit = 1u } } },
 		{ WHvPartitionPropertyCodeProcessorCount, { .ProcessorCount = 1u } },
 		{ WHvPartitionPropertyCodeSyntheticProcessorFeaturesBanks, { .SyntheticProcessorFeaturesBanks = synic_features_v } },
 		{ WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeXApic } },

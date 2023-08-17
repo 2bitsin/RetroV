@@ -29,6 +29,15 @@
 
 SynIC:
   .Initialize:
+    push      dword 0xDEADBEEF ; ecx [code]
+    push      dword 0x0BADC0DE ; edx [hi32]
+    push      dword 0x1337BEEF ; eax [lo32]
+    call      MSR.Write
+
+    mov       eax,        0x12345678
+    out       0xe8,       eax
+
+
     push      dword MSR_SYNIC_SCONTROL
     push      dword 0x00000000
     push      dword 0x00000001
