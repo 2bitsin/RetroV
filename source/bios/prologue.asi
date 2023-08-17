@@ -16,20 +16,8 @@ Prologue:
     cld
     call        IVT.Initialize
 
-    mov         ecx,    0x40000080
-    xor         edx,    edx
-    mov         eax,    1
-    wrmsr
+    call        SynIC.Initialize
 
-    mov         ecx,    0x400000B0
-    mov         eax,    0x0000180B
-    xor         edx,    edx
-    wrmsr
-
-    mov         ecx,    0x400000B1
-    mov         eax,    1000
-    xor         edx,    edx
-    wrmsr
 
     sti    
 

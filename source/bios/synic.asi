@@ -1,0 +1,37 @@
+
+    MSR_SYNIC_BASE      equ 0x40000080
+
+    MSR_SYNIC_SCONTROL  equ (MSR_SYNIC_BASE + 0x00)
+    MSR_SYNIC_SVERSION  equ (MSR_SYNIC_BASE + 0x01)
+    MSR_SYNIC_SIEFP     equ (MSR_SYNIC_BASE + 0x02)
+    MSR_SYNIC_SIMP      equ (MSR_SYNIC_BASE + 0x03)
+    MSR_SYNIC_EOM       equ (MSR_SYNIC_BASE + 0x04)
+
+    MSR_SYNIC_SINT0     equ (MSR_SYNIC_BASE + 0x10)
+    MSR_SYNIC_SINT1     equ (MSR_SYNIC_BASE + 0x11)
+    MSR_SYNIC_SINT2     equ (MSR_SYNIC_BASE + 0x12)
+    MSR_SYNIC_SINT3     equ (MSR_SYNIC_BASE + 0x13)
+    MSR_SYNIC_SINT4     equ (MSR_SYNIC_BASE + 0x14)
+    MSR_SYNIC_SINT5     equ (MSR_SYNIC_BASE + 0x15)
+    MSR_SYNIC_SINT6     equ (MSR_SYNIC_BASE + 0x16)
+    MSR_SYNIC_SINT7     equ (MSR_SYNIC_BASE + 0x17)
+    MSR_SYNIC_SINT8     equ (MSR_SYNIC_BASE + 0x18)
+    MSR_SYNIC_SINT9     equ (MSR_SYNIC_BASE + 0x19)
+    MSR_SYNIC_SINT10    equ (MSR_SYNIC_BASE + 0x1A)
+    MSR_SYNIC_SINT11    equ (MSR_SYNIC_BASE + 0x1B)
+    MSR_SYNIC_SINT12    equ (MSR_SYNIC_BASE + 0x1C)
+    MSR_SYNIC_SINT13    equ (MSR_SYNIC_BASE + 0x1D)
+    MSR_SYNIC_SINT14    equ (MSR_SYNIC_BASE + 0x1E)
+    MSR_SYNIC_SINT15    equ (MSR_SYNIC_BASE + 0x1F)
+
+
+
+
+SynIC:
+  .Initialize:
+    push      dword MSR_SYNIC_SCONTROL
+    push      dword 0x00000000
+    push      dword 0x00000001
+    call      MSR.Write
+    ret
+    

@@ -20,6 +20,7 @@ target_compile_features(HvDOS PRIVATE cxx_std_23)
 find_library(LIB_WINHVPLATFORM NAMES WinHvPlatform)
 find_library(LIB_WINHVEMULATION NAMES WinHvEmulation)
 target_link_libraries(HvDOS PRIVATE ${LIB_WINHVPLATFORM} ${LIB_WINHVEMULATION} SDL2::SDL2 capstone::capstone)
+set_target_properties(HvDOS PROPERTIES LINK_FLAGS "/level='requireAdministrator' /uiAccess='false'")
 target_stack_size(HvDOS "256MiB")
 
 # Use add_custom_command to compile bios/bios.asm to bios.bin using fasm
