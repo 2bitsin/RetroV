@@ -65,7 +65,8 @@ SynIC:
 
     push      dword MSR_SYNIC_STIMER0_CONFIG
     push      dword 0x0
-    push      dword 0x021B
+    push      dword 0x0121B
+    ;push      dword 0xB
     call      MSR.Write
 
     push      dword MSR_SYNIC_STIMER0_COUNT

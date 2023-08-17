@@ -28,6 +28,9 @@ IVT:
 
   mov       si,     Strings.CrLf
   call      Debug.PrintString
+
+  xor       eax,    eax 
+  mov       [0xfee000b0], eax
   
   pop       gs fs es ds
   popad
