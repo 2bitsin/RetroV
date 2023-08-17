@@ -121,7 +121,6 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 				auto fs_v = GetRegister(WHvX64RegisterFs);
 				auto gs_v = GetRegister(WHvX64RegisterGs);
 			__debugbreak();
-
 			}		
 			[[fallthrough]];		
 		default:

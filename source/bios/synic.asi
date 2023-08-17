@@ -1,46 +1,77 @@
 
-    MSR_SYNIC_BASE      equ 0x40000080
+    MSR_SYNIC_BASE            equ 0x40000080
 
-    MSR_SYNIC_SCONTROL  equ (MSR_SYNIC_BASE + 0x00)
-    MSR_SYNIC_SVERSION  equ (MSR_SYNIC_BASE + 0x01)
-    MSR_SYNIC_SIEFP     equ (MSR_SYNIC_BASE + 0x02)
-    MSR_SYNIC_SIMP      equ (MSR_SYNIC_BASE + 0x03)
-    MSR_SYNIC_EOM       equ (MSR_SYNIC_BASE + 0x04)
+    MSR_SYNIC_SCONTROL        equ (MSR_SYNIC_BASE + 0x00)
+    MSR_SYNIC_SVERSION        equ (MSR_SYNIC_BASE + 0x01)
+    MSR_SYNIC_SIEFP           equ (MSR_SYNIC_BASE + 0x02)
+    MSR_SYNIC_SIMP            equ (MSR_SYNIC_BASE + 0x03)
+    MSR_SYNIC_EOM             equ (MSR_SYNIC_BASE + 0x04)
 
-    MSR_SYNIC_SINT0     equ (MSR_SYNIC_BASE + 0x10)
-    MSR_SYNIC_SINT1     equ (MSR_SYNIC_BASE + 0x11)
-    MSR_SYNIC_SINT2     equ (MSR_SYNIC_BASE + 0x12)
-    MSR_SYNIC_SINT3     equ (MSR_SYNIC_BASE + 0x13)
-    MSR_SYNIC_SINT4     equ (MSR_SYNIC_BASE + 0x14)
-    MSR_SYNIC_SINT5     equ (MSR_SYNIC_BASE + 0x15)
-    MSR_SYNIC_SINT6     equ (MSR_SYNIC_BASE + 0x16)
-    MSR_SYNIC_SINT7     equ (MSR_SYNIC_BASE + 0x17)
-    MSR_SYNIC_SINT8     equ (MSR_SYNIC_BASE + 0x18)
-    MSR_SYNIC_SINT9     equ (MSR_SYNIC_BASE + 0x19)
-    MSR_SYNIC_SINT10    equ (MSR_SYNIC_BASE + 0x1A)
-    MSR_SYNIC_SINT11    equ (MSR_SYNIC_BASE + 0x1B)
-    MSR_SYNIC_SINT12    equ (MSR_SYNIC_BASE + 0x1C)
-    MSR_SYNIC_SINT13    equ (MSR_SYNIC_BASE + 0x1D)
-    MSR_SYNIC_SINT14    equ (MSR_SYNIC_BASE + 0x1E)
-    MSR_SYNIC_SINT15    equ (MSR_SYNIC_BASE + 0x1F)
+    MSR_SYNIC_SINT0           equ (MSR_SYNIC_BASE + 0x10)
+    MSR_SYNIC_SINT1           equ (MSR_SYNIC_BASE + 0x11)
+    MSR_SYNIC_SINT2           equ (MSR_SYNIC_BASE + 0x12)
+    MSR_SYNIC_SINT3           equ (MSR_SYNIC_BASE + 0x13)
+    MSR_SYNIC_SINT4           equ (MSR_SYNIC_BASE + 0x14)
+    MSR_SYNIC_SINT5           equ (MSR_SYNIC_BASE + 0x15)
+    MSR_SYNIC_SINT6           equ (MSR_SYNIC_BASE + 0x16)
+    MSR_SYNIC_SINT7           equ (MSR_SYNIC_BASE + 0x17)
+    MSR_SYNIC_SINT8           equ (MSR_SYNIC_BASE + 0x18)
+    MSR_SYNIC_SINT9           equ (MSR_SYNIC_BASE + 0x19)
+    MSR_SYNIC_SINT10          equ (MSR_SYNIC_BASE + 0x1A)
+    MSR_SYNIC_SINT11          equ (MSR_SYNIC_BASE + 0x1B)
+    MSR_SYNIC_SINT12          equ (MSR_SYNIC_BASE + 0x1C)
+    MSR_SYNIC_SINT13          equ (MSR_SYNIC_BASE + 0x1D)
+    MSR_SYNIC_SINT14          equ (MSR_SYNIC_BASE + 0x1E)
+    MSR_SYNIC_SINT15          equ (MSR_SYNIC_BASE + 0x1F)
+
+    MSR_SYNIC_STIMER0_CONFIG  equ (MSR_SYNIC_BASE + 0x30)
+    MSR_SYNIC_STIMER0_COUNT   equ (MSR_SYNIC_BASE + 0x31)
+    MSR_SYNIC_STIMER1_CONFIG  equ (MSR_SYNIC_BASE + 0x32)
+    MSR_SYNIC_STIMER1_COUNT   equ (MSR_SYNIC_BASE + 0x33)
+    MSR_SYNIC_STIMER2_CONFIG  equ (MSR_SYNIC_BASE + 0x34)
+    MSR_SYNIC_STIMER2_COUNT   equ (MSR_SYNIC_BASE + 0x35)
+    MSR_SYNIC_STIMER3_CONFIG  equ (MSR_SYNIC_BASE + 0x36)
+    MSR_SYNIC_STIMER3_COUNT   equ (MSR_SYNIC_BASE + 0x37)
 
 
-
-
+    MSR_APIC_BASE             equ 0x1B       
+    APIC_ADDRESS_BASE         equ 0xfee00000
+    
 SynIC:
   .Initialize:
-    push      dword 0xDEADBEEF ; ecx [code]
-    push      dword 0x0BADC0DE ; edx [hi32]
-    push      dword 0x1337BEEF ; eax [lo32]
+    out       0xea,           al    
+
+    push      dword MSR_APIC_BASE
+    call      MSR.Read
+    or        eax,            0x800 
+    push      dword MSR_APIC_BASE
+    push      dword edx
+    push      dword eax
     call      MSR.Write
 
-    mov       eax,        0x12345678
-    out       0xe8,       eax
+    mov       eax,            0x000001FF
+    mov       [APIC_ADDRESS_BASE + 0xF0], eax
 
-
-    push      dword MSR_SYNIC_SCONTROL
-    push      dword 0x00000000
-    push      dword 0x00000001
+    push      dword MSR_SYNIC_SCONTROL  ; MSR number
+    push      dword 0x00000000          ; EDX
+    push      dword 0x00000001          ; EAX
     call      MSR.Write
+
+    push      dword MSR_SYNIC_SINT0 
+    push      dword 0x0
+    push      dword 0x00020020
+    call      MSR.Write
+
+
+    push      dword MSR_SYNIC_STIMER0_CONFIG
+    push      dword 0x0
+    push      dword 0x121B
+    call      MSR.Write
+
+    push      dword MSR_SYNIC_STIMER0_COUNT
+    push      dword 0x0
+    push      dword 0x1000
+    call      MSR.Write
+
     ret
     
