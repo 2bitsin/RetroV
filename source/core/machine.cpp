@@ -102,6 +102,7 @@ auto Machine::ConfigurePartition(Configuration const&) -> void
 		{ WHvPartitionPropertyCodeX64MsrExitBitmap, {.X64MsrExitBitmap = {.UnhandledMsrs = 1 } } },
 		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .X64MsrExit = 1u, .ExceptionExit = 1u, .HypercallExit = 1u } } },
 		{ WHvPartitionPropertyCodeProcessorCount, { .ProcessorCount = 1u } },
+		{ WHvPartitionPropertyCodeProcessorFrequencyCap, { .ProcessorFrequencyCap = 1 } },
 		{ WHvPartitionPropertyCodeSyntheticProcessorFeaturesBanks, { .SyntheticProcessorFeaturesBanks = synic_features_v } },
 		{ WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeXApic } },
 		{ WHvPartitionPropertyCodeProcessorFeatures, { .ProcessorFeatures = WHvCapabilities::Get<WHV_PROCESSOR_FEATURES>(WHvCapabilityCodeProcessorFeatures) } }
@@ -177,29 +178,19 @@ auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited
 			WHV_REGISTER_VALUE reg_v { };
 			if (is_write_v) {
 				logger::info(logger::deflog, "CPU[{}] flat real mode hack enabled!", m_Processor.GetIndex());
-				reg_v = m_Processor.GetRegister(WHvX64RegisterDs);
-				reg_v.Segment.Limit = 0xFFFFFFFFu;
-				reg_v.Segment.Base = 0u;
-				reg_v.Segment.Attributes = 0xCF93u;
-				m_Processor.SetRegister(WHvX64RegisterDs, reg_v);
-
-				reg_v = m_Processor.GetRegister(WHvX64RegisterEs);
-				reg_v.Segment.Limit = 0xFFFFFFFFu;
-				reg_v.Segment.Base = 0u;
-				reg_v.Segment.Attributes = 0xCF93u;
-				m_Processor.SetRegister(WHvX64RegisterEs, reg_v);
-
-				reg_v = m_Processor.GetRegister(WHvX64RegisterFs);
-				reg_v.Segment.Limit = 0xFFFFFFFFu;
-				reg_v.Segment.Base = 0u;
-				reg_v.Segment.Attributes = 0xCF93u;
-				m_Processor.SetRegister(WHvX64RegisterFs, reg_v);
-
-				reg_v = m_Processor.GetRegister(WHvX64RegisterGs);
-				reg_v.Segment.Limit = 0xFFFFFFFFu;
-				reg_v.Segment.Base = 0u;
-				reg_v.Segment.Attributes = 0xCF93u;
-				m_Processor.SetRegister(WHvX64RegisterGs, reg_v);
+				WHV_REGISTER_NAME name_v[] = {
+					WHvX64RegisterDs,
+					WHvX64RegisterEs,
+					WHvX64RegisterFs,
+					WHvX64RegisterGs
+				};
+				WHV_REGISTER_VALUE value_v[4];
+				m_Processor.GetRegisters(name_v, value_v);
+				for(auto&& v: value_v) {
+					v.Segment.Base = 0u;
+					v.Segment.Limit = 0xFFFFFFFFu;
+					v.Segment.Attributes = 0xCF93u; }
+				m_Processor.SetRegisters(name_v, value_v);
 			}
 			break;
 		}

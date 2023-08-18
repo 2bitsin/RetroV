@@ -8,7 +8,7 @@
 0000000F  8EE0              mov fs,ax
 00000011  8EE8              mov gs,ax
 00000013  FC                cld
-00000014  E8C318            call 0x18da
+00000014  E8CD18            call 0x18e4
 00000017  E8201D            call 0x1d3a
 0000001A  FB                sti
 0000001B  E85700            call 0x75
@@ -3180,37 +3180,29 @@
 000018C8  E884E7            call 0x4f
 000018CB  BE111E            mov si,0x1e11
 000018CE  E856E7            call 0x27
-000018D1  0FA9              pop gs
-000018D3  0FA1              pop fs
-000018D5  07                pop es
-000018D6  1F                pop ds
-000018D7  6661              popad
-000018D9  CF                iret
-000018DA  1E                push ds
-000018DB  06                push es
-000018DC  56                push si
-000018DD  57                push di
-000018DE  51                push cx
-000018DF  C536001D          lds si,[0x1d00]
-000018E3  C43E041D          les di,[0x1d04]
-000018E7  B90002            mov cx,0x200
-000018EA  F3A5              rep movsw
-000018EC  59                pop cx
-000018ED  5F                pop di
-000018EE  5E                pop si
-000018EF  07                pop es
-000018F0  1F                pop ds
-000018F1  C3                ret
-000018F2  90                nop
-000018F3  90                nop
-000018F4  90                nop
-000018F5  90                nop
-000018F6  90                nop
-000018F7  90                nop
-000018F8  90                nop
-000018F9  90                nop
-000018FA  90                nop
-000018FB  90                nop
+000018D1  6631C0            xor eax,eax
+000018D4  6766A3B000E0FE    mov [dword 0xfee000b0],eax
+000018DB  0FA9              pop gs
+000018DD  0FA1              pop fs
+000018DF  07                pop es
+000018E0  1F                pop ds
+000018E1  6661              popad
+000018E3  CF                iret
+000018E4  1E                push ds
+000018E5  06                push es
+000018E6  56                push si
+000018E7  57                push di
+000018E8  51                push cx
+000018E9  C536001D          lds si,[0x1d00]
+000018ED  C43E041D          les di,[0x1d04]
+000018F1  B90002            mov cx,0x200
+000018F4  F3A5              rep movsw
+000018F6  59                pop cx
+000018F7  5F                pop di
+000018F8  5E                pop si
+000018F9  07                pop es
+000018FA  1F                pop ds
+000018FB  C3                ret
 000018FC  90                nop
 000018FD  90                nop
 000018FE  90                nop
@@ -3708,7 +3700,7 @@
 00001D8C  E879FF            call 0x1d08
 00001D8F  6668B0000040      push dword 0x400000b0
 00001D95  666800000000      push dword 0x0
-00001D9B  66681B020000      push dword 0x21b
+00001D9B  66681B120000      push dword 0x121b
 00001DA1  E864FF            call 0x1d08
 00001DA4  6668B1000040      push dword 0x400000b1
 00001DAA  666800000000      push dword 0x0

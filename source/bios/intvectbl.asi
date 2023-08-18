@@ -30,6 +30,7 @@ IVT:
   call      Debug.PrintString
 
   xor       eax,    eax 
+  mov       ds,     ax
   mov       [0xfee000b0], eax
   
   pop       gs fs es ds

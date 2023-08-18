@@ -36,15 +36,16 @@ namespace utils
 
 	template <typename T, typename Q>
 		requires (std::is_trivial_v<Q>&& std::is_trivial_v<T>)
-	static inline auto mutable_span_as(std::span<Q> input_v) -> std::span<T> {
+	static inline auto as_mutable_span_of(std::span<Q> input_v) -> std::span<T> {
 		return { reinterpret_cast<T*>(input_v.data()), input_v.size_bytes() / sizeof(T) };
 	}
 
 	template <typename T, typename Q>
 		requires (std::is_trivial_v<Q>&& std::is_trivial_v<T>)
-	static inline auto span_as(std::span<Q const> input_v) -> std::span<T const> {
+	static inline auto as_span_of(std::span<Q const> input_v) -> std::span<T const> {
 		return { reinterpret_cast<T const*>(input_v.data()), input_v.size_bytes() / sizeof(T) };
 	}
+
 
 	template <typename T, auto Limit>	
 	struct alignas(sizeof(void*)) limited_span 

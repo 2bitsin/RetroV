@@ -9,6 +9,7 @@
 #include <utils/literals.hpp>
 #include <utils/lambda.hpp>
 #include <utils/logger.hpp>
+#include <utils/span.hpp>
 
 #include <future>
 
@@ -81,6 +82,40 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 		switch (context_v.ExitReason)
 		{
 		case WHvRunVpExitReasonX64MsrAccess:
+			{
+				std::vector<std::byte> buffer_v(0xc8);
+				using paragraph_type = std::uint64_t[2];
+
+				WIN32_ERROR_ASSERT(GetState(WHvVirtualProcessorStateTypeSynicTimerState, buffer_v));
+				auto u32buffer_v = utils::as_mutable_span_of<std::uint32_t>(std::span(buffer_v));
+				auto u64buffer_v = utils::as_mutable_span_of<std::uint64_t>(std::span(buffer_v));
+				auto parbuffer_v = utils::as_mutable_span_of<paragraph_type>(std::span(buffer_v));
+				__debugbreak();
+
+				WIN32_ERROR_ASSERT(GetState(WHvVirtualProcessorStateTypeSynicMessagePage, buffer_v));
+				u32buffer_v = utils::as_mutable_span_of<std::uint32_t>(std::span(buffer_v));
+				u64buffer_v = utils::as_mutable_span_of<std::uint64_t>(std::span(buffer_v));
+				parbuffer_v = utils::as_mutable_span_of<paragraph_type>(std::span(buffer_v));
+				__debugbreak();
+
+				WIN32_ERROR_ASSERT(GetState(WHvVirtualProcessorStateTypeSynicEventFlagPage, buffer_v));
+				u32buffer_v = utils::as_mutable_span_of<std::uint32_t>(std::span(buffer_v));
+				u64buffer_v = utils::as_mutable_span_of<std::uint64_t>(std::span(buffer_v));
+				parbuffer_v = utils::as_mutable_span_of<paragraph_type>(std::span(buffer_v));
+				__debugbreak();
+				
+				WIN32_ERROR_ASSERT(GetState(WHvVirtualProcessorStateTypeInterruptControllerState2, buffer_v));
+				u32buffer_v = utils::as_mutable_span_of<std::uint32_t>(std::span(buffer_v));
+				u64buffer_v = utils::as_mutable_span_of<std::uint64_t>(std::span(buffer_v));
+				parbuffer_v = utils::as_mutable_span_of<paragraph_type>(std::span(buffer_v));
+				__debugbreak();
+
+				WIN32_ERROR_ASSERT(GetState(WHvVirtualProcessorStateTypeXsaveState, buffer_v));
+				u32buffer_v = utils::as_mutable_span_of<std::uint32_t>(std::span(buffer_v));
+				u64buffer_v = utils::as_mutable_span_of<std::uint64_t>(std::span(buffer_v));
+				parbuffer_v = utils::as_mutable_span_of<paragraph_type>(std::span(buffer_v));
+				__debugbreak();
+			}
 			if (context_v.MsrAccess.AccessInfo.IsWrite)
 			{
 				logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) write at {:#06x}:{:#010x}, EDX:EAX={:010X}:{:010X}", 

@@ -39,40 +39,44 @@
     
 SynIC:
   .Initialize:
-    out       0xea,           al    
+;    out       0xea,           al    
+;
+;    push      dword MSR_APIC_BASE
+;    call      MSR.Read
+;    or        eax,            0x800 
+;    push      dword MSR_APIC_BASE
+;    push      dword edx
+;    push      dword eax
+;    call      MSR.Write
+;
+;    mov       eax,            0x000001FF
+;    mov       [APIC_ADDRESS_BASE + 0xF0], eax
 
-    push      dword MSR_APIC_BASE
-    call      MSR.Read
-    or        eax,            0x800 
-    push      dword MSR_APIC_BASE
-    push      dword edx
-    push      dword eax
-    call      MSR.Write
-
-    mov       eax,            0x000001FF
-    mov       [APIC_ADDRESS_BASE + 0xF0], eax
-
-    push      dword MSR_SYNIC_SCONTROL  ; MSR number
-    push      dword 0x00000000          ; EDX
-    push      dword 0x00000001          ; EAX
-    call      MSR.Write
-
-    push      dword MSR_SYNIC_SINT0 
-    push      dword 0x0
-    push      dword 0x00020020
-    call      MSR.Write
-
-
-    push      dword MSR_SYNIC_STIMER0_CONFIG
-    push      dword 0x0
-    push      dword 0x0121B
-    ;push      dword 0xB
-    call      MSR.Write
-
-    push      dword MSR_SYNIC_STIMER0_COUNT
-    push      dword 0x0
-    push      dword 0x1000
-    call      MSR.Write
-
+;    push      dword MSR_SYNIC_SCONTROL  ; MSR number
+;    push      dword 0x00000000          ; EDX
+;    push      dword 0x00000001          ; EAX
+;    call      MSR.Write
+;
+;    push      dword MSR_SYNIC_SINT0 
+;    push      dword 0x0
+;    push      dword 0x00020020
+;    call      MSR.Write
+;
+;
+;    push      dword MSR_SYNIC_STIMER0_CONFIG
+;    push      dword 0x0
+;    push      dword 0x0121B
+;    ;push      dword 0xB
+;    call      MSR.Write
+;
+;    push      dword MSR_SYNIC_STIMER0_COUNT
+;    push      dword 0x0
+;    push      dword 0x1000
+;    call      MSR.Write
+;
+;    push      dword 0xDEADBEEF
+;    push      dword 0xAAAA5555
+;    push      dword 0x5555AAAA
+;    call      MSR.Write
     ret
     

@@ -50,8 +50,7 @@ namespace core
 		auto ConfigureBiosROM(Configuration const&) -> void;
 		auto ConfigurePartition(Configuration const&) -> void;
 
-	private:
-		std::shared_mutex m_StateMutex;
+	private:		
 		win32::WHvEmulator m_Emulator;
 		win32::WHvPartition m_Partition;
 		std::list<Memory> m_Memory;
