@@ -18,7 +18,7 @@ using namespace size_literals;
 using core::Processor;
 
 Processor::Processor(Machine& machine_v, std::uint32_t vcpuindex_v)
-	: WHvProcessor{ machine_v.Partition(), vcpuindex_v }
+	: WHvProcessor{ machine_v.GetPartition(), vcpuindex_v }
 	, m_Machine{ machine_v }
 	, m_Suspend{ 0u }
 {}
@@ -82,48 +82,11 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 		switch (context_v.ExitReason)
 		{
 		case WHvRunVpExitReasonX64MsrAccess:
-			{
-				std::vector<std::byte> buffer_v(0xc8);
-				using paragraph_type = std::uint64_t[2];
-
-				WIN32_ERROR_ASSERT(GetState(WHvVirtualProcessorStateTypeSynicTimerState, buffer_v));
-				auto u32buffer_v = utils::as_mutable_span_of<std::uint32_t>(std::span(buffer_v));
-				auto u64buffer_v = utils::as_mutable_span_of<std::uint64_t>(std::span(buffer_v));
-				auto parbuffer_v = utils::as_mutable_span_of<paragraph_type>(std::span(buffer_v));
-				__debugbreak();
-
-				WIN32_ERROR_ASSERT(GetState(WHvVirtualProcessorStateTypeSynicMessagePage, buffer_v));
-				u32buffer_v = utils::as_mutable_span_of<std::uint32_t>(std::span(buffer_v));
-				u64buffer_v = utils::as_mutable_span_of<std::uint64_t>(std::span(buffer_v));
-				parbuffer_v = utils::as_mutable_span_of<paragraph_type>(std::span(buffer_v));
-				__debugbreak();
-
-				WIN32_ERROR_ASSERT(GetState(WHvVirtualProcessorStateTypeSynicEventFlagPage, buffer_v));
-				u32buffer_v = utils::as_mutable_span_of<std::uint32_t>(std::span(buffer_v));
-				u64buffer_v = utils::as_mutable_span_of<std::uint64_t>(std::span(buffer_v));
-				parbuffer_v = utils::as_mutable_span_of<paragraph_type>(std::span(buffer_v));
-				__debugbreak();
-				
-				WIN32_ERROR_ASSERT(GetState(WHvVirtualProcessorStateTypeInterruptControllerState2, buffer_v));
-				u32buffer_v = utils::as_mutable_span_of<std::uint32_t>(std::span(buffer_v));
-				u64buffer_v = utils::as_mutable_span_of<std::uint64_t>(std::span(buffer_v));
-				parbuffer_v = utils::as_mutable_span_of<paragraph_type>(std::span(buffer_v));
-				__debugbreak();
-
-				WIN32_ERROR_ASSERT(GetState(WHvVirtualProcessorStateTypeXsaveState, buffer_v));
-				u32buffer_v = utils::as_mutable_span_of<std::uint32_t>(std::span(buffer_v));
-				u64buffer_v = utils::as_mutable_span_of<std::uint64_t>(std::span(buffer_v));
-				parbuffer_v = utils::as_mutable_span_of<paragraph_type>(std::span(buffer_v));
-				__debugbreak();
-			}
-			if (context_v.MsrAccess.AccessInfo.IsWrite)
-			{
+			if (context_v.MsrAccess.AccessInfo.IsWrite) {
 				logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) write at {:#06x}:{:#010x}, EDX:EAX={:010X}:{:010X}", 
 					GetIndex(), context_v.MsrAccess.MsrNumber,context_v.VpContext.Cs.Selector, context_v.VpContext.Rip,
 					context_v.MsrAccess.Rdx, context_v.MsrAccess.Rax);
-			} 
-			else 
-			{
+			} else {
 				logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) read at {:#06x}:{:#010x}",
 					GetIndex(), context_v.MsrAccess.MsrNumber, context_v.VpContext.Cs.Selector, context_v.VpContext.Rip);
 			}
@@ -150,13 +113,6 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 				context_v.VpContext.Cs.Selector,
 				context_v.VpContext.Rip				
 			);
-			{
-				auto ds_v = GetRegister(WHvX64RegisterDs);
-				auto es_v = GetRegister(WHvX64RegisterEs);
-				auto fs_v = GetRegister(WHvX64RegisterFs);
-				auto gs_v = GetRegister(WHvX64RegisterGs);
-			__debugbreak();
-			}		
 			[[fallthrough]];		
 		default:
 			return result_v;
@@ -190,9 +146,8 @@ auto Processor::CancelAsync() -> void {
 	lock_v.lock();
 }
 
-auto Processor::RequestIRQ(std::uint8_t vector_v) -> std::int32_t
+auto Processor::InjectInterrupt(std::uint8_t vector_v) -> std::int32_t
 {	
-#if 0
 	if (!InterruptsEnabled())
 		return ERROR_SUCCESS;
 	auto const result_v = SetRegister(WHvRegisterPendingInterruption, {
@@ -206,29 +161,11 @@ auto Processor::RequestIRQ(std::uint8_t vector_v) -> std::int32_t
 			.ErrorCode = 0u
 		}
 	});
-#elif 0
-	std::int32_t result_v{ 0 };
-	result_v = SetRegister(WHvRegisterPendingEvent, {
-		.ExtIntEvent = {
-			.EventPending = 1,
-			.EventType = WHvX64PendingEventExtInt,
-			.Vector = vector_v
-		}	
-	});
-#else
-	WHV_INTERRUPT_CONTROL irq_v{ };
-	irq_v.Type = WHvX64InterruptTypeFixed;
-	irq_v.DestinationMode = WHvX64InterruptDestinationModeLogical;
-	irq_v.TriggerMode = WHvX64InterruptTriggerModeEdge;
-	irq_v.Destination = WHvProcessor::GetIndex();
-	irq_v.Vector = 32 + vector_v;
-	auto const result_v = WHvProcessor::RequestIRQ(irq_v);
-	m_Suspend.release();
-#endif
+	Unsuspend();
 	return result_v;
 }
 
-auto Processor::RequestNonMaskable() -> std::int32_t
+auto Processor::InjectNonMaskable() -> std::int32_t
 {
 	auto const result_v = SetRegister(WHvRegisterPendingInterruption, {
 		.PendingInterruption = {
@@ -241,8 +178,13 @@ auto Processor::RequestNonMaskable() -> std::int32_t
 			.ErrorCode = 0u
 		}
 		});
-	m_Suspend.release();
+	Unsuspend();
 	return result_v;
+}
+
+auto Processor::Unsuspend()  -> void
+{
+	m_Suspend.release();
 }
 
 auto Processor::Emulator() -> win32::WHvEmulator&

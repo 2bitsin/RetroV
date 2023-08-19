@@ -17,7 +17,7 @@ namespace win32
 
 	struct WHvProcessor
 	{		
-		WHvProcessor(WHvPartition const& partition_v, std::uint32_t vcpuindex_v=0u);
+		WHvProcessor(WHvPartition& partition_v, std::uint32_t vcpuindex_v=0u);
 	  ~WHvProcessor() = default;
 		
 		auto GetIndex() const -> std::uint32_t;
@@ -42,13 +42,32 @@ namespace win32
 
 		auto TranslateGva(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v) const -> std::tuple<std::int32_t, WHV_TRANSLATE_GVA_RESULT_CODE, std::uint64_t>;
 		auto MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 8u> data_v, WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) const -> std::int32_t;
+
+		template<typename T> requires(std::is_trivial_v<T>)
+		auto MemoryWrite(std::uint64_t physaddr_v, T what_v) const -> std::int32_t {
+			return MemoryAccess(true, physaddr_v, utils::as_static_mutable_bytes(what_v));
+		}
+
+		template<typename T> requires(std::is_trivial_v<T>)
+		auto MemoryFetch(std::uint64_t physaddr_v, T& what_v) const -> std::int32_t {
+			return MemoryAccess(false, physaddr_v, utils::as_static_mutable_bytes(what_v));
+		}
+
+		template<typename T> requires(std::is_trivial_v<T>)
+		auto MemoryFetch(std::uint64_t physaddr_v) const -> T {
+			T what_v{};
+			WIN32_ERROR_ASSERT(MemoryFetch(physaddr_v, what_v));
+			return what_v;
+		}
+
 		auto RequestIRQ(WHV_INTERRUPT_CONTROL irq_v) -> std::int32_t;
 
 		auto GetState(WHV_VIRTUAL_PROCESSOR_STATE_TYPE type_v, std::vector<std::byte>& buffer_v) const -> std::int32_t;
 		auto SetState(WHV_VIRTUAL_PROCESSOR_STATE_TYPE type_v, std::span<std::byte const> buffer_v) const -> std::int32_t;
 
+
 	private:
-		win32::WHvPartition const& m_Partition;
+		win32::WHvPartition& m_Partition;
 		std::uint32_t m_VcpuIndex;
 	};
 }

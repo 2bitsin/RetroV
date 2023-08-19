@@ -6,7 +6,7 @@
 
 using win32::WHvProcessor;
 
-WHvProcessor::WHvProcessor(WHvPartition const& partition_v, std::uint32_t vcpuindex_v)
+WHvProcessor::WHvProcessor(WHvPartition& partition_v, std::uint32_t vcpuindex_v)
 	: m_Partition{ partition_v }
 	, m_VcpuIndex{ vcpuindex_v }
 {}

@@ -13,11 +13,15 @@ using core::Machine;
 Machine::Machine(Configuration const& config_v)	
 	: m_Partition { nullptr }
 	, m_Processor { *this, 0u }
+	, m_LocalApic { *this, 0u }
+	, m_Pic8259		{ *this, 0u }
 	, m_Debugger  { *this }
 {
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);
+	WIN32_ERROR_ASSERT(m_LocalApic.Initialize());
+	WIN32_ERROR_ASSERT(m_Pic8259.Initialize());
 }
 
 Machine::~Machine() 
@@ -81,7 +85,12 @@ auto Machine::RaiseIRQ(std::uint8_t vector_v) -> void
 {
 	using utils::logger;
 	logger::info(logger::deflog, "CPU[{}] raised IRQ[{}]", m_Processor.GetIndex(), vector_v);
-	WIN32_ERROR_ASSERT(m_Processor.RequestIRQ(vector_v));
+	WIN32_ERROR_ASSERT(m_LocalApic.RequestIRQ(WHvX64InterruptTriggerModeEdge, 
+		WHvX64InterruptTypeFixed, vector_v+32));
+}
+
+auto Machine::RaiseNMI() -> void {
+	WIN32_ERROR_ASSERT(m_LocalApic.RequestIRQ(WHvX64InterruptTriggerModeEdge, WHvX64InterruptTypeNmi));
 }
 
 auto Machine::ConfigurePartition(Configuration const&) -> void
@@ -101,10 +110,9 @@ auto Machine::ConfigurePartition(Configuration const&) -> void
  		} },
 		{ WHvPartitionPropertyCodeX64MsrExitBitmap, {.X64MsrExitBitmap = {.UnhandledMsrs = 1 } } },
 		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .X64MsrExit = 1u, .ExceptionExit = 1u, .HypercallExit = 1u } } },
-		{ WHvPartitionPropertyCodeProcessorCount, { .ProcessorCount = 1u } },
-		{ WHvPartitionPropertyCodeProcessorFrequencyCap, { .ProcessorFrequencyCap = 1 } },
+		{ WHvPartitionPropertyCodeProcessorCount, { .ProcessorCount = 1u } },		
 		{ WHvPartitionPropertyCodeSyntheticProcessorFeaturesBanks, { .SyntheticProcessorFeaturesBanks = synic_features_v } },
-		{ WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeXApic } },
+	  { WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeXApic } },
 		{ WHvPartitionPropertyCodeProcessorFeatures, { .ProcessorFeatures = WHvCapabilities::Get<WHV_PROCESSOR_FEATURES>(WHvCapabilityCodeProcessorFeatures) } }
 	});
 }
@@ -194,6 +202,11 @@ auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited
 			}
 			break;
 		}
+	case 0x20:
+	case 0x21:
+	case 0xA0:
+	case 0xA1:
+		return m_Pic8259.IoPortAccess(is_write_v, port_v, data_v);
 	default:
 		__debugbreak();
 	}

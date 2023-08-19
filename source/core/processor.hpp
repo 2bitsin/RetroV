@@ -40,8 +40,12 @@ namespace core
 		auto RunAsync() -> exit_future_type;
 		auto CancelAsync() -> void;
 
-		auto RequestIRQ(std::uint8_t vector_v) -> std::int32_t;
-		auto RequestNonMaskable() -> std::int32_t;
+		auto InjectInterrupt(std::uint8_t vector_v) -> std::int32_t;
+		auto InjectNonMaskable() -> std::int32_t;
+		auto Unsuspend() -> void;
+
+		using WHvProcessor::MemoryFetch;
+		using WHvProcessor::MemoryWrite;
 
 	protected:
 

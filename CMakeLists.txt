@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
 project(HvDOS)
 
-set (VCPKG_TARGET_TRIPLET "x64-windows-static")
 set (CMAKE_SYSTEM_VERSION "10.0.22621.0")
 
 # include some misc fucntionality
 include(${CMAKE_SOURCE_DIR}/cmake/stack.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/fasm.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/msvcfix.cmake)
 
 # find packages SDL2 and capstone
 find_package(SDL2 CONFIG REQUIRED)
@@ -29,7 +29,5 @@ message (STATUS "SOURCE_FILES_ASI: ${SOURCE_FILES_ASI}")
 add_fasm_target(BiosAMD "source/bios/amd.asm" ${SOURCE_FILES_ASI})
 add_fasm_target(BiosIntel "source/bios/intel.asm" ${SOURCE_FILES_ASI})
 
-install (TARGETS HvDOS DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
-install (FILES ${CMAKE_CURRENT_BINARY_DIR}/SDL2d.dll DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
-install (FILES ${CMAKE_CURRENT_BINARY_DIR}/capstone.dll DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
+install (TARGETS HvDOS DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

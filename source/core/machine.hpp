@@ -11,6 +11,8 @@
 #include <core/configuration.hpp>
 #include <core/memory.hpp>
 #include <core/processor.hpp>
+#include <core/localapic.hpp>
+#include <core/pic8259.hpp>
 #include <core/debugger.hpp>
 
 #include <utils/span.hpp>
@@ -34,14 +36,14 @@ namespace core
 		auto RunMain() -> void;
 
 		auto RaiseIRQ(std::uint8_t vector_v) -> void;
-	
+		auto GetProcessor(std::uint32_t vcpuindex_v) -> Processor& { (void)vcpuindex_v; return m_Processor; }
+		auto GetLocalApic(std::uint32_t vcpuindex_v) -> LocalApic& { (void)vcpuindex_v; return m_LocalApic; }
+		auto GetPartition() -> win32::WHvPartition& { return m_Partition; }
+
 	protected:
 		friend Processor;
 		friend Debugger;
 
-		auto Partition() const -> win32::WHvPartition const& { return m_Partition; }
-		auto Emulator() const -> win32::WHvEmulator const& { return m_Emulator;  }
-		auto Processor() const -> Processor const& { return m_Processor; }
 
 		auto IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
 		auto MemoryAccess(bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t;		
@@ -51,11 +53,12 @@ namespace core
 		auto ConfigurePartition(Configuration const&) -> void;
 
 	private:		
-		win32::WHvEmulator m_Emulator;
 		win32::WHvPartition m_Partition;
 		std::list<Memory> m_Memory;
 		core::Processor m_Processor;
 		core::Processor::exit_future_type m_ProcessorExit;
+		core::LocalApic m_LocalApic;
+		core::Pic8259 m_Pic8259;
 		core::Debugger m_Debugger;
 	};
 

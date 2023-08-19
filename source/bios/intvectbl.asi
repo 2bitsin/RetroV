@@ -5,19 +5,15 @@ IVT:
     align 4
   .Entry#Number:
     pushad
-    push    ds es fs gs
-
-    mov     ax,     cs
-    mov     es,     ax   
-    mov     ds,     ax
-    mov     fs,     ax
-    mov     gs,     ax
-
     mov     ax,     Number-1
     jmp     .PrintInterrupt
   }
 
 .PrintInterrupt:
+  push      ds es
+
+  push      cs cs
+  pop       ds es
   
   mov       si,     Strings.IntV
   call      Debug.PrintString
@@ -28,12 +24,13 @@ IVT:
 
   mov       si,     Strings.CrLf
   call      Debug.PrintString
-
-  xor       eax,    eax 
-  mov       ds,     ax
-  mov       [0xfee000b0], eax
   
-  pop       gs fs es ds
+  ;         EOI
+  mov       al,     0x20
+  out       0x21,   al
+  out       0xa1,   al
+
+  pop       es ds
   popad
   iret        
 
