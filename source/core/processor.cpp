@@ -62,6 +62,40 @@ auto Processor::TranslateGvaPage(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLA
 	addr_o = addr_v; code_o = code_v; return status_v;
 }
 
+auto Processor::TestIRQDeliverability() -> std::int32_t {
+	std::shared_lock lock_v{ m_IRQPendingLock };
+	auto irq_pending_v = m_IRQPendingMask.any();
+	auto nmi_pending_v = m_NmiPending;
+	if (irq_pending_v || nmi_pending_v) {
+		return SetRegister(WHvX64RegisterDeliverabilityNotifications, { .DeliverabilityNotifications = {
+			.NmiNotification = nmi_pending_v ? 1u : 0u, .InterruptNotification = irq_pending_v ? 1u : 0u
+		}});
+	}
+	return ERROR_SUCCESS;
+}
+
+auto Processor::PopPendingIRQ() -> std::optional<std::uint8_t>
+{
+	std::unique_lock lock_v{ m_IRQPendingLock };
+	std::uint16_t vector_v{ 0u };
+	while (vector_v < 256u) {
+		if (m_IRQPendingMask.test(vector_v)) {
+			m_IRQPendingMask.reset(vector_v);
+			return vector_v & 0xFFu;
+		}
+		vector_v += 1u;
+	}
+	return std::nullopt;
+}
+
+auto Processor::PopPendingNmi() -> std::optional<std::uint8_t>
+{
+	std::unique_lock lock_v{ m_IRQPendingLock };
+	if (!m_NmiPending) return std::nullopt;
+	m_NmiPending = false;
+	return 2u;
+}
+
 auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 {
 	win32::scope_name _tdesc{ "Processor::Run" };
@@ -76,9 +110,10 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 	while (!stoppee_v.stop_requested())
 	{		
 		auto const result_v = WHvProcessor::Run();
-		auto const [status_v, context_v] = result_v;
-		if (!SUCCEEDED(status_v))
-			return result_v;		
+		auto [status_v, context_v] = result_v;
+		if (FAILED(status_v)) return result_v;		
+		status_v = TestIRQDeliverability();
+		if (FAILED(status_v)) return { status_v, context_v };
 		switch (context_v.ExitReason)
 		{
 		case WHvRunVpExitReasonX64MsrAccess:
@@ -90,7 +125,8 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 				logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) read at {:#06x}:{:#010x}",
 					GetIndex(), context_v.MsrAccess.MsrNumber, context_v.VpContext.Cs.Selector, context_v.VpContext.Rip);
 			}
-			SetRegister(WHvX64RegisterRip, { .Reg64 = context_v.VpContext.Rip + context_v.VpContext.InstructionLength });			
+			status_v = SetRegister(WHvX64RegisterRip, { .Reg64 = context_v.VpContext.Rip + context_v.VpContext.InstructionLength });			
+			if (FAILED(status_v)) return { status_v, context_v };			
 			continue;
 		case WHvRunVpExitReasonX64IoPortAccess:
 			emulator_v.TryIoEmulation(*this, context_v.VpContext, context_v.IoPortAccess);
@@ -98,6 +134,43 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 		case WHvRunVpExitReasonMemoryAccess:
 			emulator_v.TryMmioEmulation(*this, context_v.VpContext, context_v.MemoryAccess);
 			continue;		
+		case WHvRunVpExitReasonX64InterruptWindow:			
+			switch (context_v.InterruptWindow.DeliverableType)
+			{ 
+			case WHvX64PendingInterrupt:
+				{
+					auto vector_o = PopPendingIRQ();
+					if (!vector_o.has_value()) break;				
+					status_v = SetRegister(WHvRegisterPendingEvent, { .ExtIntEvent = {
+						.EventPending = 1u,
+						.EventType = WHvX64PendingEventExtInt,
+						.Vector = vector_o.value()
+					}});
+					if (FAILED(status_v)) {
+						logger::error(logger::deflog, "CPU[{}] failed to inject interrupt: {:#010x}", GetIndex(), status_v);
+						return { status_v, context_v };
+					}
+				}
+				break;
+			case WHvX64PendingNmi:
+				{
+					auto vector_o = PopPendingNmi();
+					if (!vector_o.has_value()) break;
+					status_v = SetRegister(WHvRegisterPendingEvent, { .ExtIntEvent = {
+						.EventPending = 1u,
+						.EventType = WHvX64PendingNmi,
+						.Vector = vector_o.value()
+					}});
+					if (FAILED(status_v)) {
+						logger::error(logger::deflog, "CPU[{}] failed to inject NMI: {:#010x}", GetIndex(), status_v);
+						return { status_v, context_v };
+					}
+				}
+				break;
+			default: 
+				break;
+			}
+			continue;
 		case WHvRunVpExitReasonX64Halt:
 			if (InterruptsEnabled()) { 
 				m_Suspend.acquire();
@@ -148,38 +221,18 @@ auto Processor::CancelAsync() -> void {
 
 auto Processor::InjectInterrupt(std::uint8_t vector_v) -> std::int32_t
 {	
-	if (!InterruptsEnabled())
-		return ERROR_SUCCESS;
-	auto const result_v = SetRegister(WHvRegisterPendingInterruption, {
-		.PendingInterruption = {
-			.InterruptionPending = 1u,
-			.InterruptionType = WHvX64PendingInterrupt,
-			.DeliverErrorCode = 0u,
-			.InstructionLength = 0u,
-			.NestedEvent = 0u,
-			.InterruptionVector = vector_v,
-			.ErrorCode = 0u
-		}
-	});
+	std::unique_lock lock_v{ m_IRQPendingLock };
+	m_IRQPendingMask.set(vector_v, true);
 	Unsuspend();
-	return result_v;
+	return S_OK;
 }
 
 auto Processor::InjectNonMaskable() -> std::int32_t
 {
-	auto const result_v = SetRegister(WHvRegisterPendingInterruption, {
-		.PendingInterruption = {
-			.InterruptionPending = 1u,
-			.InterruptionType = WHvX64PendingNmi,
-			.DeliverErrorCode = 0u,
-			.InstructionLength = 0u,
-			.NestedEvent = 0u,
-			.InterruptionVector = 2u,
-			.ErrorCode = 0u
-		}
-		});
+	std::unique_lock lock_v{ m_IRQPendingLock };
+	m_NmiPending = true;
 	Unsuspend();
-	return result_v;
+	return S_OK;
 }
 
 auto Processor::Unsuspend()  -> void

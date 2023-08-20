@@ -12,7 +12,7 @@
 #include <core/memory.hpp>
 #include <core/processor.hpp>
 #include <core/localapic.hpp>
-#include <core/pic8259.hpp>
+#include <core/legacypic.hpp>
 #include <core/debugger.hpp>
 
 #include <utils/span.hpp>
@@ -36,6 +36,7 @@ namespace core
 		auto RunMain() -> void;
 
 		auto RaiseIRQ(std::uint8_t vector_v) -> void;
+		auto RaiseNMI() -> void;
 		auto GetProcessor(std::uint32_t vcpuindex_v) -> Processor& { (void)vcpuindex_v; return m_Processor; }
 		auto GetLocalApic(std::uint32_t vcpuindex_v) -> LocalApic& { (void)vcpuindex_v; return m_LocalApic; }
 		auto GetPartition() -> win32::WHvPartition& { return m_Partition; }
@@ -58,7 +59,7 @@ namespace core
 		core::Processor m_Processor;
 		core::Processor::exit_future_type m_ProcessorExit;
 		core::LocalApic m_LocalApic;
-		core::Pic8259 m_Pic8259;
+		core::LegacyPic m_LegacyPIC;
 		core::Debugger m_Debugger;
 	};
 

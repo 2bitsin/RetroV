@@ -14,14 +14,14 @@ Machine::Machine(Configuration const& config_v)
 	: m_Partition { nullptr }
 	, m_Processor { *this, 0u }
 	, m_LocalApic { *this, 0u }
-	, m_Pic8259		{ *this, 0u }
+	, m_LegacyPIC		{ *this, 0u }
 	, m_Debugger  { *this }
 {
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);
 	WIN32_ERROR_ASSERT(m_LocalApic.Initialize());
-	WIN32_ERROR_ASSERT(m_Pic8259.Initialize());
+	WIN32_ERROR_ASSERT(m_LegacyPIC.Initialize());
 }
 
 Machine::~Machine() 
@@ -85,8 +85,10 @@ auto Machine::RaiseIRQ(std::uint8_t vector_v) -> void
 {
 	using utils::logger;
 	logger::info(logger::deflog, "CPU[{}] raised IRQ[{}]", m_Processor.GetIndex(), vector_v);
-	WIN32_ERROR_ASSERT(m_LocalApic.RequestIRQ(WHvX64InterruptTriggerModeEdge, 
-		WHvX64InterruptTypeFixed, vector_v+32));
+	//WIN32_ERROR_ASSERT(m_LocalApic.RequestIRQ(WHvX64InterruptTriggerModeEdge, 
+		//WHvX64InterruptTypeLocalInt, vector_v+32));
+
+	m_Processor.InjectInterrupt(32u+vector_v);
 }
 
 auto Machine::RaiseNMI() -> void {
@@ -206,7 +208,7 @@ auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited
 	case 0x21:
 	case 0xA0:
 	case 0xA1:
-		return m_Pic8259.IoPortAccess(is_write_v, port_v, data_v);
+		return m_LegacyPIC.IoPortAccess(is_write_v, port_v, data_v);
 	default:
 		__debugbreak();
 	}

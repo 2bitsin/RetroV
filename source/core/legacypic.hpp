@@ -10,9 +10,9 @@ namespace core
 	class Processor;
 	class LocalApic;
 
-	struct Pic8259
+	struct LegacyPic
 	{
-		Pic8259 (Machine& machine_v, std::uint32_t bsp_index_v);
+		LegacyPic (Machine& machine_v, std::uint32_t bsp_index_v);
 		
 		auto Initialize() -> std::int32_t;
 
