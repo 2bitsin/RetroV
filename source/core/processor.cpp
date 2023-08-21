@@ -62,38 +62,22 @@ auto Processor::TranslateGvaPage(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLA
 	addr_o = addr_v; code_o = code_v; return status_v;
 }
 
-auto Processor::TestIRQDeliverability() -> std::int32_t {
-	std::shared_lock lock_v{ m_IRQPendingLock };
-	auto irq_pending_v = m_IRQPendingMask.any();
-	auto nmi_pending_v = m_NmiPending;
-	if (irq_pending_v || nmi_pending_v) {
-		return SetRegister(WHvX64RegisterDeliverabilityNotifications, { .DeliverabilityNotifications = {
-			.NmiNotification = nmi_pending_v ? 1u : 0u, .InterruptNotification = irq_pending_v ? 1u : 0u
-		}});
+auto Processor::UnhandledMsr(WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) -> std::int32_t
+{
+	using utils::logger;
+	if (access_v.AccessInfo.IsWrite) {
+		logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) write at {:#06x}:{:#010x}, EDX:EAX={:010X}:{:010X}",GetIndex(), access_v.MsrNumber, context_v.Cs.Selector, context_v.Rip, access_v.Rdx, access_v.Rax);
+	} else {
+		logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) read at {:#06x}:{:#010x}", GetIndex(), access_v.MsrNumber, context_v.Cs.Selector, context_v.Rip);
 	}
-	return ERROR_SUCCESS;
+	return S_OK;
 }
 
-auto Processor::PopPendingIRQ() -> std::optional<std::uint8_t>
+auto Processor::UnhandledException(WHV_VP_EXIT_CONTEXT const& context_v, WHV_VP_EXCEPTION_CONTEXT const& exception_v) -> std::int32_t
 {
-	std::unique_lock lock_v{ m_IRQPendingLock };
-	std::uint16_t vector_v{ 0u };
-	while (vector_v < 256u) {
-		if (m_IRQPendingMask.test(vector_v)) {
-			m_IRQPendingMask.reset(vector_v);
-			return vector_v & 0xFFu;
-		}
-		vector_v += 1u;
-	}
-	return std::nullopt;
-}
-
-auto Processor::PopPendingNmi() -> std::optional<std::uint8_t>
-{
-	std::unique_lock lock_v{ m_IRQPendingLock };
-	if (!m_NmiPending) return std::nullopt;
-	m_NmiPending = false;
-	return 2u;
+	using utils::logger;
+	logger::error(logger::deflog, "CPU[{}] raised exception: {:d}({:#04X}) at {:04X}:{:08X}.", GetIndex(), exception_v.ExceptionType, exception_v.ExceptionType, context_v.Cs.Selector, context_v.Rip);  
+	return S_OK;
 }
 
 auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
@@ -111,22 +95,19 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 	{		
 		auto const result_v = WHvProcessor::Run();
 		auto [status_v, context_v] = result_v;
-		if (FAILED(status_v)) return result_v;		
-		status_v = TestIRQDeliverability();
-		if (FAILED(status_v)) return { status_v, context_v };
+		if (FAILED(status_v)) 
+			return result_v;	
+		if (FAILED(status_v)) 
+			return { status_v, context_v };
 		switch (context_v.ExitReason)
 		{
 		case WHvRunVpExitReasonX64MsrAccess:
-			if (context_v.MsrAccess.AccessInfo.IsWrite) {
-				logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) write at {:#06x}:{:#010x}, EDX:EAX={:010X}:{:010X}", 
-					GetIndex(), context_v.MsrAccess.MsrNumber,context_v.VpContext.Cs.Selector, context_v.VpContext.Rip,
-					context_v.MsrAccess.Rdx, context_v.MsrAccess.Rax);
-			} else {
-				logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) read at {:#06x}:{:#010x}",
-					GetIndex(), context_v.MsrAccess.MsrNumber, context_v.VpContext.Cs.Selector, context_v.VpContext.Rip);
-			}
-			status_v = SetRegister(WHvX64RegisterRip, { .Reg64 = context_v.VpContext.Rip + context_v.VpContext.InstructionLength });			
-			if (FAILED(status_v)) return { status_v, context_v };			
+			status_v = UnhandledMsr(context_v.VpContext, context_v.MsrAccess);
+			if (FAILED(status_v))
+				return { status_v, context_v };
+			status_v = AdvanceInstruction(context_v.VpContext);
+			if (FAILED(status_v))
+				return { status_v, context_v };			
 			continue;
 		case WHvRunVpExitReasonX64IoPortAccess:
 			emulator_v.TryIoEmulation(*this, context_v.VpContext, context_v.IoPortAccess);
@@ -138,34 +119,8 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 			switch (context_v.InterruptWindow.DeliverableType)
 			{ 
 			case WHvX64PendingInterrupt:
-				{
-					auto vector_o = PopPendingIRQ();
-					if (!vector_o.has_value()) break;				
-					status_v = SetRegister(WHvRegisterPendingEvent, { .ExtIntEvent = {
-						.EventPending = 1u,
-						.EventType = WHvX64PendingEventExtInt,
-						.Vector = vector_o.value()
-					}});
-					if (FAILED(status_v)) {
-						logger::error(logger::deflog, "CPU[{}] failed to inject interrupt: {:#010x}", GetIndex(), status_v);
-						return { status_v, context_v };
-					}
-				}
-				break;
 			case WHvX64PendingNmi:
-				{
-					auto vector_o = PopPendingNmi();
-					if (!vector_o.has_value()) break;
-					status_v = SetRegister(WHvRegisterPendingEvent, { .ExtIntEvent = {
-						.EventPending = 1u,
-						.EventType = WHvX64PendingNmi,
-						.Vector = vector_o.value()
-					}});
-					if (FAILED(status_v)) {
-						logger::error(logger::deflog, "CPU[{}] failed to inject NMI: {:#010x}", GetIndex(), status_v);
-						return { status_v, context_v };
-					}
-				}
+			case WHvX64PendingException:
 				break;
 			default: 
 				break;
@@ -180,12 +135,9 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 		case WHvRunVpExitReasonCanceled:
 			return result_v;
 		case WHvRunVpExitReasonException:
-			logger::error(logger::deflog, "CPU[{}] raised exception: {:d}({:#04X}) at {:04X}:{:08X}.", 
-				GetIndex(), context_v.VpException.ExceptionType,
-				context_v.VpException.ExceptionType,
-				context_v.VpContext.Cs.Selector,
-				context_v.VpContext.Rip				
-			);
+			status_v = UnhandledException(context_v.VpContext, context_v.VpException);
+			if (FAILED(status_v))
+				return { status_v, context_v };
 			[[fallthrough]];		
 		default:
 			return result_v;
@@ -219,25 +171,16 @@ auto Processor::CancelAsync() -> void {
 	lock_v.lock();
 }
 
-auto Processor::InjectInterrupt(std::uint8_t vector_v) -> std::int32_t
-{	
-	std::unique_lock lock_v{ m_IRQPendingLock };
-	m_IRQPendingMask.set(vector_v, true);
-	Unsuspend();
-	return S_OK;
-}
-
-auto Processor::InjectNonMaskable() -> std::int32_t
-{
-	std::unique_lock lock_v{ m_IRQPendingLock };
-	m_NmiPending = true;
-	Unsuspend();
-	return S_OK;
-}
-
 auto Processor::Unsuspend()  -> void
 {
 	m_Suspend.release();
+}
+
+auto Processor::ReferenceTsc() const -> std::tuple<std::int32_t, std::uint64_t>
+{
+	WHV_REGISTER_VALUE value_v{};
+	auto result_v = GetRegister(WHvRegisterReferenceTsc, value_v);
+	return { result_v, value_v.Reg64 };
 }
 
 auto Processor::Emulator() -> win32::WHvEmulator&

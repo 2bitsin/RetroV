@@ -25,12 +25,13 @@ IVT:
   mov       si,     Strings.CrLf
   call      Debug.PrintString
   
+  pop       es ds
+  
   ;         EOI
   mov       al,     0x20
   out       0x21,   al
   out       0xa1,   al
 
-  pop       es ds
   popad
   iret        
 

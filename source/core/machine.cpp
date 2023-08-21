@@ -14,14 +14,14 @@ Machine::Machine(Configuration const& config_v)
 	: m_Partition { nullptr }
 	, m_Processor { *this, 0u }
 	, m_LocalApic { *this, 0u }
-	, m_LegacyPIC		{ *this, 0u }
+	, m_LegacyPic		{ *this, 0u }
 	, m_Debugger  { *this }
 {
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);
 	WIN32_ERROR_ASSERT(m_LocalApic.Initialize());
-	WIN32_ERROR_ASSERT(m_LegacyPIC.Initialize());
+	WIN32_ERROR_ASSERT(m_LegacyPic.Initialize());
 }
 
 Machine::~Machine() 
@@ -208,7 +208,7 @@ auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited
 	case 0x21:
 	case 0xA0:
 	case 0xA1:
-		return m_LegacyPIC.IoPortAccess(is_write_v, port_v, data_v);
+		return m_LegacyPic.IoPortAccess(is_write_v, port_v, data_v);
 	default:
 		__debugbreak();
 	}

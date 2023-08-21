@@ -38,17 +38,15 @@ namespace core
 		auto SetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE const> values_v) const -> std::int32_t;
 		auto TranslateGvaPage(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v, WHV_TRANSLATE_GVA_RESULT_CODE& code_v, std::uint64_t& physaddr_v) const -> std::int32_t;
 
+		auto UnhandledMsr(WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) -> std::int32_t;
+		auto UnhandledException(WHV_VP_EXIT_CONTEXT const& context_v, WHV_VP_EXCEPTION_CONTEXT const& exception_v) -> std::int32_t;
 
 		auto Run(std::stop_token stoppee_v) -> exit_result_type;
 		auto RunAsync() -> exit_future_type;
-		auto CancelAsync() -> void;
-
-		auto TestIRQDeliverability() -> std::int32_t;
-		auto PopPendingIRQ() -> std::optional<std::uint8_t>;
-		auto PopPendingNmi() -> std::optional<std::uint8_t>;
-		auto InjectInterrupt(std::uint8_t vector_v) -> std::int32_t;
-		auto InjectNonMaskable() -> std::int32_t;
+		auto CancelAsync() -> void;		
 		auto Unsuspend() -> void;
+		auto ReferenceTsc() const -> 
+			std::tuple<std::int32_t, std::uint64_t>;
 
 		using WHvProcessor::MemoryFetch;
 		using WHvProcessor::MemoryWrite;
@@ -65,9 +63,5 @@ namespace core
 		std::binary_semaphore m_Suspend;
 		std::stop_source m_Stopper;
 		exit_future_type m_FutureExit;
-
-		std::shared_mutex m_IRQPendingLock;
-		std::bitset<256u> m_IRQPendingMask;
-		bool m_NmiPending{ false };
 	};
 }

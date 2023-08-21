@@ -11,7 +11,6 @@
 #include <core/configuration.hpp>
 #include <core/memory.hpp>
 #include <core/processor.hpp>
-#include <core/localapic.hpp>
 #include <core/legacypic.hpp>
 #include <core/debugger.hpp>
 
@@ -38,7 +37,6 @@ namespace core
 		auto RaiseIRQ(std::uint8_t vector_v) -> void;
 		auto RaiseNMI() -> void;
 		auto GetProcessor(std::uint32_t vcpuindex_v) -> Processor& { (void)vcpuindex_v; return m_Processor; }
-		auto GetLocalApic(std::uint32_t vcpuindex_v) -> LocalApic& { (void)vcpuindex_v; return m_LocalApic; }
 		auto GetPartition() -> win32::WHvPartition& { return m_Partition; }
 
 	protected:
@@ -58,8 +56,7 @@ namespace core
 		std::list<Memory> m_Memory;
 		core::Processor m_Processor;
 		core::Processor::exit_future_type m_ProcessorExit;
-		core::LocalApic m_LocalApic;
-		core::LegacyPic m_LegacyPIC;
+		core::LegacyPic m_LegacyPic;
 		core::Debugger m_Debugger;
 	};
 
