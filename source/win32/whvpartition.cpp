@@ -124,6 +124,7 @@ auto WHvPartition::MapGpaRange(void* src_addr_v, std::uint64_t dst_addr_v, std::
 	if (kAccessFetch   & access_v) flags_v |= WHvMapGpaRangeFlagRead;
 	if (kAccessWrite   & access_v) flags_v |= WHvMapGpaRangeFlagWrite;
 	if (kAccessExecute & access_v) flags_v |= WHvMapGpaRangeFlagExecute;
+	if (kTrackDirty    & access_v) flags_v |= WHvMapGpaRangeFlagTrackDirtyPages;
 	return ::WHvMapGpaRange(m_Handle, src_addr_v, dst_addr_v, size_v, flags_v);
 }
 

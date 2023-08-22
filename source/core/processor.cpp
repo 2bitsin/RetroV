@@ -176,7 +176,7 @@ auto Processor::Unsuspend()  -> void
 	m_Suspend.release();
 }
 
-auto Processor::ReferenceTsc() const -> std::tuple<std::int32_t, std::uint64_t>
+auto Processor::ReadTsc() const -> std::tuple<std::int32_t, std::uint64_t>
 {
 	WHV_REGISTER_VALUE value_v{};
 	auto result_v = GetRegister(WHvRegisterReferenceTsc, value_v);

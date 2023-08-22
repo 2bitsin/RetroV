@@ -34,8 +34,8 @@ namespace core
 		auto Reset() -> void;
 		auto RunMain() -> void;
 
-		auto RaiseIRQ(std::uint8_t vector_v) -> void;
-		auto RaiseNMI() -> void;
+		auto SetIRQ(std::uint16_t state_v) -> void;
+		
 		auto GetProcessor(std::uint32_t vcpuindex_v) -> Processor& { (void)vcpuindex_v; return m_Processor; }
 		auto GetPartition() -> win32::WHvPartition& { return m_Partition; }
 

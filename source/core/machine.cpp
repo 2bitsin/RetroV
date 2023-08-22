@@ -13,14 +13,12 @@ using core::Machine;
 Machine::Machine(Configuration const& config_v)	
 	: m_Partition { nullptr }
 	, m_Processor { *this, 0u }
-	, m_LocalApic { *this, 0u }
-	, m_LegacyPic		{ *this, 0u }
+	, m_LegacyPic	{ *this, 0u }
 	, m_Debugger  { *this }
 {
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
-	ConfigureMemory(config_v);
-	WIN32_ERROR_ASSERT(m_LocalApic.Initialize());
+	ConfigureMemory(config_v);	
 	WIN32_ERROR_ASSERT(m_LegacyPic.Initialize());
 }
 
@@ -81,18 +79,28 @@ auto Machine::RunMain() -> void
 	}
 }
 
-auto Machine::RaiseIRQ(std::uint8_t vector_v) -> void
+template <typename T> requires (std::is_integral_v<T>)
+static inline auto bitset_to_string(T bits) -> std::string
 {
-	using utils::logger;
-	logger::info(logger::deflog, "CPU[{}] raised IRQ[{}]", m_Processor.GetIndex(), vector_v);
-	//WIN32_ERROR_ASSERT(m_LocalApic.RequestIRQ(WHvX64InterruptTriggerModeEdge, 
-		//WHvX64InterruptTypeLocalInt, vector_v+32));
-
-	m_Processor.InjectInterrupt(32u+vector_v);
+	std::string result_v;
+	for (auto i = 0u; i < 8u * sizeof(T); i += 1u) {
+		if (bits & 1u) {
+			if (!result_v.empty())
+				result_v += ", ";
+			result_v += std::to_string(i);
+		}
+		bits >>= 1u;
+	}
+	return result_v;
 }
 
-auto Machine::RaiseNMI() -> void {
-	WIN32_ERROR_ASSERT(m_LocalApic.RequestIRQ(WHvX64InterruptTriggerModeEdge, WHvX64InterruptTypeNmi));
+auto Machine::SetIRQ(std::uint16_t state_v) -> void
+{
+	using utils::logger;
+	// Conflicting IRQs are not changed
+	logger::info(logger::deflog, "CPU[{}] raised IRQ [{}]", 
+		m_Processor.GetIndex(), bitset_to_string(state_v));
+	m_LegacyPic.SetIRQ(state_v);
 }
 
 auto Machine::ConfigurePartition(Configuration const&) -> void
@@ -182,7 +190,7 @@ auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited
 	std::int32_t result_v{ };
 	switch (port_v) {
 	case 0xe8: 
-	case 0xe9: return m_Debugger.IoPortAccess(is_write_v, port_v, data_v);
+	case 0xe9: return m_Debugger.IoPortAccess(is_write_v, port_v - 0xe8, data_v);
 	case 0xea: 
 		{
 			WHV_REGISTER_VALUE reg_v { };
@@ -204,11 +212,10 @@ auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited
 			}
 			break;
 		}
-	case 0x20:
-	case 0x21:
-	case 0xA0:
-	case 0xA1:
-		return m_LegacyPic.IoPortAccess(is_write_v, port_v, data_v);
+	case 0x20: case 0x21: return m_LegacyPic.IoPortAccess(LegacyPic::Master, is_write_v - 0x20, port_v, data_v);
+	case 0xa0: case 0xa1: return m_LegacyPic.IoPortAccess(LegacyPic::Slave, is_write_v - 0xa0, port_v, data_v);
+
+	case 0x3C0:
 	default:
 		__debugbreak();
 	}

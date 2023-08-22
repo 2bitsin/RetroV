@@ -11,7 +11,8 @@ namespace core
 		kAccessNone = 0x0u,
 		kAccessFetch = 0x1u,
 		kAccessWrite = 0x2u,
-		kAccessExecute = 0x4u
+		kAccessExecute = 0x4u,
+		kTrackDirty = 0x8u
 	};
 
 	HVDOS_DEFINE_ENUM_FLAG_OPERATORS(Access)

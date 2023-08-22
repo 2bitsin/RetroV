@@ -45,7 +45,7 @@ namespace core
 		auto RunAsync() -> exit_future_type;
 		auto CancelAsync() -> void;		
 		auto Unsuspend() -> void;
-		auto ReferenceTsc() const -> 
+		auto ReadTsc() const -> 
 			std::tuple<std::int32_t, std::uint64_t>;
 
 		using WHvProcessor::MemoryFetch;

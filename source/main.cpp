@@ -61,39 +61,68 @@ int main(int argc, char** argv) try
 	Machine vmcore_v{ Configuration() };
 	vmcore_v.Start();
 
+	std::uint16_t IRQstate_v{ 0 };
+	std::uint16_t last_IRQstate_v{ 0 };
 	while (true)
 	{
-		SDL_Event event_v;
-		if (SDL_PollEvent(&event_v)) 
+		SDL_Event event_v;		
+		if (SDL_PollEvent(&event_v))
 		{
 			if (event_v.type == SDL_QUIT) { break; }
-			if (event_v.type == SDL_KEYDOWN) 
+			switch (event_v.type)
 			{
+			case SDL_KEYDOWN:
 				switch (event_v.key.keysym.sym) 
 				{
-				case SDLK_DELETE: vmcore_v.Reset(); break;
-				case SDLK_PAGEUP: vmcore_v.Start(); break;
-				case SDLK_PAGEDOWN: vmcore_v.Stop(); break;
-				
-				case SDLK_0: vmcore_v.RaiseIRQ(0); break;
-				case SDLK_1: vmcore_v.RaiseIRQ(1); break;
-				case SDLK_2: vmcore_v.RaiseIRQ(2); break;
-				case SDLK_3: vmcore_v.RaiseIRQ(3); break;
-				case SDLK_4: vmcore_v.RaiseIRQ(4); break;
-				case SDLK_5: vmcore_v.RaiseIRQ(5); break;
-				case SDLK_6: vmcore_v.RaiseIRQ(6); break;
-				case SDLK_7: vmcore_v.RaiseIRQ(7); break;
-				case SDLK_8: vmcore_v.RaiseIRQ(8); break;
-				case SDLK_9: vmcore_v.RaiseIRQ(9); break;
-				case SDLK_F1: vmcore_v.RaiseIRQ(10); break;
-				case SDLK_F2: vmcore_v.RaiseIRQ(11); break;
-				case SDLK_F3: vmcore_v.RaiseIRQ(12); break;
-				case SDLK_F4: vmcore_v.RaiseIRQ(13); break;
-				case SDLK_F5: vmcore_v.RaiseIRQ(14); break;
-				case SDLK_F6: vmcore_v.RaiseIRQ(15); break;
+				case SDLK_DELETE:   vmcore_v.Reset(); break;
+				case SDLK_PAGEUP:   vmcore_v.Start(); break;
+				case SDLK_PAGEDOWN: vmcore_v.Stop() ; break;
+				case SDLK_0:  IRQstate_v |= (1u << 0u ); break;
+				case SDLK_1:  IRQstate_v |= (1u << 1u ); break;
+				case SDLK_2:  IRQstate_v |= (1u << 3u ); break;
+				case SDLK_3:  IRQstate_v |= (1u << 4u ); break;
+				case SDLK_4:  IRQstate_v |= (1u << 5u ); break;
+				case SDLK_5:  IRQstate_v |= (1u << 6u ); break;
+				case SDLK_6:  IRQstate_v |= (1u << 7u ); break;
+				case SDLK_7:  IRQstate_v |= (1u << 8u ); break;
+				case SDLK_8:  IRQstate_v |= (1u << 9u ); break;
+				case SDLK_9:  IRQstate_v |= (1u << 10u); break;
+				case SDLK_F1: IRQstate_v |= (1u << 11u); break;
+				case SDLK_F2: IRQstate_v |= (1u << 12u); break;
+				case SDLK_F3: IRQstate_v |= (1u << 13u); break;
+				case SDLK_F4: IRQstate_v |= (1u << 14u); break;
+				case SDLK_F5: IRQstate_v |= (1u << 15u); break;							
+				default: break;
 				}
+				continue;
+			case SDL_KEYUP:
+				switch (event_v.key.keysym.sym)
+				{
+				case SDLK_0:  IRQstate_v &= ~(1u << 0u ); break;
+				case SDLK_1:  IRQstate_v &= ~(1u << 1u ); break;
+				case SDLK_2:  IRQstate_v &= ~(1u << 3u ); break;
+				case SDLK_3:  IRQstate_v &= ~(1u << 4u ); break;
+				case SDLK_4:  IRQstate_v &= ~(1u << 5u ); break;
+				case SDLK_5:  IRQstate_v &= ~(1u << 6u ); break;
+				case SDLK_6:  IRQstate_v &= ~(1u << 7u ); break;
+				case SDLK_7:  IRQstate_v &= ~(1u << 8u ); break;
+				case SDLK_8:  IRQstate_v &= ~(1u << 9u ); break;
+				case SDLK_9:  IRQstate_v &= ~(1u << 10u); break;
+				case SDLK_F1: IRQstate_v &= ~(1u << 11u); break;
+				case SDLK_F2: IRQstate_v &= ~(1u << 12u); break;
+				case SDLK_F3: IRQstate_v &= ~(1u << 13u); break;
+				case SDLK_F4: IRQstate_v &= ~(1u << 14u); break;
+				case SDLK_F5: IRQstate_v &= ~(1u << 15u); break;
+				default: break;
+				}
+				continue;
 			}
 			continue;
+		}
+		if (last_IRQstate_v != IRQstate_v)
+		{
+			vmcore_v.SetIRQ(IRQstate_v);
+			last_IRQstate_v = IRQstate_v;
 		}
 		vmcore_v.RunMain();
 		SDL_UpdateWindowSurface(window_v);
