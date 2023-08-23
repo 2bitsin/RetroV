@@ -29,21 +29,14 @@ int main(int argc, char** argv) try
 	using namespace std::chrono_literals;
 	using namespace std::chrono;
 	using namespace std::filesystem;
+	using namespace win32;
 	
 	current_path(path(argv[0])
 		.parent_path()
 		.parent_path());
 
-	using namespace win32;
-
-	std::vector<std::int64_t> q;
-
-	q.reserve(0xDEAD);
-	q.resize(0xBEEF);
-	
-
 #if 1
-	win32::WHvCapabilities::LogInformation();
+	WHvCapabilities::LogInformation();
 
 	using core::Machine;
 	using core::Configuration;
@@ -63,9 +56,15 @@ int main(int argc, char** argv) try
 
 	std::uint16_t IRQstate_v{ 0 };
 	std::uint16_t last_IRQstate_v{ 0 };
+
+	using std::chrono::steady_clock;
+	auto next_frame_v = steady_clock::now();
+
 	while (true)
 	{
 		SDL_Event event_v;		
+		if (auto now_v = steady_clock::now(); now_v >= next_frame_v)
+			next_frame_v += vmcore_v.Render();			
 		if (SDL_PollEvent(&event_v))
 		{
 			if (event_v.type == SDL_QUIT) { break; }
@@ -76,7 +75,11 @@ int main(int argc, char** argv) try
 				{
 				case SDLK_DELETE:   vmcore_v.Reset(); break;
 				case SDLK_PAGEUP:   vmcore_v.Start(); break;
-				case SDLK_PAGEDOWN: vmcore_v.Stop() ; break;
+				case SDLK_PAGEDOWN: vmcore_v.Stop(); break;
+
+				case SDLK_PAUSE:    vmcore_v.GetProcessor(0).Suspend(); break;
+				case SDLK_ESCAPE:   vmcore_v.GetProcessor(0).Unsuspend(); break;
+
 				case SDLK_0:  IRQstate_v |= (1u << 0u ); break;
 				case SDLK_1:  IRQstate_v |= (1u << 1u ); break;
 				case SDLK_2:  IRQstate_v |= (1u << 3u ); break;

@@ -14,12 +14,13 @@
 namespace core
 {
 	struct Machine;
+	struct Processor;
 
 	struct Debugger
 	{
 		Debugger(Machine& machine_v);
 
-		auto IoPortAccess(bool is_write_v, std::uint16_t addr_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
+		auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t addr_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
 
 		auto Reset() -> void;
 

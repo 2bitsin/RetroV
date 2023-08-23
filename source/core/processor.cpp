@@ -31,7 +31,7 @@ Processor::~Processor()
 
 auto Processor::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) const -> std::int32_t
 {
-	return m_Machine.IoPortAccess(is_write_v, port_v, data_v);
+	return m_Machine.IoPortAccess(*this, is_write_v, port_v, data_v);
 }
 
 auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 8u> data_v) const -> std::int32_t
@@ -40,7 +40,7 @@ auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::l
 	result_v = WHvProcessor::MemoryAccess(is_write_v, physaddr_v, data_v);
 	if (SUCCEEDED(result_v))
 		return result_v;
-	result_v = m_Machine.MemoryAccess(is_write_v, physaddr_v, data_v);		
+	result_v = m_Machine.MemoryAccess(*this, is_write_v, physaddr_v, data_v);		
 	if (SUCCEEDED(result_v))
 		return result_v;
 	return result_v;
@@ -129,11 +129,13 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 		case WHvRunVpExitReasonX64Halt:
 			if (InterruptsEnabled()) { 
 				m_Suspend.acquire();
-				continue;
-			}			
-			[[fallthrough]];
-		case WHvRunVpExitReasonCanceled:
+				continue; }			
 			return result_v;
+		case WHvRunVpExitReasonCanceled:
+			if (stoppee_v.stop_requested())
+				return result_v;
+			m_Suspend.acquire();
+			continue;
 		case WHvRunVpExitReasonException:
 			status_v = UnhandledException(context_v.VpContext, context_v.VpException);
 			if (FAILED(status_v))
@@ -169,6 +171,13 @@ auto Processor::CancelAsync() -> void {
 	if (lock_v.owns_lock()) return;	
 	m_Stopper.request_stop();
 	lock_v.lock();
+}
+
+auto Processor::Suspend() -> void
+{
+	std::unique_lock lock_v{ m_IsRunning, std::try_to_lock };
+	if (lock_v.owns_lock()) return;
+	WHvProcessor::Cancel();
 }
 
 auto Processor::Unsuspend()  -> void

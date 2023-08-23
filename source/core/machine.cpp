@@ -5,21 +5,25 @@
 #include <utils/paths.hpp>
 #include <utils/span.hpp>
 
+#include <SDL2/SDL.h>
+#undef main
 
 using namespace size_literals;
 
 using core::Machine;
 
 Machine::Machine(Configuration const& config_v)	
-	: m_Partition { nullptr }
-	, m_Processor { *this, 0u }
-	, m_LegacyPic	{ *this, 0u }
-	, m_Debugger  { *this }
+	: m_Partition		{ nullptr }
+	, m_Processor		{ *this, 0u }
+	, m_LegacyPic		{ *this, 0u }
+	, m_Debugger		{ *this }
+	, m_LegacyVideo { *this }
 {
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);	
 	WIN32_ERROR_ASSERT(m_LegacyPic.Initialize());
+	WIN32_ERROR_ASSERT(m_LegacyVideo.Initialize());
 }
 
 Machine::~Machine() 
@@ -64,11 +68,8 @@ auto Machine::RunMain() -> void
 	}	
 	switch (context_v.ExitReason)
 	{
-	case WHvRunVpExitReasonCanceled:
-		logger::info(logger::deflog, 
-			"CPU[{}] exited, reason=Cancelled", 
-			m_Processor.GetIndex(),
-			(std::uint32_t)context_v.ExitReason);
+	case WHvRunVpExitReasonCanceled:				
+		logger::info(logger::deflog, "CPU[{}] stopped, reason=Cancel", m_Processor.GetIndex());
 		return;
 	default:
 		logger::error(logger::deflog, 
@@ -77,6 +78,13 @@ auto Machine::RunMain() -> void
 			(std::uint32_t)context_v.ExitReason);
 		return Reset();
 	}
+}
+
+auto Machine::Render() 
+	-> std::chrono::microseconds
+{
+	using namespace std::chrono_literals;
+	return 1000000us / 60;
 }
 
 template <typename T> requires (std::is_integral_v<T>)
@@ -160,6 +168,7 @@ auto Machine::ConfigureMemory(Configuration const&) -> void
 auto Machine::ConfigureBiosROM(Configuration const&) -> void
 {
 	std::filesystem::path path_v;
+	
 	if (win32::WHvCapabilities::IsVendorAMD()) {
 		path_v = "@base/ROMs/BiosAMD.bin";
 	} else if (win32::WHvCapabilities::IsVendorIntel()) {
@@ -167,6 +176,8 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 	} else {
 		throw std::runtime_error("Unsupported CPU vendor");
 	}
+
+	//path_v = "@base/ROMs/386AMIBIOS-OPTI82C382.BIN";
 
 	path_v = utils::path_substitute(path_v);
 	if (!std::filesystem::exists(path_v)) {
@@ -183,46 +194,22 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 	m_Memory.back().Load(path_v);
 }
 
-auto Machine::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
+auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
 	using utils::logger;
-	std::uint32_t what_v{ 0 };
-	std::int32_t result_v{ };
-	switch (port_v) {
-	case 0xe8: 
-	case 0xe9: return m_Debugger.IoPortAccess(is_write_v, port_v - 0xe8, data_v);
-	case 0xea: 
-		{
-			WHV_REGISTER_VALUE reg_v { };
-			if (is_write_v) {
-				logger::info(logger::deflog, "CPU[{}] flat real mode hack enabled!", m_Processor.GetIndex());
-				WHV_REGISTER_NAME name_v[] = {
-					WHvX64RegisterDs,
-					WHvX64RegisterEs,
-					WHvX64RegisterFs,
-					WHvX64RegisterGs
-				};
-				WHV_REGISTER_VALUE value_v[4];
-				m_Processor.GetRegisters(name_v, value_v);
-				for(auto&& v: value_v) {
-					v.Segment.Base = 0u;
-					v.Segment.Limit = 0xFFFFFFFFu;
-					v.Segment.Attributes = 0xCF93u; }
-				m_Processor.SetRegisters(name_v, value_v);
-			}
-			break;
-		}
-	case 0x20: case 0x21: return m_LegacyPic.IoPortAccess(LegacyPic::Master, is_write_v - 0x20, port_v, data_v);
-	case 0xa0: case 0xa1: return m_LegacyPic.IoPortAccess(LegacyPic::Slave, is_write_v - 0xa0, port_v, data_v);
 
-	case 0x3C0:
-	default:
-		__debugbreak();
-	}
+	std::int32_t result_v{ };
+	std::uint32_t what_v{ 0 };
+	
+
+	if (port_v >= 0x020u && port_v <= 0x021u) return m_LegacyPic.IoPortAccess(vcpu_v, LegacyPic::Master, is_write_v, port_v - 0x20u, data_v);	
+	if (port_v >= 0x0a0u && port_v <= 0x0a1u) return m_LegacyPic.IoPortAccess(vcpu_v, LegacyPic::Slave, is_write_v, port_v - 0xa0u, data_v);
+	if (port_v >= 0x0e8u && port_v <= 0x0eau) return m_Debugger.IoPortAccess(vcpu_v, is_write_v, port_v - 0xe8u, data_v);		
+	__debugbreak();
 	return 0;
 }
 
-auto Machine::MemoryAccess(bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t
+auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t
 {
 	__debugbreak();
 	return std::int32_t();

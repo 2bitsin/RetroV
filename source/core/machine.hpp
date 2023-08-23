@@ -12,6 +12,7 @@
 #include <core/memory.hpp>
 #include <core/processor.hpp>
 #include <core/legacypic.hpp>
+#include <core/legacyvideo.hpp>
 #include <core/debugger.hpp>
 
 #include <utils/span.hpp>
@@ -21,9 +22,11 @@
 #include <mutex>
 #include <list>
 
+struct SDL_Window;
 
 namespace core
 {
+
 	struct Machine
 	{
 		Machine(Configuration const&);
@@ -32,8 +35,11 @@ namespace core
 		auto Start() -> void;
 		auto Stop() -> void;
 		auto Reset() -> void;
+
 		auto RunMain() -> void;
 
+		auto Render() -> std::chrono::microseconds;
+		
 		auto SetIRQ(std::uint16_t state_v) -> void;
 		
 		auto GetProcessor(std::uint32_t vcpuindex_v) -> Processor& { (void)vcpuindex_v; return m_Processor; }
@@ -44,8 +50,8 @@ namespace core
 		friend Debugger;
 
 
-		auto IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
-		auto MemoryAccess(bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t;		
+		auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
+		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t;
 	
 		auto ConfigureMemory(Configuration const&) -> void;
 		auto ConfigureBiosROM(Configuration const&) -> void;
@@ -57,6 +63,7 @@ namespace core
 		core::Processor m_Processor;
 		core::Processor::exit_future_type m_ProcessorExit;
 		core::LegacyPic m_LegacyPic;
+		core::LegacyVideo m_LegacyVideo;
 		core::Debugger m_Debugger;
 	};
 

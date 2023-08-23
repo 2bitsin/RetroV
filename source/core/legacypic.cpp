@@ -16,7 +16,7 @@ auto LegacyPic::Initialize() -> std::int32_t
 	return S_OK;
 }
 
-auto LegacyPic::IoPortAccess(MasterOrSlave select_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
+auto LegacyPic::IoPortAccess(Processor const& vcpu_v, MasterOrSlave select_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
 	switch (port_v)
 	{

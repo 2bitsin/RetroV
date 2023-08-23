@@ -8,9 +8,9 @@
 
 namespace core
 { 
-	class Machine;
-	class Processor;
-	class LocalApic;
+	struct Machine;
+	struct Processor;
+	struct LocalApic;
 
 	struct LegacyPic
 	{
@@ -19,7 +19,7 @@ namespace core
 		LegacyPic (Machine& machine_v, std::uint32_t bsp_index_v);
 		
 		auto Initialize() -> std::int32_t;	
-		auto IoPortAccess(MasterOrSlave select_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
+		auto IoPortAccess(Processor const& vcpu_v, MasterOrSlave select_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
 		auto InterruptWindow() -> std::int32_t;
 
 		auto SetIRQ(std::uint8_t state_v) -> std::int32_t;

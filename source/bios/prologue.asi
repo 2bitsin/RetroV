@@ -16,15 +16,15 @@ Prologue:
     call        IVT.Initialize
 
 
-    xor         ax,     ax 
-    mov         ds,     ax
-
-    mov         word [0], CountIRQs
-    mov         word [2], BIOS_SEGMENT
+;    xor         ax,     ax 
+;    mov         ds,     ax
+;
+;    mov         word [0], CountIRQs
+;    mov         word [2], BIOS_SEGMENT
 
     sti         
 
-    call        Debug.BigFingLoop   
+;    call        Debug.BigFingLoop   
     mov         si,     Strings.Hello
     call        Debug.PrintString   
 
