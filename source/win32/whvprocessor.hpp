@@ -22,9 +22,9 @@ namespace win32
 		
 		auto GetIndex() const -> std::uint32_t;
 
-		auto Run() const -> std::tuple<std::int32_t, WHV_RUN_VP_EXIT_CONTEXT>;
+		auto RunToExit() const -> std::tuple<std::int32_t, WHV_RUN_VP_EXIT_CONTEXT>;
 		auto Reset() const -> std::int32_t;
-    auto Run(WHV_RUN_VP_EXIT_CONTEXT& exit_v) const -> std::int32_t;
+    auto RunToExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v) const -> std::int32_t;
 		auto Cancel() const -> std::int32_t;
 
 		auto GetRegisters(std::span<WHV_REGISTER_NAME const> rnames_v, std::span<WHV_REGISTER_VALUE> values_v) const -> std::int32_t;

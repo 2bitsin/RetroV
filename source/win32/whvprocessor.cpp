@@ -25,7 +25,7 @@ auto WHvProcessor::Reset() const -> std::int32_t
 	return GetInitialProcessorState().ApplyTo(*this);
 }
 
-auto WHvProcessor::Run(WHV_RUN_VP_EXIT_CONTEXT& exit_v) const -> std::int32_t
+auto WHvProcessor::RunToExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v) const -> std::int32_t
 {
 	return ::WHvRunVirtualProcessor(m_Partition.GetHandle(), m_VcpuIndex, &exit_v, sizeof(exit_v));
 }
@@ -35,10 +35,10 @@ auto WHvProcessor::GetIndex() const -> std::uint32_t
 	return m_VcpuIndex;
 }
 
-auto WHvProcessor::Run() const -> std::tuple<std::int32_t, WHV_RUN_VP_EXIT_CONTEXT>
+auto WHvProcessor::RunToExit() const -> std::tuple<std::int32_t, WHV_RUN_VP_EXIT_CONTEXT>
 {
 	WHV_RUN_VP_EXIT_CONTEXT exit_v{};
-	auto const result_v = Run(exit_v);
+	auto const result_v = RunToExit(exit_v);
 	return { result_v, exit_v };
 }
 

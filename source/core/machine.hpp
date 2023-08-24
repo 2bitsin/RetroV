@@ -16,10 +16,12 @@
 #include <core/debugger.hpp>
 
 #include <utils/span.hpp>
+#include <utils/buffer2d.hpp>
 
 #include <shared_mutex>
 #include <memory>
 #include <mutex>
+#include <tuple>
 #include <list>
 
 struct SDL_Window;
@@ -38,12 +40,17 @@ namespace core
 
 		auto RunMain() -> void;
 
-		auto Render() -> std::chrono::microseconds;
+		auto Render() -> std::tuple<
+			utils::buffer2d<std::uint32_t>, 
+			std::chrono::microseconds>;
 		
 		auto SetIRQ(std::uint16_t state_v) -> void;
 		
 		auto GetProcessor(std::uint32_t vcpuindex_v) -> Processor& { (void)vcpuindex_v; return m_Processor; }
 		auto GetPartition() -> win32::WHvPartition& { return m_Partition; }
+
+		auto SuspendAllProcessors() -> void;
+		auto ResumeAllProcessors() -> void;
 
 	protected:
 		friend Processor;

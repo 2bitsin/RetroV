@@ -9,7 +9,6 @@
 #include <win32/winhvpx.hpp>
 #include <win32/whvprocessor.hpp>
 
-#include <utils/objects.hpp>
 #include <utils/span.hpp>
 #include <core/accessflags.hpp>
 
@@ -40,6 +39,7 @@ namespace win32
 		auto Reset() const -> std::int32_t;
 		auto MapGpaRange(void*, std::uint64_t, std::uint64_t, core::Access) const -> std::int32_t;
 		auto UnmapGpaRange(std::uint64_t, std::uint64_t) const -> std::int32_t;
+		auto QueryGpaRangeDirtyBitmap(std::uint64_t address_v, std::uint64_t size_v, std::span<std::uint64_t> bitmap_v) const -> std::int32_t;
 
 	protected:
 		static auto GetProcessorCount(WHV_PARTITION_HANDLE handle_v) -> std::tuple<std::int32_t, std::uint32_t>;

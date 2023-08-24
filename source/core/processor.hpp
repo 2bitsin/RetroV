@@ -39,11 +39,11 @@ namespace core
 		auto SetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE const> values_v) const -> std::int32_t;
 		auto TranslateGvaPage(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v, WHV_TRANSLATE_GVA_RESULT_CODE& code_v, std::uint64_t& physaddr_v) const -> std::int32_t;
 
-		auto Run(std::stop_token stoppee_v) -> exit_result_type;
-		auto RunAsync() -> exit_future_type;
-		auto CancelAsync() -> void;		
+		auto RunToExit(std::stop_token stoppee_v) -> exit_result_type;
+		auto Start() -> exit_future_type;
+		auto Stop() -> void;		
 		auto Suspend() -> void;
-		auto Unsuspend() -> void;
+		auto Resume() -> void;
 
 		auto ReadTsc() const -> std::tuple<std::int32_t, std::uint64_t>;
 		auto InterruptsEnabled() const -> bool;

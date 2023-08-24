@@ -33,14 +33,14 @@ auto Machine::Start() -> void
 {
 	using utils::logger;
 	logger::info(logger::deflog, "Starting machine...");
-	m_ProcessorExit = m_Processor.RunAsync();
+	m_ProcessorExit = m_Processor.Start();
 }
 
 auto Machine::Stop() -> void
 {
 	using utils::logger;
 	logger::info(logger::deflog, "Stopping machine...");
-	m_Processor.CancelAsync();
+	m_Processor.Stop();
 	if (m_ProcessorExit.valid()) {
 		m_ProcessorExit.wait();
 	}
@@ -72,19 +72,18 @@ auto Machine::RunMain() -> void
 		logger::info(logger::deflog, "CPU[{}] stopped, reason=Cancel", m_Processor.GetIndex());
 		return;
 	default:
-		logger::error(logger::deflog, 
+		// Unexpected cpu exit
+		throw std::runtime_error(std::format(
 			"CPU[{}] exited unexpectedly with reason={:#x}, rebooting...", 
-			m_Processor.GetIndex(),
-			(std::uint32_t)context_v.ExitReason);
+			m_Processor.GetIndex(), (std::uint32_t)context_v.ExitReason));
 		return Reset();
 	}
 }
 
-auto Machine::Render() 
-	-> std::chrono::microseconds
+auto Machine::Render() -> 
+	std::tuple<utils::buffer2d<std::uint32_t>, std::chrono::microseconds>
 {
-	using namespace std::chrono_literals;
-	return 1000000us / 60;
+	return m_LegacyVideo.Render();
 }
 
 template <typename T> requires (std::is_integral_v<T>)
@@ -133,6 +132,16 @@ auto Machine::ConfigurePartition(Configuration const&) -> void
 	  { WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeXApic } },
 		{ WHvPartitionPropertyCodeProcessorFeatures, { .ProcessorFeatures = WHvCapabilities::Get<WHV_PROCESSOR_FEATURES>(WHvCapabilityCodeProcessorFeatures) } }
 	});
+}
+
+auto Machine::SuspendAllProcessors() -> void
+{
+	m_Processor.Suspend();
+}
+
+auto Machine::ResumeAllProcessors() -> void
+{
+	m_Processor.Resume();
 }
 
 auto Machine::ConfigureMemory(Configuration const&) -> void
@@ -197,14 +206,14 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
 	using utils::logger;
+	if (port_v >= 0x020u && port_v <= 0x021u) 
+		return m_LegacyPic.Master().IoPortAccess(vcpu_v, is_write_v, port_v - 0x20u, data_v);	
 
-	std::int32_t result_v{ };
-	std::uint32_t what_v{ 0 };
-	
+	if (port_v >= 0x0a0u && port_v <= 0x0a1u) 
+		return m_LegacyPic.Slave().IoPortAccess(vcpu_v, is_write_v, port_v - 0xa0u, data_v);
 
-	if (port_v >= 0x020u && port_v <= 0x021u) return m_LegacyPic.IoPortAccess(vcpu_v, LegacyPic::Master, is_write_v, port_v - 0x20u, data_v);	
-	if (port_v >= 0x0a0u && port_v <= 0x0a1u) return m_LegacyPic.IoPortAccess(vcpu_v, LegacyPic::Slave, is_write_v, port_v - 0xa0u, data_v);
-	if (port_v >= 0x0e8u && port_v <= 0x0eau) return m_Debugger.IoPortAccess(vcpu_v, is_write_v, port_v - 0xe8u, data_v);		
+	if (port_v >= 0x0e8u && port_v <= 0x0eau) 
+		return m_Debugger.IoPortAccess(vcpu_v, is_write_v, port_v - 0xe8u, data_v);		
 	__debugbreak();
 	return 0;
 }

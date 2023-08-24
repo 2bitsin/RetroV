@@ -150,7 +150,7 @@ auto WorkTimer::ToFileTime(std::chrono::system_clock::time_point time_v) -> FILE
 
 auto WorkTimer::SubmitTo(WorkQueue& queue_v, FILETIME expire_v, std::uint32_t period_millisec_v) -> void
 {
-if (nullptr != m_Handle) {
+	if (nullptr != m_Handle) {
 		::CloseThreadpoolTimer(m_Handle);
 	}
 

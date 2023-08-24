@@ -80,9 +80,9 @@ auto Processor::UnhandledException(WHV_VP_EXIT_CONTEXT const& context_v, WHV_VP_
 	return S_OK;
 }
 
-auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
+auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 {
-	win32::scope_name _tdesc{ "Processor::Run" };
+	win32::scope_name _tdesc{ "Processor::RunToExit" };
 	using utils::logger;
 	std::stop_callback stopcbk_v{ stoppee_v, [this] { 
 		WHvProcessor::Cancel();
@@ -93,7 +93,7 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 	auto& emulator_v = Emulator();
 	while (!stoppee_v.stop_requested())
 	{		
-		auto const result_v = WHvProcessor::Run();
+		auto const result_v = WHvProcessor::RunToExit();
 		auto [status_v, context_v] = result_v;
 		if (FAILED(status_v)) 
 			return result_v;	
@@ -147,10 +147,10 @@ auto Processor::Run(std::stop_token stoppee_v) -> exit_result_type
 	}
 	// In case the cpu was suspended, 
 	// eat the injected cacel event
-	return WHvProcessor::Run();
+	return WHvProcessor::RunToExit();
 }
 
-auto Processor::RunAsync() -> exit_future_type
+auto Processor::Start() -> exit_future_type
 {
 	std::unique_lock lock_v{ m_IsRunning, std::try_to_lock };
 	if (!lock_v.owns_lock()) {
@@ -161,12 +161,12 @@ auto Processor::RunAsync() -> exit_future_type
 		);
 	}
 	m_Stopper = std::stop_source{};
-	m_FutureExit = std::async(std::launch::async, utils::lambda(this, &Processor::Run),
+	m_FutureExit = std::async(std::launch::async, utils::lambda(this, &Processor::RunToExit),
 		m_Stopper.get_token()).share();
 	return m_FutureExit;
 }
 
-auto Processor::CancelAsync() -> void {
+auto Processor::Stop() -> void {
 	std::unique_lock lock_v{ m_IsRunning, std::try_to_lock };
 	if (lock_v.owns_lock()) return;	
 	m_Stopper.request_stop();
@@ -180,7 +180,7 @@ auto Processor::Suspend() -> void
 	WHvProcessor::Cancel();
 }
 
-auto Processor::Unsuspend()  -> void
+auto Processor::Resume()  -> void
 {
 	m_Suspend.release();
 }

@@ -9,7 +9,7 @@ auto WHvCapabilities::Get(WHV_CAPABILITY_CODE code_v, void* buffer_v, std::uint3
 	return length_v;
 }
 
-auto WHvCapabilities::LogInformation() -> void
+auto WHvCapabilities::InfoDump() -> void
 {
 	using namespace std::string_view_literals;
 	using namespace std::string_literals;

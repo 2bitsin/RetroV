@@ -97,6 +97,16 @@ auto Memory::Data() const noexcept -> std::byte* {
 	return m_Data;
 }
 
+auto Memory::Span() const noexcept -> std::span<std::byte const>
+{
+  return { m_Data, m_Size };
+}
+
+auto Memory::Span() noexcept -> std::span<std::byte>
+{
+	return { m_Data, m_Size };
+}
+
 auto Memory::Load(std::filesystem::path path_v, std::uint64_t dst_offset_v, 
 	std::uint64_t src_offset_v, std::uint64_t src_length_v) -> std::size_t 
 {

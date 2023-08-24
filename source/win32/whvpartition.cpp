@@ -133,6 +133,14 @@ auto WHvPartition::UnmapGpaRange(std::uint64_t dst_addr_v, std::uint64_t size_v)
 	return ::WHvUnmapGpaRange(m_Handle, dst_addr_v, size_v);
 }
 
+auto WHvPartition::QueryGpaRangeDirtyBitmap(std::uint64_t address_v, std::uint64_t size_v, std::span<std::uint64_t> bitmap_v) const -> std::int32_t
+{
+	using namespace size_literals;
+	assert(bitmap_v.size() * sizeof(std::uint64_t) * 8u < (size_v + 1_pages - 1u) / 1_pages);
+
+  return ::WHvQueryGpaRangeDirtyBitmap(m_Handle, address_v, size_v, bitmap_v.data(), bitmap_v.size() * sizeof(std::uint64_t));
+}
+
 auto WHvPartition::GetProcessorCount(WHV_PARTITION_HANDLE handle_v) -> std::tuple<std::int32_t, std::uint32_t> {
 	std::uint32_t vcpucount_v{ 0u };
 	auto result_v = GetProperty(handle_v, WHvPartitionPropertyCodeProcessorCount, vcpucount_v);

@@ -7,8 +7,10 @@
 using core::LegacyPic;
 
 LegacyPic::LegacyPic(Machine& machine_v, std::uint32_t bsp_index_v)
-	: m_Machine{ machine_v }	
-	, m_Processor{ machine_v.GetProcessor(bsp_index_v) }
+	: m_Master		{ *this, MasterOrSlave::Master }
+	, m_Slave			{ *this, MasterOrSlave::Slave }
+	, m_Machine		{ machine_v }	
+	, m_Processor	{ machine_v.GetProcessor(bsp_index_v) }
 {}
 
 auto LegacyPic::Initialize() -> std::int32_t

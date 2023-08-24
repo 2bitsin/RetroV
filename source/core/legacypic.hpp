@@ -14,21 +14,47 @@ namespace core
 
 	struct LegacyPic
 	{
-		enum MasterOrSlave { Master = 0u, Slave = 1u } ;
+		enum class MasterOrSlave { Master = 0u, Slave = 1u } ;
+
+		struct Proxy {
+
+			friend LegacyPic;
+
+			auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t {
+				return m_ActualPic.IoPortAccess(vcpu_v, m_Which, is_write_v, port_v, data_v);
+			}
+		
+		protected:
+			Proxy (LegacyPic& actual_pic_v, MasterOrSlave which_v)
+				: m_ActualPic { actual_pic_v }, m_Which { which_v }
+			{}
+
+		private:
+			LegacyPic& m_ActualPic;
+			MasterOrSlave m_Which;
+		};
+
+		friend Proxy;
 
 		LegacyPic (Machine& machine_v, std::uint32_t bsp_index_v);
 		
 		auto Initialize() -> std::int32_t;	
-		auto IoPortAccess(Processor const& vcpu_v, MasterOrSlave select_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
 		auto InterruptWindow() -> std::int32_t;
 
 		auto SetIRQ(std::uint8_t state_v) -> std::int32_t;
 
-	private:
-		std::mutex m_lock;
-	
-		std::uint16_t m_last_irr { 0u };
+		auto Master() -> Proxy& { return m_Master; }
+		auto Slave() -> Proxy& { return m_Slave; }
 
+	protected:
+		auto IoPortAccess(Processor const& vcpu_v, MasterOrSlave select_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
+
+	private:
+		Proxy m_Master;
+		Proxy m_Slave;
+
+		std::mutex m_lock;	
+		std::uint16_t m_last_irr { 0u };
 		std::uint16_t m_irr { 0u };
 		std::uint16_t m_isr { 0u };
 

@@ -15,7 +15,7 @@ namespace core
 		kTrackDirty = 0x8u
 	};
 
-	HVDOS_DEFINE_ENUM_FLAG_OPERATORS(Access)
+	HVD_DEFINE_ENUM_FLAG_OPERATORS(Access)
 
 	static inline const auto kAccessMemory = kAccessFetch | kAccessWrite | kAccessExecute;
 	static inline const auto kAccessReadOnly = kAccessFetch | kAccessExecute;

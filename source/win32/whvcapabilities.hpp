@@ -27,7 +27,7 @@ namespace win32 {
 			return buffer_v;
 		}
 
-		static auto LogInformation() -> void;
+		static auto InfoDump() -> void;
 
 	};
 }
