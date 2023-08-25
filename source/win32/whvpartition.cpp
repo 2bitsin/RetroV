@@ -140,6 +140,11 @@ auto WHvPartition::QueryGpaRangeDirtyBitmap(std::uint64_t address_v, std::uint64
   return ::WHvQueryGpaRangeDirtyBitmap(m_Handle, address_v, size_v, bitmap_v.data(), bitmap_v.size() * sizeof(std::uint64_t));
 }
 
+auto WHvPartition::ClearGpaRangeDirtyBitmap(std::uint64_t address_v, std::uint64_t size_v) const -> std::int32_t
+{
+	return ::WHvQueryGpaRangeDirtyBitmap(m_Handle, address_v, size_v, nullptr, 0u);
+}
+
 auto WHvPartition::GetProcessorCount(WHV_PARTITION_HANDLE handle_v) -> std::tuple<std::int32_t, std::uint32_t> {
 	std::uint32_t vcpucount_v{ 0u };
 	auto result_v = GetProperty(handle_v, WHvPartitionPropertyCodeProcessorCount, vcpucount_v);

@@ -35,21 +35,40 @@ namespace utils
 		, protected Deleter
 	{
 		
-		unique_span() noexcept = default;
+		unique_span() noexcept: ::std::span<T>{}, Deleter{} {}
 
 		unique_span(T* data_v, size_t size_v, Deleter deleter_v = Deleter{}) noexcept
 			: ::std::span<T>{ data_v, size_v }
 			, Deleter{ std::move(deleter_v) }
 		{}
 
-		unique_span(unique_span&& other_v) noexcept = default;
+		auto swap(unique_span& other_v) noexcept -> void {
+			std::swap<std::span<T>>(*this, other_v);
+			std::swap<Deleter>(*this, other_v);
+		}
+
 		unique_span(unique_span const& other_v) noexcept = delete;
-		auto operator=(unique_span&& other_v) noexcept -> unique_span& = default;
 		auto operator=(unique_span const& other_v) noexcept -> unique_span& = delete;
 
-		~unique_span() noexcept
+		unique_span(unique_span&& other_v) noexcept 
+			: std::span<T>{ std::exchange<std::span<T>>(other_v, {}) }
+			, Deleter{ std::move(other_v) }
+		{}
+
+		auto operator = (unique_span&& other_v) noexcept -> unique_span& {
+			if (&other_v != this) {
+				auto temp_v{ std::move(other_v) };
+				temp_v.swap(*this);
+			}
+			return *this;
+		}
+
+	  ~unique_span() noexcept 
 		{
-			Deleter::operator()(*this);
+			if (!std::span<T>::empty() && std::span<T>::data()) {
+				Deleter::operator()(*this); 
+				std::exchange<std::span<T>>(*this, {});
+			}
 		}
 	private:		
 	};

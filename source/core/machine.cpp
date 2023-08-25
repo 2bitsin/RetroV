@@ -152,25 +152,25 @@ auto Machine::ConfigureMemory(Configuration const&) -> void
 		auto basemem_size_v = std::min(memory_size_v, 640_KiB);
 		memory_size_v -= basemem_size_v;
 		assert(basemem_size_v + 384_KiB <= 1_MiB);
-		m_Memory.emplace_back(m_Partition, 0 / kPageSize, basemem_size_v / kPageSize, kAccessMemory);
+		m_Memory.emplace_back(m_Partition, 0, basemem_size_v, kAccessMemory);
 	}
 
 	if (memory_size_v > 0u) {
 		auto extmem_size_v = std::min(memory_size_v, 14_MiB);
 		memory_size_v -= extmem_size_v;
 		assert(extmem_size_v + 2_MiB <= 16_MiB);
-		m_Memory.emplace_back(m_Partition, 1_MiB/kPageSize, extmem_size_v/kPageSize, kAccessMemory);
+		m_Memory.emplace_back(m_Partition, 1_MiB, extmem_size_v, kAccessMemory);
 	}
 
 	if (memory_size_v > 0u) {
 		auto paemem_size_v = std::min(memory_size_v, 3056_MiB);
 		memory_size_v -= paemem_size_v;
 		assert (paemem_size_v + 16_MiB <= 3072_MiB);
-		m_Memory.emplace_back(m_Partition, 16_MiB/kPageSize, paemem_size_v/kPageSize, kAccessMemory);
+		m_Memory.emplace_back(m_Partition, 16_MiB, paemem_size_v, kAccessMemory);
 	}
 
 	if (memory_size_v > 0u) {
-		m_Memory.emplace_back(m_Partition, 4096_MiB/kPageSize, memory_size_v/kPageSize, kAccessMemory);
+		m_Memory.emplace_back(m_Partition, 4096_MiB, memory_size_v, kAccessMemory);
 	}	
 }
 
@@ -199,7 +199,7 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 
 	size_v = (size_v + kPageSize - 1u) & ~(kPageSize - 1u);
 	auto addr_v = 1_MiB - size_v;
-	m_Memory.emplace_back(m_Partition, addr_v / kPageSize, size_v / kPageSize, kAccessReadOnly);
+	m_Memory.emplace_back(m_Partition, addr_v, size_v, kAccessReadOnly);
 	m_Memory.back().Load(path_v);
 }
 

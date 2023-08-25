@@ -7,6 +7,7 @@
 #include <win32/error.hpp>
 #include <win32/windows.hpp>
 #include <win32/whvpartition.hpp>
+#include <win32/memory.hpp>
 
 #include <core/accessflags.hpp>
 
@@ -37,19 +38,18 @@ namespace core
 
 		auto Base () const noexcept -> std::uint64_t;
 		auto Size () const noexcept -> std::uint64_t;
-		auto Data () const noexcept -> std::byte*;
-
-		auto Span () const noexcept -> std::span<std::byte const>;
-		auto Span () noexcept -> std::span<std::byte>;
+		auto Data () const noexcept -> std::span<std::byte>;
 
 		auto Load (std::filesystem::path src_path_v, std::uint64_t dst_offset_v=0u, std::uint64_t src_offset_v=0u, 
 			std::uint64_t src_length_v=0xFFFFFFFFFFFFFFFFu) -> std::size_t;
 
+		auto CopyDirtyPagesTo(std::span<std::byte> target_v) -> std::int32_t;
+
 	private:
 		win32::WHvPartition const* m_Partition;
+		win32::unique_span<std::byte> m_Data;
 		std::uint64_t m_Base;
-		std::uint64_t m_Size;
-		std::byte* m_Data;
+		mutable std::vector<std::uint64_t> m_Dirty;
 	};
 
 

@@ -27,6 +27,14 @@ namespace size_literals
 		return operator ""_KiB (value_v * 4.0);
 	}
 
+	static inline constexpr auto operator "" _page(std::uint64_t const value_v) noexcept -> std::uint64_t {
+		return operator ""_KiB(value_v * 4ull);
+	}
+
+	static inline constexpr auto operator "" _page(long double const value_v) noexcept -> std::uint64_t {
+		return operator ""_KiB(value_v * 4.0);
+	}
+
 	static inline constexpr auto operator "" _MiB(std::uint64_t const value_v) noexcept -> std::uint64_t {
 		return operator ""_KiB (value_v * 1024ull) ;
 	}

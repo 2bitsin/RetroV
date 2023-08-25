@@ -5,7 +5,7 @@
 #include <win32/whvcapabilities.hpp>
 #include <win32/whvregisters.hpp>
 #include <win32/workqueue.hpp>
-#include <win32/virtual_alloc.hpp>
+#include <win32/memory.hpp>
 
 #include <core/machine.hpp>
 
@@ -43,12 +43,8 @@ int main(int argc, char** argv) try
 		.parent_path()
 		.parent_path());
 
-	auto vl = virtual_alloc_s(1_MiB);
-
-
-#if 0
+#if 1
 	WHvCapabilities::InfoDump();
-
 
 	SDL_Init(SDL_INIT_EVERYTHING);
 	std::atexit(SDL_Quit);

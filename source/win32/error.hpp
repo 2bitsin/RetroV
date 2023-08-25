@@ -22,7 +22,8 @@ namespace win32
 		static auto __assert__(std::int32_t errvalue_v, std::source_location location_v, std::string_view clode_line = "") -> void;
 		static auto __notify__(std::int32_t errvalue_v, std::source_location location_v, std::string_view clode_line = "") -> void;
 	
-		static auto throw_last_error (std::source_location location_v = std::source_location::current()) -> void;
+		[[noreturn]] static auto throw_last_error (
+			std::source_location location_v = std::source_location::current()) -> void;
 
 	protected:
 		std::int32_t m_errvalue;

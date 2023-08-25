@@ -5,6 +5,7 @@
 
 #include <list>
 
+#include <utils/smart_span.hpp>
 #include <utils/span.hpp>
 #include <utils/buffer2d.hpp>
 
@@ -17,6 +18,7 @@ namespace core
 
 	struct LegacyVideo
 	{
+
 		LegacyVideo(Machine& machine_v);
 
 		auto Initialize() -> std::int32_t;
@@ -28,16 +30,9 @@ namespace core
 
 	private:
 		Machine& m_Machine;
-		std::optional<Memory> m_B0000toB7FFF;
-		std::optional<Memory> m_B8000toBFFFF;
-		std::optional<Memory> m_A0000toAFFFF;
-
-		struct alignas(4096) Page {
-			std::byte _[4096];
-		};
-		
-		std::unique_ptr<Page[]> m_ScratchPages;
-
+		std::optional<Memory> m_MonoTextWindow;
+		std::optional<Memory> m_ColorTextWindow;
+		std::optional<Memory> m_GraphicsWindow;
 		std::uint16_t m_Height;
 		std::uint16_t m_Width;
 	};
