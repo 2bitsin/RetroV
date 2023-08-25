@@ -47,4 +47,14 @@ namespace utils
 		return new_path_v;
 	}
 
+	std::filesystem::path const G_source_directory = std::filesystem::path{ __FILE__ }
+		.parent_path()
+		.parent_path()
+		.parent_path()
+		;
+
+	auto make_relative_to_source_directory(std::filesystem::path const& path_v) -> std::filesystem::path
+	{
+		return std::filesystem::relative(path_v, G_source_directory);
+	}
 }

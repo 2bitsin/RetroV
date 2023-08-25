@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cstddef>
 
-#include <utils/enums.hpp>
+#include <win32/winhvpx.hpp>
 
 namespace core
 {
@@ -15,7 +15,7 @@ namespace core
 		kTrackDirty = 0x8u
 	};
 
-	HVD_DEFINE_ENUM_FLAG_OPERATORS(Access)
+	DEFINE_ENUM_FLAG_OPERATORS(Access)
 
 	static inline const auto kAccessMemory = kAccessFetch | kAccessWrite | kAccessExecute;
 	static inline const auto kAccessReadOnly = kAccessFetch | kAccessExecute;

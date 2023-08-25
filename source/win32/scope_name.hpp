@@ -1,7 +1,7 @@
 #pragma once
 
 #include <win32/windows.hpp>
-#include <utils/filebase.hpp>
+#include <utils/paths.hpp>
 
 #include <source_location>
 #include <string_view>
@@ -38,7 +38,7 @@ namespace win32
 			: scope_name {  
 					std::format (L"{} ({}:{})",
 						make_wstring(source_location_v.function_name()),
-						utils::relative_to_base(source_location_v.file_name()).wstring(),
+						utils::make_relative_to_source_directory(source_location_v.file_name()).wstring(),
 						source_location_v.line())
 				}
 			 

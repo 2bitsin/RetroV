@@ -60,7 +60,7 @@ namespace win32
 			return what_v;
 		}
 
-		auto RequestIRQ(WHV_INTERRUPT_CONTROL irq_v) -> std::int32_t;
+		auto RequestInterrupt(WHV_INTERRUPT_CONTROL irq_v) -> std::int32_t;
 
 		auto GetState(WHV_VIRTUAL_PROCESSOR_STATE_TYPE type_v, std::vector<std::byte>& buffer_v) const -> std::int32_t;
 		auto SetState(WHV_VIRTUAL_PROCESSOR_STATE_TYPE type_v, std::span<std::byte const> buffer_v) const -> std::int32_t;

@@ -6,7 +6,6 @@
 #include <win32/whvprocessor.hpp>
 #include <win32/whvemulator.hpp>
 
-#include <utils/bitmanip.hpp>
 #include <utils/span.hpp>
 
 #include <shared_mutex>

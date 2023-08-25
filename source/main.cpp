@@ -5,9 +5,11 @@
 #include <win32/whvcapabilities.hpp>
 #include <win32/whvregisters.hpp>
 #include <win32/workqueue.hpp>
+#include <win32/virtual_alloc.hpp>
 
 #include <core/machine.hpp>
 
+#include <utils/smart_span.hpp>
 #include <utils/literals.hpp>
 #include <utils/logger.hpp>
 
@@ -29,6 +31,7 @@ int main(int argc, char** argv) try
 	using namespace std::chrono_literals;
 	using namespace std::chrono;
 	using namespace std::filesystem;
+
 	using namespace win32;
 
 	using std::chrono::steady_clock;
@@ -40,7 +43,10 @@ int main(int argc, char** argv) try
 		.parent_path()
 		.parent_path());
 
-#if 1
+	auto vl = virtual_alloc_s(1_MiB);
+
+
+#if 0
 	WHvCapabilities::InfoDump();
 
 

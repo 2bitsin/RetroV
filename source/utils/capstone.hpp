@@ -3,8 +3,6 @@
 #include <capstone/capstone.h>
 #include <capstone/x86.h>
 
-#include <utils/flags.hpp>
-
 #include <functional>
 #include <cstdint>
 #include <cstddef>
@@ -92,12 +90,11 @@ namespace capstone
 		}
 
 		auto groups() const noexcept 
-			-> utils::flags<uint32_t>
+			-> std::span<uint8_t const>
 		{
-			uint32_t value { 0u };
-			for(auto i = 0u; i < _detail().groups_count; ++i)
-				value |= (1u << _detail().groups[i]);
-			return { value };
+			
+			return { _detail().groups, 
+				_detail().groups_count };
 		}
 
 	private:

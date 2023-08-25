@@ -83,7 +83,7 @@ auto WHvProcessor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils
 	}
 }
 
-auto WHvProcessor::RequestIRQ(WHV_INTERRUPT_CONTROL irq_v) -> std::int32_t {
+auto WHvProcessor::RequestInterrupt(WHV_INTERRUPT_CONTROL irq_v) -> std::int32_t {
   return ::WHvRequestInterrupt(m_Partition.GetHandle(), &irq_v, sizeof(irq_v));
 }
 
