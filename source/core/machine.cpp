@@ -205,21 +205,20 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 
 auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
-	using utils::logger;
-	if (port_v >= 0x020u && port_v <= 0x021u) 
-		return m_LegacyPic.Master().IoPortAccess(vcpu_v, is_write_v, port_v - 0x20u, data_v);	
+#define MAP_RANGE(lhs, rhs, target) if(port_v>=lhs&&port_v<=rhs) \
+	return target.IoPortAccess(vcpu_v, is_write_v, port_v-lhs, data_v)
 
-	if (port_v >= 0x0a0u && port_v <= 0x0a1u) 
-		return m_LegacyPic.Slave().IoPortAccess(vcpu_v, is_write_v, port_v - 0xa0u, data_v);
+	MAP_RANGE(0x020u, 0x021u, m_LegacyPic.Master());
+	MAP_RANGE(0x0A0u, 0x0A1u, m_LegacyPic.Slave());
+	MAP_RANGE(0x0E8u, 0x0EAu, m_Debugger);	
 
-	if (port_v >= 0x0e8u && port_v <= 0x0eau) 
-		return m_Debugger.IoPortAccess(vcpu_v, is_write_v, port_v - 0xe8u, data_v);		
+#undef MAP_RANGE
 	__debugbreak();
 	return 0;
 }
 
 auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t
-{
+{	
 	__debugbreak();
-	return std::int32_t();
+	return ERROR_ACCESS_DENIED;
 }

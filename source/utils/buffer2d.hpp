@@ -15,15 +15,24 @@ namespace utils
 		using value_type = T;
 
 		buffer2d()
-			: m_hsize { 0 }
-			, m_vsize { 0 }
-			, m_data  { nullptr }
+			: m_hsize	{ 0 }
+			, m_vsize	{ 0 }
+			, m_size	{ 0 }
+			, m_data	{ nullptr }
 		{}
 
 		buffer2d (std::uint16_t width_v, std::uint16_t height_v)
 			: m_hsize	{ width_v  }
 			, m_vsize	{ height_v }
-			, m_data	{ std::make_unique<T[]>(m_hsize*m_vsize) }			
+			, m_size	{ (1u * width_v) * height_v } 
+			, m_data	{ std::make_unique<T[]>(m_size) }			
+		{}
+
+		buffer2d(buffer2d&& from_v) noexcept
+			: m_hsize	{ std::exchange(from_v.m_hsize, 0) }
+			, m_vsize	{ std::exchange(from_v.m_vsize, 0) }
+			, m_size	{ std::exchange(from_v.m_size,  0) }
+			, m_data	{ std::exchange(from_v.m_data,  nullptr) }
 		{}
 
 		buffer2d (buffer2d const& from_v) 
@@ -34,16 +43,11 @@ namespace utils
 			std::copy(from_s.begin(), from_s.end(), dest_s.begin());
 		}
 
-		buffer2d (buffer2d&& from_v) noexcept
-			: m_hsize	{ std::exchange(from_v.m_hsize, 0) }
-			, m_vsize	{ std::exchange(from_v.m_vsize, 0) }
-			, m_data	{ std::exchange(from_v.m_data, nullptr) }
-		{}
-
 		auto swap(buffer2d& with_v) noexcept -> void
 		{
 			std::swap(m_hsize, with_v.m_hsize);
 			std::swap(m_vsize, with_v.m_vsize);
+			std::swap(m_size, with_v.m_size);
 			std::swap(m_data, with_v.m_data);
 		}
 
@@ -63,6 +67,14 @@ namespace utils
 
 		auto width() const noexcept -> std::uint32_t { return m_hsize; }
 		auto height() const noexcept -> std::uint32_t { return m_vsize; }
+
+		auto resize(std::uint16_t width_v, std::uint16_t height_v) -> void {
+			if (nullptr == m_data || width_v * height_v > m_size) {
+				m_data = std::make_unique<T[]>(width_v * height_v);
+				m_size = width_v * height_v; }
+			m_vsize = height_v; 
+			m_hsize = width_v;
+		}
 
 		auto data() noexcept -> std::span<value_type> { return { m_data.get(), (m_hsize*1u)*m_vsize }; }
 		auto data() const noexcept -> std::span<value_type const> { return { m_data.get(), (m_hsize*1u)*m_vsize }; }
@@ -108,6 +120,7 @@ namespace utils
 	private:
 		std::uint16_t m_hsize;
 		std::uint16_t m_vsize;
+		std::uint32_t m_size;
 		std::unique_ptr<value_type[]> m_data;
 	};
 

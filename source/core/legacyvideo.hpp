@@ -30,9 +30,8 @@ namespace core
 
 	private:
 		Machine& m_Machine;
-		std::optional<Memory> m_MonoTextWindow;
-		std::optional<Memory> m_ColorTextWindow;
-		std::optional<Memory> m_GraphicsWindow;
+		std::optional<Memory> m_CharacterWindow;
+		std::optional<Memory> m_GraphicalWindow;
 
 		win32::unique_span<std::byte> m_TemporaryBuffer;		
 

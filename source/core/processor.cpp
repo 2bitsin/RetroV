@@ -37,13 +37,10 @@ auto Processor::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limit
 auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 8u> data_v) const -> std::int32_t
 {	
 	std::int32_t result_v{ ERROR_SUCCESS };
-	result_v = WHvProcessor::MemoryAccess(is_write_v, physaddr_v, data_v);
-	if (SUCCEEDED(result_v))
-		return result_v;
 	result_v = m_Machine.MemoryAccess(*this, is_write_v, physaddr_v, data_v);		
 	if (SUCCEEDED(result_v))
 		return result_v;
-	return result_v;
+	return WHvProcessor::MemoryAccess(is_write_v, physaddr_v, data_v);
 }
 
 auto Processor::GetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE> values_v) const -> std::int32_t

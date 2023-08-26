@@ -14,9 +14,8 @@ using core::LegacyVideo;
 
 LegacyVideo::LegacyVideo(Machine& machine_v)
 	: m_Machine{ machine_v }
-	, m_MonoTextWindow{ std::nullopt }
-	, m_ColorTextWindow{ std::nullopt }
-	, m_GraphicsWindow{ std::nullopt }
+	, m_CharacterWindow{ std::nullopt }	
+	, m_GraphicalWindow{ std::nullopt }
 	, m_Height{ 0 }
 	, m_Width{ 0 }
 {}
@@ -25,9 +24,9 @@ auto LegacyVideo::Initialize() -> std::int32_t
 {
 	using namespace size_literals;
 
-	m_MonoTextWindow.emplace(m_Machine.GetPartition(), 0xB0000u, 0x8000u, kAccessDevice|kTrackDirty);
-	m_ColorTextWindow.emplace(m_Machine.GetPartition(), 0xB8000u, 0x8000u, kAccessDevice|kTrackDirty);
-	m_TemporaryBuffer = win32::virtual_alloc_s(0x10000u, win32::page_protection_type::read_write);
+	//m_CharacterWindow.emplace(m_Machine.GetPartition(), 0xB0000u, 0x10000u, kAccessDevice|kTrackDirty);
+	//m_GraphicalWindow.emplace(m_Machine.GetPartition(), 0xA0000u, 0x10000u, kAccessDevice|kTrackDirty);
+	//m_TemporaryBuffer = win32::virtual_alloc_s(0x10000u, win32::page_protection_type::read_write);
 	m_Height = 400u;
 	m_Width = 640u;
 	return S_OK;
@@ -47,15 +46,15 @@ auto LegacyVideo::Render() -> std::tuple<utils::buffer2d<std::uint32_t>, std::ch
 {
 	using namespace size_literals;
 	using namespace std::chrono_literals;
-
-	if (!m_ColorTextWindow.has_value()) 
-		throw std::runtime_error{ "Video buffer not present!" };	
-	auto& video_memory_v = *m_ColorTextWindow;
+	
+	//if (!m_ColorTextWindow.has_value()) 
+		//throw std::runtime_error{ "Video buffer not present!" };	
+	//auto& video_memory_v = *m_ColorTextWindow;
 	utils::buffer2d<std::uint32_t> render_buffer_v { m_Width, m_Height };	
-	m_Machine.SuspendAllProcessors();
+	//m_Machine.SuspendAllProcessors();
 	//WIN32_ERROR_ASSERT(video_memory_v.CopyDirtyPagesTo(m_TemporaryBuffer));
-	std::ranges::copy(video_memory_v.Data(), m_TemporaryBuffer.begin());
-	m_Machine.ResumeAllProcessors();
+	//std::ranges::copy(video_memory_v.Data(), m_TemporaryBuffer.begin());
+	//m_Machine.ResumeAllProcessors();
 
 
 	////////////////////////////////////////
@@ -63,7 +62,7 @@ auto LegacyVideo::Render() -> std::tuple<utils::buffer2d<std::uint32_t>, std::ch
 	//	Temporary code to render 80 col text
 	//
 	////////////////////////////////////////
-
+/*
 	static constexpr const std::uint32_t palette_s[] = {
 		0xFF000000u, 0xFF0000AAu, 0xFFAA0000u, 0xFFAA00AAu,
 		0xFF00AA00u, 0xFF00AAAAu, 0xFFAA5500u, 0xFFAAAAAAu,
@@ -97,6 +96,6 @@ auto LegacyVideo::Render() -> std::tuple<utils::buffer2d<std::uint32_t>, std::ch
 	//
 	////////////////////////////////////////
 
-
+	*/
   return { std::move(render_buffer_v), 16666us };
 }
