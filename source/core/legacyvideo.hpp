@@ -33,6 +33,9 @@ namespace core
 		std::optional<Memory> m_MonoTextWindow;
 		std::optional<Memory> m_ColorTextWindow;
 		std::optional<Memory> m_GraphicsWindow;
+
+		win32::unique_span<std::byte> m_TemporaryBuffer;		
+
 		std::uint16_t m_Height;
 		std::uint16_t m_Width;
 	};

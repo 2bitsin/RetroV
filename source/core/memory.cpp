@@ -28,14 +28,13 @@ Memory::Memory(win32::WHvPartition const& partition_v, std::uint64_t base_v, std
 			"Base + size overflows 64bit");
 	}
 
-	auto data_v = win32::virtual_alloc_s(size_v, win32::execute_read_write);	
+	m_Data = win32::virtual_alloc_s(size_v, win32::execute_read_write);
+	m_Base = base_v;
 
 	logger::trace(logger::deflog, "Mapping {:#016x} ... {:#016x} -> {:#016x} | {:#04b}", 
 		base_v, base_v+size_v, (std::uintptr_t)m_Data.data(), (std::uint32_t)prot_v);
 	WIN32_ERROR_ASSERT(partition_v.MapGpaRange(m_Data.data(), base_v, size_v, prot_v));
 
-	m_Data = std::move (data_v);
-	m_Base = std::move (base_v);
 }
 
 using std::exchange;

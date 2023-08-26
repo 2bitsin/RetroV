@@ -53,7 +53,7 @@ int main(int argc, char** argv) try
 		"Virtual Machine", 
 		SDL_WINDOWPOS_CENTERED, 
 		SDL_WINDOWPOS_CENTERED, 
-		800, 600, 
+		1280, 800,
 		SDL_WINDOW_SHOWN);
 
 	Machine vmcore_v{ Configuration() };
@@ -65,12 +65,25 @@ int main(int argc, char** argv) try
 	auto next_frame_v = steady_clock::now();		
 	SDL_Event event_v {};
 
+	auto screen_buffer_v = SDL_CreateRGBSurface(0, 640, 400, 32, 0, 0, 0, 0);
+
 	while (true)
 	{
 
 		if (auto now_v = steady_clock::now();
 			now_v >= next_frame_v) {
 			auto [buffer_v, period_v] = vmcore_v.Render();
+
+			SDL_LockSurface(screen_buffer_v);
+			SDL_FillRect(screen_buffer_v, nullptr, 0xFFFF0000);
+
+			std::memcpy(screen_buffer_v->pixels, 
+				buffer_v.data().data(),
+				buffer_v.data().size_bytes());
+			SDL_UnlockSurface(screen_buffer_v);
+
+			SDL_BlitScaled(screen_buffer_v, nullptr, SDL_GetWindowSurface(window_v), nullptr);
+			SDL_UpdateWindowSurface(window_v);
 			next_frame_v += period_v;
 		}
 

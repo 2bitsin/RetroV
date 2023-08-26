@@ -27,6 +27,43 @@ Prologue:
 ;    call        Debug.BigFingLoop   
     mov         si,     Strings.Hello
     call        Debug.PrintString   
+    cld    
+
+    mov         di,     0xB000
+    mov         es,     di
+
+  .Hello_again:
+    xor         di,     di    
+    mov         cx,     0
+  .Hello_loop:
+    mov         ax,     0x0F00 + 'H'
+    stosw
+    out         0xe9,   al  
+
+    mov         ax,     0x0F00 + 'e'
+    stosw
+    out         0xe9,   al  
+
+    mov         ax,     0x0F00 + 'l'
+    stosw
+    out         0xe9,   al  
+
+    mov         ax,     0x0F00 + 'l'
+    stosw
+    out         0xe9,   al  
+
+    mov         ax,     0x0F00 + 'o'
+    stosw
+    out         0xe9,   al  
+
+    mov         ax,     0x0F00 + '!'
+    stosw
+    out         0xe9,   al  
+    mov         al,     10
+    out         0xe9,   al
+
+    loop        .Hello_loop
+    jmp         .Hello_again
 
   .L2:
     hlt
