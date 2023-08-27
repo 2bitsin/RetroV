@@ -1,5 +1,9 @@
 #pragma once
 
+#include <type_traits>
+#include <iterator>
+#include <string>
+
 namespace utils
 {
 
@@ -48,6 +52,22 @@ namespace utils
 		}
 
 		return first;
+	}
+
+
+	template <typename T> requires (std::is_integral_v<T>)
+		static inline auto bitset_to_string(T bits) -> std::string
+	{
+		std::string result_v;
+		for (auto i = 0u; i < 8u * sizeof(T); i += 1u) {
+			if (bits & 1u) {
+				if (!result_v.empty())
+					result_v += ", ";
+				result_v += std::to_string(i);
+			}
+			bits >>= 1u;
+		}
+		return result_v;
 	}
 
 }

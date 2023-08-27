@@ -10,31 +10,15 @@
 
 using core::Memory;
 
-Memory::Memory(win32::WHvPartition const& partition_v, std::uint64_t base_v, std::uint64_t size_v, Access prot_v)
+Memory::Memory(win32::WHvPartition const& partition_v, std::uint64_t base_v, std::uint64_t size_v, Access flags_v)
 	: m_Partition { &partition_v }
-	, m_Data      {   }
-	, m_Base      { 0 }
-	, m_Dirty     {   }
+	, m_Data      { win32::virtual_alloc_s(size_v, win32::page_protection_type::execute_read_write) }
+	, m_Base      { base_v }
+	, m_Flags     { flags_v }
+	, m_Dirty     { }
 {
 	using utils::logger;
-
-	if (size_v < kPageSize) {
-		throw std::invalid_argument(
-			"Must be atleast one page");
-	}
-
-	if ((base_v + size_v) < std::max(base_v, size_v)) {
-		throw std::invalid_argument(
-			"Base + size overflows 64bit");
-	}
-
-	m_Data = win32::virtual_alloc_s(size_v, win32::execute_read_write);
-	m_Base = base_v;
-
-	logger::trace(logger::deflog, "Mapping {:#016x} ... {:#016x} -> {:#016x} | {:#04b}", 
-		base_v, base_v+size_v, (std::uintptr_t)m_Data.data(), (std::uint32_t)prot_v);
-	WIN32_ERROR_ASSERT(partition_v.MapGpaRange(m_Data.data(), base_v, size_v, prot_v));
-
+	WIN32_ERROR_ASSERT(Map());
 }
 
 using std::exchange;
@@ -43,6 +27,7 @@ Memory::Memory(Memory&& from_v) noexcept
 	: m_Partition{ from_v.m_Partition }	
 	, m_Base{ exchange(from_v.m_Base, 0) }
 	, m_Data{ exchange(from_v.m_Data, {})}
+	, m_Flags{ exchange(from_v.m_Flags, {}) }
 {}
 
 auto Memory::operator=(Memory&& from_v) noexcept -> Memory&
@@ -60,17 +45,13 @@ auto Memory::swap(Memory& other_v) noexcept -> void
 	std::swap(m_Partition, other_v.m_Partition);
 	std::swap(m_Base, other_v.m_Base);
 	std::swap(m_Data, other_v.m_Data);
+	std::swap(m_Flags, other_v.m_Flags);
 }
 
 Memory::~Memory()
 {
 	using utils::logger;
-
-	if (m_Data.empty()) 
-		return;
-
-	m_Partition->UnmapGpaRange(m_Base, m_Data.size());
-	logger::trace(logger::deflog, "Unmapping {:#016x} ... {:#016x}", m_Base, m_Base+m_Data.size());	
+	Unmap();
 }
 
 auto Memory::Base() const noexcept -> std::uint64_t { return m_Base; }
@@ -126,7 +107,28 @@ auto Memory::CopyDirtyPagesTo(std::span<std::byte> target_v) -> std::int32_t {
 	using namespace win32;
 	auto const required_dwords_v = ((m_Data.size() / kPageSize) + 63u) / 64u;
 	if (m_Dirty.size() < required_dwords_v) m_Dirty.resize(required_dwords_v);		
-  auto status_v = m_Partition->QueryGpaRangeDirtyBitmap(m_Base, m_Data.size(), m_Dirty);
+	auto status_v = m_Partition->QueryGpaRangeDirtyBitmap(m_Base, m_Data.size(), m_Dirty);
+	status_v = m_Partition->QueryGpaRangeDirtyBitmap(m_Base, m_Data.size(), m_Dirty);
+	assert(m_Dirty[0] == 0);
 	if (FAILED(status_v)) return status_v;
 	return copy_dirty_pages(target_v, m_Data, m_Dirty);
+}
+
+auto Memory::Unmap() noexcept -> std::int32_t
+{
+	if (m_Data.empty())
+		return S_OK;
+	using utils::logger;
+	logger::trace(logger::deflog, "Unmapping {:#016x} ... {:#016x}", m_Base, m_Base + m_Data.size());
+	return m_Partition->UnmapGpaRange(m_Base, m_Data.size());
+}
+
+auto Memory::Map() noexcept -> std::int32_t
+{
+	using utils::logger;
+	if (m_Data.empty())
+		return S_OK;
+	logger::trace(logger::deflog, "Mapping {:#016x} ... {:#016x} -> {:#016x} | {:#04b}",
+		m_Base, m_Base + m_Data.size(), (std::uintptr_t)m_Data.data(), (std::uint32_t)m_Flags);
+	return m_Partition->MapGpaRange(m_Data.data(), m_Base, m_Data.size(), m_Flags);
 }

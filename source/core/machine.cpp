@@ -1,5 +1,8 @@
 #include <win32/whvcapabilities.hpp>
+
 #include <core/machine.hpp>
+
+#include <utils/algorithm.hpp>
 #include <utils/literals.hpp>
 #include <utils/logger.hpp>
 #include <utils/paths.hpp>
@@ -86,27 +89,12 @@ auto Machine::Render() ->
 	return m_LegacyVideo.Render();
 }
 
-template <typename T> requires (std::is_integral_v<T>)
-static inline auto bitset_to_string(T bits) -> std::string
-{
-	std::string result_v;
-	for (auto i = 0u; i < 8u * sizeof(T); i += 1u) {
-		if (bits & 1u) {
-			if (!result_v.empty())
-				result_v += ", ";
-			result_v += std::to_string(i);
-		}
-		bits >>= 1u;
-	}
-	return result_v;
-}
-
 auto Machine::SetIRQ(std::uint16_t state_v) -> void
 {
 	using utils::logger;
 	// Conflicting IRQs are not changed
 	logger::info(logger::deflog, "CPU[{}] raised IRQ [{}]", 
-		m_Processor.GetIndex(), bitset_to_string(state_v));
+		m_Processor.GetIndex(), utils::bitset_to_string(state_v));
 	m_LegacyPic.SetIRQ(state_v);
 }
 
@@ -185,8 +173,6 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 	} else {
 		throw std::runtime_error("Unsupported CPU vendor");
 	}
-
-	//path_v = "@base/ROMs/386AMIBIOS-OPTI82C382.BIN";
 
 	path_v = utils::path_substitute(path_v);
 	if (!std::filesystem::exists(path_v)) {

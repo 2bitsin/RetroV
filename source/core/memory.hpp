@@ -45,10 +45,14 @@ namespace core
 
 		auto CopyDirtyPagesTo(std::span<std::byte> target_v) -> std::int32_t;
 
+		auto Unmap () noexcept -> std::int32_t;
+		auto Map () noexcept -> std::int32_t;
+
 	private:
 		win32::WHvPartition const* m_Partition;
 		win32::unique_span<std::byte> m_Data;
 		std::uint64_t m_Base;
+		Access m_Flags;
 		mutable std::vector<std::uint64_t> m_Dirty;
 	};
 

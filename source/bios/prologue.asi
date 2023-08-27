@@ -63,6 +63,12 @@ Prologue:
     out         0xe9,   al
 
     loop        .Hello_loop
+
+    ;mov         ecx,    0xDEADBEEF
+    ;mov         eax,    [es:0]
+    ;mov         edx,    [es:4]
+    ;wrmsr
+
     jmp         .Hello_again
 
   .L2:
