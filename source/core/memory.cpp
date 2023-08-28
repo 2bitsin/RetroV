@@ -23,6 +23,7 @@ Memory::Memory(win32::WHvPartition const& partition_v, std::uint64_t base_v, std
 	, m_Dirty     { }
 {
 	using utils::logger;
+	m_Dirty.resize((size_v + kPageSize - 1) / kPageSize);
 	WIN32_ERROR_ASSERT(Map());
 }
 
