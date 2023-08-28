@@ -52,15 +52,7 @@ auto LegacyVideo::Render() -> std::tuple<utils::buffer2d<std::uint32_t>, std::ch
 	auto& video_memory_v = *m_CharacterWindow;
 	utils::buffer2d<std::uint32_t> render_buffer_v { m_Width, m_Height };	
 	m_Machine.SuspendAllProcessors();
-
-	//auto& vcpu_v= m_Machine.GetProcessor(0);
-	//for (auto address_v = 0xB00000u; address_v < 0xC00000u; address_v+=8u) {
-	//	auto value_v = vcpu_v.MemoryFetch<std::uint64_t>(address_v);
-	//	assert(value_v == 0);
-	//}
-
 	WIN32_ERROR_ASSERT(video_memory_v.CopyDirtyPagesTo(m_TemporaryBuffer));
-	//std::ranges::copy(video_memory_v.Data(), m_TemporaryBuffer.begin());
 	m_Machine.ResumeAllProcessors();
 
 

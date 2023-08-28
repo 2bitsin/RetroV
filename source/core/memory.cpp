@@ -33,6 +33,7 @@ Memory::Memory(Memory&& from_v) noexcept
 	, m_Base{ exchange(from_v.m_Base, 0) }
 	, m_Data{ exchange(from_v.m_Data, {})}
 	, m_Flags{ exchange(from_v.m_Flags, {}) }
+	, m_Dirty{ exchange(from_v.m_Dirty, {}) }
 {}
 
 auto Memory::operator=(Memory&& from_v) noexcept -> Memory&
@@ -51,6 +52,7 @@ auto Memory::swap(Memory& other_v) noexcept -> void
 	std::swap(m_Base, other_v.m_Base);
 	std::swap(m_Data, other_v.m_Data);
 	std::swap(m_Flags, other_v.m_Flags);
+	std::swap(m_Dirty, other_v.m_Dirty);
 }
 
 Memory::~Memory()
@@ -108,10 +110,9 @@ auto Memory::Load(std::filesystem::path path_v, std::uint64_t dst_offset_v,
 	return file_v.gcount();	
 }
 
-auto Memory::CopyDirtyPagesTo(std::span<std::byte> target_v) -> std::int32_t {
-	using namespace win32;
-
-	m_Dirty.resize(m_Data.size());
+auto Memory::CopyDirtyPagesTo(std::span<std::byte> target_v) -> std::int32_t 
+{
+	using namespace win32;	
 	auto[status_v, gran_v, list_v] = query_and_reset_dirty_pages(
 		m_Data.data(), m_Data.size(), m_Dirty, true);
 	if (FAILED(status_v)) 
