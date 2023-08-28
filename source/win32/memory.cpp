@@ -107,6 +107,15 @@ auto win32::copy_dirty_pages(std::span<std::byte> target_v,
 	return ERROR_SUCCESS;
 }
 
+auto win32::query_and_reset_dirty_pages(void const* base_v, std::size_t size_v, std::span<void const*> dirty_list_v, bool reset_v) -> std::tuple<std::int32_t, std::uintptr_t, std::span<void const*>>
+{
+	std::uintptr_t dirty_count_v { dirty_list_v.size() };
+	unsigned long granularity_v { 0u };
+	auto result_v = ::GetWriteWatch(reset_v?WRITE_WATCH_FLAG_RESET:0, (void*)base_v, size_v, (void**)dirty_list_v.data(), &dirty_count_v, &granularity_v);
+	if (result_v) return { error::last_error(), 0u, {}};
+	return { S_OK, granularity_v, dirty_list_v.first(dirty_count_v) };
+}
+
 auto win32::virtual_free(void* address_v, std::size_t size_v, 
 	free_flags_type flags_v) -> bool
 { 

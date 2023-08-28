@@ -92,4 +92,6 @@ namespace win32
 
 	auto copy_dirty_pages(std::span<std::byte> target_v, std::span<std::byte> source_v, std::span<std::uint64_t> mask_v) -> std::int32_t;
 
+	auto query_and_reset_dirty_pages(void const* base_v, std::size_t size_v, std::span<void const*> dirty_list_v, bool reset_v = true)
+		-> std::tuple<std::int32_t, std::uintptr_t, std::span<void const*>>;
 }

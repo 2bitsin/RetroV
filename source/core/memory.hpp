@@ -53,7 +53,7 @@ namespace core
 		win32::unique_span<std::byte> m_Data;
 		std::uint64_t m_Base;
 		Access m_Flags;
-		mutable std::vector<std::uint64_t> m_Dirty;
+		mutable std::vector<void const*> m_Dirty;
 	};
 
 

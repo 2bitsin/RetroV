@@ -9,10 +9,15 @@
 #include <utility>
 
 using core::Memory;
+using namespace win32;
 
 Memory::Memory(win32::WHvPartition const& partition_v, std::uint64_t base_v, std::uint64_t size_v, Access flags_v)
 	: m_Partition { &partition_v }
-	, m_Data      { win32::virtual_alloc_s(size_v, win32::page_protection_type::execute_read_write) }
+	, m_Data      { virtual_alloc_s(size_v, 
+			page_protection_type::execute_read_write, 
+			allocation_flags_type::reserve|
+			allocation_flags_type::commit|
+			allocation_flags_type::write_watch) }
 	, m_Base      { base_v }
 	, m_Flags     { flags_v }
 	, m_Dirty     { }
@@ -105,13 +110,17 @@ auto Memory::Load(std::filesystem::path path_v, std::uint64_t dst_offset_v,
 
 auto Memory::CopyDirtyPagesTo(std::span<std::byte> target_v) -> std::int32_t {
 	using namespace win32;
-	auto const required_dwords_v = ((m_Data.size() / kPageSize) + 63u) / 64u;
-	if (m_Dirty.size() < required_dwords_v) m_Dirty.resize(required_dwords_v);		
-	auto status_v = m_Partition->QueryGpaRangeDirtyBitmap(m_Base, m_Data.size(), m_Dirty);
-	status_v = m_Partition->QueryGpaRangeDirtyBitmap(m_Base, m_Data.size(), m_Dirty);
-	assert(m_Dirty[0] == 0);
-	if (FAILED(status_v)) return status_v;
-	return copy_dirty_pages(target_v, m_Data, m_Dirty);
+
+	m_Dirty.resize(m_Data.size());
+	auto[status_v, gran_v, list_v] = query_and_reset_dirty_pages(
+		m_Data.data(), m_Data.size(), m_Dirty, true);
+	if (FAILED(status_v)) 
+		return status_v;
+	for (auto&& page_base_v : list_v) {
+		auto const offset_v = (std::byte const*)page_base_v - m_Data.data();
+		std::memcpy(target_v.data() + offset_v, page_base_v, gran_v);
+	}
+	return S_OK;
 }
 
 auto Memory::Unmap() noexcept -> std::int32_t
