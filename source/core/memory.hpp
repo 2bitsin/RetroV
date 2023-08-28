@@ -9,6 +9,8 @@
 #include <win32/whvpartition.hpp>
 #include <win32/memory.hpp>
 
+#include <core/eventlog.hpp>
+
 #include <core/accessflags.hpp>
 
 
@@ -54,6 +56,8 @@ namespace core
 		std::uint64_t m_Base;
 		Access m_Flags;
 		mutable std::vector<void const*> m_Dirty;
+
+		static inline EventLog const s_log{ "Memory" };
 	};
 
 

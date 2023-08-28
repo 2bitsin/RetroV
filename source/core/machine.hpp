@@ -41,7 +41,7 @@ namespace core
 		auto RunMain() -> void;
 
 		auto Render() -> std::tuple<
-			utils::buffer2d<std::uint32_t>, 
+			LegacyVideo::buffer_type, 
 			std::chrono::microseconds>;
 		
 		auto SetIRQ(std::uint16_t state_v) -> void;

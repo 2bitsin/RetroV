@@ -14,21 +14,22 @@ using core::LegacyVideo;
 
 LegacyVideo::LegacyVideo(Machine& machine_v)
 	: m_Machine{ machine_v }
-	, m_CharacterWindow{ std::nullopt }	
-	, m_GraphicalWindow{ std::nullopt }
 	, m_Height{ 0 }
 	, m_Width{ 0 }
+	, m_CharacterWindow{ std::nullopt }
+	, m_GraphicalWindow{ std::nullopt }
+	, m_BufferPool{ }
 {}
 
 auto LegacyVideo::Initialize() -> std::int32_t
 {
+	using namespace win32;
 	using namespace size_literals;
-
-	m_CharacterWindow.emplace(m_Machine.GetPartition(), 0xB0000u, 0x10000u, kAccessDevice|kTrackDirty);
-	m_GraphicalWindow.emplace(m_Machine.GetPartition(), 0xA0000u, 0x10000u, kAccessDevice|kTrackDirty);
-	m_TemporaryBuffer = win32::virtual_alloc_s(0x10000u, win32::page_protection_type::read_write);
 	m_Height = 400u;
 	m_Width = 640u;
+	m_CharacterWindow.emplace(m_Machine.GetPartition(), 0xB0000u, 0x10000u, kAccessDevice|kTrackDirty);
+	m_GraphicalWindow.emplace(m_Machine.GetPartition(), 0xA0000u, 0x10000u, kAccessDevice|kTrackDirty);
+	m_TemporaryBuffer = virtual_alloc_s(0x10000u, page_protection_type::read_write);
 	return S_OK;
 }
 
@@ -42,17 +43,20 @@ auto LegacyVideo::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::ui
 	return S_OK;
 }
 
-auto LegacyVideo::Render() -> std::tuple<utils::buffer2d<std::uint32_t>, std::chrono::microseconds>
+auto LegacyVideo::Render() -> std::tuple<buffer_type, std::chrono::microseconds>
 {
 	using namespace size_literals;
 	using namespace std::chrono_literals;
 	
 	if (!m_CharacterWindow.has_value()) 
 		throw std::runtime_error{ "Video buffer not present!" };	
-	auto& video_memory_v = *m_CharacterWindow;
-	utils::buffer2d<std::uint32_t> render_buffer_v { m_Width, m_Height };	
+
+	auto& videomemory_v = *m_CharacterWindow;	
+	auto renderbuffer_p = AcquireBuffer();
+	auto& renderbuffer_v = *renderbuffer_p;
+
 	m_Machine.SuspendAllProcessors();
-	WIN32_ERROR_ASSERT(video_memory_v.CopyDirtyPagesTo(m_TemporaryBuffer));
+	WIN32_ERROR_ASSERT(videomemory_v.CopyDirtyPagesTo(m_TemporaryBuffer));
 	m_Machine.ResumeAllProcessors();
 
 
@@ -85,7 +89,7 @@ auto LegacyVideo::Render() -> std::tuple<utils::buffer2d<std::uint32_t>, std::ch
 		auto const color0_v = palette_s[(attr_v >> 4u)&0xFu];	
 		auto const color1_v = palette_s[(attr_v >> 0u)&0xFu];
 
-		render_buffer_v[{xx, yy}] = ((glyph_v >> (7 - (xx % 8u))) & 1u) ? color1_v : color0_v;
+		renderbuffer_v[{xx, yy}] = ((glyph_v >> (7 - (xx % 8u))) & 1u) ? color1_v : color0_v;
 	}
 
 	////////////////////////////////////////
@@ -95,5 +99,22 @@ auto LegacyVideo::Render() -> std::tuple<utils::buffer2d<std::uint32_t>, std::ch
 	////////////////////////////////////////
 
 
-  return { std::move(render_buffer_v), 16666us };
+  return { std::move(renderbuffer_p), 16666us };
 }
+
+auto LegacyVideo::ReleaseBuffer(raw_buffer_type* buffer_ptr) -> void
+{
+	m_BufferPool.push_back(std::unique_ptr<raw_buffer_type>{ buffer_ptr });
+}
+
+auto LegacyVideo::AcquireBuffer() -> buffer_type
+{	
+	if (m_BufferPool.empty()) return buffer_type{ 
+		new raw_buffer_type(m_Width, m_Height), {*this} };
+	auto buffer_ptr = std::move(m_BufferPool.back());
+	m_BufferPool.pop_back();
+	if (buffer_ptr->width() != m_Width || buffer_ptr->height() != m_Height)
+		buffer_ptr.reset(new raw_buffer_type(m_Width, m_Height));	
+	return buffer_type{ buffer_ptr.release(), {*this} };
+}
+ 

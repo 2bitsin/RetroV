@@ -19,12 +19,7 @@ auto Debugger::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint1
 	case 0x00u:
 		if (is_write_v) 
 		{			
-			switch(data_v.size())
-			{
-			case 1: logger::debug(logger::deflog, "DebugPort[0] <= {:#04x}",  data_v.as<uint8_t >()) ; break;
-			case 2: logger::debug(logger::deflog, "DebugPort[0] <= {:#06x}",  data_v.as<uint16_t>()) ; break;
-			case 4: logger::debug(logger::deflog, "DebugPort[0] <= {:#010x}", data_v.as<uint32_t>()) ; break;
-			}			
+			s_log.EmitPostCode(data_v);
 		}
 		return S_OK;
 	case 0x01u: 
@@ -53,7 +48,7 @@ auto Debugger::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint1
 	case 0x02u: 
 		WHV_REGISTER_VALUE reg_v{ };
 		if (is_write_v) {
-			logger::info(logger::deflog, "CPU[{}] flat real mode hack enabled!", vcpu_v.GetIndex());
+			s_log.UnrealModeEnabled(vcpu_v.GetIndex());
 			WHV_REGISTER_NAME name_v[] = {
 				WHvX64RegisterDs,
 				WHvX64RegisterEs,

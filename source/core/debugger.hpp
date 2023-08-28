@@ -6,6 +6,8 @@
 
 #include <utils/span.hpp>
 
+#include <core/eventlog.hpp>
+
 #include <cstdint>
 #include <cstddef>
 #include <string>
@@ -24,9 +26,11 @@ namespace core
 
 		auto Reset() -> void;
 
-	private:
+	private:		
 		Machine& m_Machine;
 		std::mutex m_Mutex;
 		std::string m_Buffer;
+
+		static inline EventLog const s_log{ "Debugger" };
 	};
 }

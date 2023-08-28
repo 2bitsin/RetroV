@@ -84,7 +84,7 @@ auto Machine::RunMain() -> void
 }
 
 auto Machine::Render() -> 
-	std::tuple<utils::buffer2d<std::uint32_t>, std::chrono::microseconds>
+	std::tuple<LegacyVideo::buffer_type, std::chrono::microseconds>
 {
 	return m_LegacyVideo.Render();
 }

@@ -71,17 +71,14 @@ int main(int argc, char** argv) try
 	{
 
 		if (auto now_v = steady_clock::now();
-			now_v >= next_frame_v) {
+			now_v >= next_frame_v) 
+		{
 			auto [buffer_v, period_v] = vmcore_v.Render();
-
 			SDL_LockSurface(screen_buffer_v);
-			SDL_FillRect(screen_buffer_v, nullptr, 0xFFFF0000);
-
 			std::memcpy(screen_buffer_v->pixels, 
-				buffer_v.data().data(),
-				buffer_v.data().size_bytes());
+				buffer_v->data().data(),
+				buffer_v->data().size_bytes());
 			SDL_UnlockSurface(screen_buffer_v);
-
 			SDL_BlitScaled(screen_buffer_v, nullptr, SDL_GetWindowSurface(window_v), nullptr);
 			SDL_UpdateWindowSurface(window_v);
 			next_frame_v += period_v;

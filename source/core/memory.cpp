@@ -93,14 +93,9 @@ auto Memory::Load(std::filesystem::path path_v, std::uint64_t dst_offset_v,
 		m_Data.size() - dst_offset_v));
 	if (src_length_v < 1u)
 		return 0u;		
-	logger::trace(logger::deflog, 
-		"Mapping {:#016x} ... {:#016x} -> {} @ {:#016x} ... {:#016x}",
-		m_Base + src_offset_v, 
-		m_Base + src_offset_v + m_Data.size(),
-		path_v.string(),
-		dst_offset_v, 
-		src_length_v
-	);
+	s_log.MapGpaRangeFromFile(m_Data.data(), m_Base+dst_offset_v, 
+		std::min(src_length_v, m_Data.size()),
+		path_v, src_offset_v, src_length_v);
 	std::ifstream file_v{ path_v, std::ios::binary };
 	if (!file_v.is_open())
 		throw std::system_error(
@@ -129,8 +124,7 @@ auto Memory::Unmap() noexcept -> std::int32_t
 {
 	if (m_Data.empty())
 		return S_OK;
-	using utils::logger;
-	logger::trace(logger::deflog, "Unmapping {:#016x} ... {:#016x}", m_Base, m_Base + m_Data.size());
+	s_log.UnmapGpaRange(m_Base, m_Data.size());
 	return m_Partition->UnmapGpaRange(m_Base, m_Data.size());
 }
 
@@ -139,7 +133,6 @@ auto Memory::Map() noexcept -> std::int32_t
 	using utils::logger;
 	if (m_Data.empty())
 		return S_OK;
-	logger::trace(logger::deflog, "Mapping {:#016x} ... {:#016x} -> {:#016x} | {:#04b}",
-		m_Base, m_Base + m_Data.size(), (std::uintptr_t)m_Data.data(), (std::uint32_t)m_Flags);
+	s_log.MapGpaRange(m_Data.data(), m_Base, m_Data.size(), m_Flags);
 	return m_Partition->MapGpaRange(m_Data.data(), m_Base, m_Data.size(), m_Flags);
 }
