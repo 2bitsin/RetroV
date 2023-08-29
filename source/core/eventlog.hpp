@@ -15,12 +15,20 @@ namespace core
 {
 	struct EventLog
 	{
+		auto StartMachine() const -> void;
+		auto StopMachine() const -> void;
+		auto ResetMachine() const -> void;
+
 		auto MapGpaRange(void* addr_v, std::uint64_t base_v, std::uint64_t size_v, Access access_v) const -> void; 
 		auto MapGpaRangeFromFile(void* addr_v, std::uint64_t base_v, std::uint64_t size_v, std::filesystem::path const& path_v, std::uint64_t offset_v, std::uint64_t length_v) const -> void;
 		auto UnmapGpaRange(std::uint64_t base_v, std::uint64_t size_v) const -> void;
 	
 		auto UnrealModeEnabled(std::uint32_t) const -> void;
 		auto EmitPostCode(utils::limited_span<std::byte, 4u> data_v) const -> void;
+
+		auto VCpuExited(std::uint32_t vcpu_index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_context_v) const -> void;
+
+		auto IRQState(std::uint32_t vcpu_index_v, std::uint16_t irq_v) const -> void;
 		
 		EventLog(std::string_view module_v);
 

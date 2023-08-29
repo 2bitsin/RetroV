@@ -1,11 +1,59 @@
 #include <core/eventlog.hpp>
-
 #include <utils/logger.hpp>
-
+#include <utils/algorithm.hpp>
+#include <win32/winhvpx.hpp>
 
 using core::EventLog;
+
 using utils::logger;
+
 using p = std::uintptr_t;
+
+static inline auto to_string(WHV_RUN_VP_EXIT_REASON reason_v) -> std::string_view {
+	switch (reason_v) 
+	{
+#define X(x) case x: return #x
+	X(WHvRunVpExitReasonNone);
+	X(WHvRunVpExitReasonMemoryAccess);
+	X(WHvRunVpExitReasonX64IoPortAccess);
+	X(WHvRunVpExitReasonUnrecoverableException);
+	X(WHvRunVpExitReasonInvalidVpRegisterValue);
+	X(WHvRunVpExitReasonUnsupportedFeature);
+	X(WHvRunVpExitReasonX64InterruptWindow);
+	X(WHvRunVpExitReasonX64Halt);
+	X(WHvRunVpExitReasonX64ApicEoi);
+	X(WHvRunVpExitReasonSynicSintDeliverable);
+	X(WHvRunVpExitReasonX64MsrAccess);
+	X(WHvRunVpExitReasonX64Cpuid);
+	X(WHvRunVpExitReasonException);
+	X(WHvRunVpExitReasonX64Rdtsc);
+	X(WHvRunVpExitReasonX64ApicSmiTrap);
+	X(WHvRunVpExitReasonHypercall);
+	X(WHvRunVpExitReasonX64ApicInitSipiTrap);
+	X(WHvRunVpExitReasonX64ApicWriteTrap);
+	X(WHvRunVpExitReasonCanceled);
+#undef X
+	}
+	return "(Unknown)";
+}
+
+auto EventLog::StartMachine() const -> void
+{
+	using utils::logger;
+	logger::trace(logger::deflog, "Starting machine...");
+}
+
+auto EventLog::StopMachine() const -> void
+{
+	using utils::logger;
+	logger::trace(logger::deflog, "Stopping machine...");
+}
+
+auto EventLog::ResetMachine() const -> void
+{
+	using utils::logger;
+	logger::trace(logger::deflog, "Resetting machine...");
+}
 
 auto EventLog::MapGpaRange(void* addr_v, std::uint64_t base_v, std::uint64_t size_v, Access access_v) const -> void
 {	
@@ -38,7 +86,18 @@ auto EventLog::EmitPostCode(utils::limited_span<std::byte, 4u> data_v) const -> 
 	case 2: logger::debug(logger::deflog, "POST_CODE: {:#06x}", data_v.as<uint16_t>()); break;
 	case 4: logger::debug(logger::deflog, "POST_CODE: {:#010x}", data_v.as<uint32_t>()); break;
 	}
+}
 
+auto EventLog::VCpuExited(std::uint32_t vcpu_index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_context_v) const -> void
+{
+	auto const reason_v = to_string(exit_context_v.ExitReason);
+	logger::debug(logger::deflog, "CPU[{}] exited with reason '{}'", vcpu_index_v, reason_v);
+}
+
+auto EventLog::IRQState(std::uint32_t vcpu_index_v, std::uint16_t state_v) const -> void
+{
+	using utils::logger;
+	logger::info(logger::deflog, "CPU[{}] raised IRQ [{}]", vcpu_index_v, utils::bitset_to_string(state_v));
 }
 
 EventLog::EventLog(std::string_view name_v)

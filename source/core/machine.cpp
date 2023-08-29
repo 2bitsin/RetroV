@@ -21,12 +21,14 @@ Machine::Machine(Configuration const& config_v)
 	, m_LegacyPic		{ *this, 0u }
 	, m_Debugger		{ *this }
 	, m_LegacyVideo { *this }
+	, m_Display			{ *this }
 {
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);	
-	WIN32_ERROR_ASSERT(m_LegacyPic.Initialize());
-	WIN32_ERROR_ASSERT(m_LegacyVideo.Initialize());
+	WIN32_ERROR_ASSERT(m_LegacyPic.StartRefresh());
+	WIN32_ERROR_ASSERT(m_LegacyVideo.StartRefresh());
+	WIN32_ERROR_ASSERT(m_Display.StartRefresh());
 }
 
 Machine::~Machine() 
@@ -34,28 +36,29 @@ Machine::~Machine()
 
 auto Machine::Start() -> void
 {
-	using utils::logger;
-	logger::info(logger::deflog, "Starting machine...");
+	s_log.StartMachine();
+	m_LegacyVideo.Start();
 	m_ProcessorExit = m_Processor.Start();
 }
 
 auto Machine::Stop() -> void
 {
-	using utils::logger;
-	logger::info(logger::deflog, "Stopping machine...");
+	s_log.StopMachine();
 	m_Processor.Stop();
 	if (m_ProcessorExit.valid()) {
 		m_ProcessorExit.wait();
 	}
+	m_LegacyVideo.Stop();
 }
 
 auto Machine::Reset() -> void
 {
-	Stop();
+	SuspendAllProcessors();
 	m_Processor.Reset();
 	m_Partition.Reset();
 	m_Debugger.Reset();
-	Start();
+	m_LegacyPic.Reset();
+	ResumeAllProcessors();
 }
 
 auto Machine::RunMain() -> void
@@ -72,14 +75,11 @@ auto Machine::RunMain() -> void
 	switch (context_v.ExitReason)
 	{
 	case WHvRunVpExitReasonCanceled:				
-		logger::info(logger::deflog, "CPU[{}] stopped, reason=Cancel", m_Processor.GetIndex());
+		s_log.VCpuExited(m_Processor.GetIndex(), context_v);
 		return;
-	default:
-		// Unexpected cpu exit
-		throw std::runtime_error(std::format(
-			"CPU[{}] exited unexpectedly with reason={:#x}, rebooting...", 
-			m_Processor.GetIndex(), (std::uint32_t)context_v.ExitReason));
-		return Reset();
+	default: // unexpected exit reason
+		s_log.VCpuExited(m_Processor.GetIndex(), context_v);
+		throw std::runtime_error(__func__);		
 	}
 }
 
@@ -91,10 +91,7 @@ auto Machine::Render() ->
 
 auto Machine::SetIRQ(std::uint16_t state_v) -> void
 {
-	using utils::logger;
-	// Conflicting IRQs are not changed
-	logger::info(logger::deflog, "CPU[{}] raised IRQ [{}]", 
-		m_Processor.GetIndex(), utils::bitset_to_string(state_v));
+	s_log.IRQState(m_Processor.GetIndex(), state_v);
 	m_LegacyPic.SetIRQ(state_v);
 }
 

@@ -13,7 +13,7 @@ LegacyPic::LegacyPic(Machine& machine_v, std::uint32_t bsp_index_v)
 	, m_Processor	{ machine_v.GetProcessor(bsp_index_v) }
 {}
 
-auto LegacyPic::Initialize() -> std::int32_t
+auto LegacyPic::StartRefresh() -> std::int32_t
 {
 	return S_OK;
 }

@@ -38,7 +38,7 @@ namespace core
 
 		LegacyPic (Machine& machine_v, std::uint32_t bsp_index_v);
 		
-		auto Initialize() -> std::int32_t;	
+		auto StartRefresh() -> std::int32_t;	
 		auto InterruptWindow() -> std::int32_t;
 
 		auto SetIRQ(std::uint8_t state_v) -> std::int32_t;

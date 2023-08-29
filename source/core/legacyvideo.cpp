@@ -18,7 +18,6 @@ LegacyVideo::LegacyVideo(Machine& machine_v)
 	, m_Width{ 0 }
 	, m_CharacterWindow{ std::nullopt }
 	, m_GraphicalWindow{ std::nullopt }
-	, m_BufferPool{ }
 {}
 
 auto LegacyVideo::Initialize() -> std::int32_t
@@ -27,10 +26,25 @@ auto LegacyVideo::Initialize() -> std::int32_t
 	using namespace size_literals;
 	m_Height = 400u;
 	m_Width = 640u;
-	m_CharacterWindow.emplace(m_Machine.GetPartition(), 0xB0000u, 0x10000u, kAccessDevice|kTrackDirty);
-	m_GraphicalWindow.emplace(m_Machine.GetPartition(), 0xA0000u, 0x10000u, kAccessDevice|kTrackDirty);
+	m_CharacterWindow.emplace(m_Machine.GetPartition(), 0xB0000u, 0x10000u, kAccessDevice | kTrackDirty);
+	m_GraphicalWindow.emplace(m_Machine.GetPartition(), 0xA0000u, 0x10000u, kAccessDevice | kTrackDirty);
 	m_TemporaryBuffer = virtual_alloc_s(0x10000u, page_protection_type::read_write);
-	return S_OK;
+	return ERROR_SUCCESS;
+}
+
+auto LegacyVideo::Start() -> std::int32_t
+{
+	return ERROR_SUCCESS;
+}
+
+auto core::LegacyVideo::Stop() -> std::int32_t
+{
+	return ERROR_SUCCESS;
+}
+
+auto core::LegacyVideo::Restart() -> std::int32_t
+{
+	return ERROR_SUCCESS;
 }
 
 auto LegacyVideo::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
@@ -43,7 +57,7 @@ auto LegacyVideo::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::ui
 	return S_OK;
 }
 
-auto LegacyVideo::Render() -> std::tuple<buffer_type, std::chrono::microseconds>
+auto LegacyVideo::Refresh(Display::surface_tmp& surface_v) -> void
 {
 	using namespace size_literals;
 	using namespace std::chrono_literals;
@@ -51,12 +65,10 @@ auto LegacyVideo::Render() -> std::tuple<buffer_type, std::chrono::microseconds>
 	if (!m_CharacterWindow.has_value()) 
 		throw std::runtime_error{ "Video buffer not present!" };	
 
-	auto& videomemory_v = *m_CharacterWindow;	
-	auto renderbuffer_p = AcquireBuffer();
-	auto& renderbuffer_v = *renderbuffer_p;
+	auto& vram_v = *m_CharacterWindow;	
 
 	m_Machine.SuspendAllProcessors();
-	WIN32_ERROR_ASSERT(videomemory_v.CopyDirtyPagesTo(m_TemporaryBuffer));
+	WIN32_ERROR_ASSERT(vram_v.CopyDirtyPagesTo(m_TemporaryBuffer));
 	m_Machine.ResumeAllProcessors();
 
 
@@ -72,6 +84,8 @@ auto LegacyVideo::Render() -> std::tuple<buffer_type, std::chrono::microseconds>
 		0xFF555555u, 0xFF5555FFu, 0xFFFF5555u, 0xFFFF55FFu,
 		0xFF55FF55u, 0xFF55FFFFu, 0xFFFFFF55u, 0xFFFFFFFFu
 	};
+
+	auto buffer_v = lock_v.get();
 
 	for (auto yy = 0u; yy < m_Height; ++yy) 
 	for (auto xx = 0u; xx < m_Width;  ++xx) 
@@ -89,7 +103,10 @@ auto LegacyVideo::Render() -> std::tuple<buffer_type, std::chrono::microseconds>
 		auto const color0_v = palette_s[(attr_v >> 4u)&0xFu];	
 		auto const color1_v = palette_s[(attr_v >> 0u)&0xFu];
 
-		renderbuffer_v[{xx, yy}] = ((glyph_v >> (7 - (xx % 8u))) & 1u) ? color1_v : color0_v;
+		
+		
+
+		/// ((glyph_v >> (7 - (xx % 8u))) & 1u) ? color1_v : color0_v;
 	}
 
 	////////////////////////////////////////
@@ -98,23 +115,4 @@ auto LegacyVideo::Render() -> std::tuple<buffer_type, std::chrono::microseconds>
 	//
 	////////////////////////////////////////
 
-
-  return { std::move(renderbuffer_p), 16666us };
-}
-
-auto LegacyVideo::ReleaseBuffer(raw_buffer_type* buffer_ptr) -> void
-{
-	m_BufferPool.push_back(std::unique_ptr<raw_buffer_type>{ buffer_ptr });
-}
-
-auto LegacyVideo::AcquireBuffer() -> buffer_type
-{	
-	if (m_BufferPool.empty()) return buffer_type{ 
-		new raw_buffer_type(m_Width, m_Height), {*this} };
-	auto buffer_ptr = std::move(m_BufferPool.back());
-	m_BufferPool.pop_back();
-	if (buffer_ptr->width() != m_Width || buffer_ptr->height() != m_Height)
-		buffer_ptr.reset(new raw_buffer_type(m_Width, m_Height));	
-	return buffer_type{ buffer_ptr.release(), {*this} };
-}
- 
+} 

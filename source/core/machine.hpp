@@ -14,6 +14,7 @@
 #include <core/legacypic.hpp>
 #include <core/legacyvideo.hpp>
 #include <core/debugger.hpp>
+#include <core/display.hpp>
 
 #include <utils/span.hpp>
 #include <utils/buffer2d.hpp>
@@ -39,23 +40,20 @@ namespace core
 		auto Reset() -> void;
 
 		auto RunMain() -> void;
-
-		auto Render() -> std::tuple<
-			LegacyVideo::buffer_type, 
-			std::chrono::microseconds>;
 		
 		auto SetIRQ(std::uint16_t state_v) -> void;
 		
 		auto GetProcessor(std::uint32_t vcpuindex_v) -> Processor& { (void)vcpuindex_v; return m_Processor; }
 		auto GetPartition() -> win32::WHvPartition& { return m_Partition; }
+		auto GetDisplay() -> Display& { return m_Display; }
 
 		auto SuspendAllProcessors() -> void;
 		auto ResumeAllProcessors() -> void;
+		
 
 	protected:
 		friend Processor;
-		friend Debugger;
-
+		friend Debugger;		
 
 		auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
 		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t;
@@ -72,6 +70,9 @@ namespace core
 		core::LegacyPic m_LegacyPic;
 		core::LegacyVideo m_LegacyVideo;
 		core::Debugger m_Debugger;
+		core::Display m_Display;
+
+		static inline const EventLog s_log{ "Machine" };
 	};
 
 }
