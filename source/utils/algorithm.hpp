@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <concepts>
 #include <iterator>
 #include <string>
 
@@ -55,11 +56,11 @@ namespace utils
 	}
 
 
-	template <typename T> requires (std::is_integral_v<T>)
-		static inline auto bitset_to_string(T bits) -> std::string
+	
+	static inline auto bitset_to_string(std::integral auto bits) -> std::string
 	{
 		std::string result_v;
-		for (auto i = 0u; i < 8u * sizeof(T); i += 1u) {
+		for (auto i = 0u; i < 8u * sizeof(bits); i += 1u) {
 			if (bits & 1u) {
 				if (!result_v.empty())
 					result_v += ", ";
@@ -68,6 +69,16 @@ namespace utils
 			bits >>= 1u;
 		}
 		return result_v;
+	}
+
+	constexpr auto round_down(std::integral auto value_v, std::integral auto alignment_v = 0x1000u) 
+	{
+		return value_v & ~(alignment_v - 1u);
+	}
+
+	constexpr auto round_ceil(std::integral auto value_v, std::integral auto alignment_v = 0x1000u) 
+	{ 
+		return round_down(value_v + alignment_v - 1u, alignment_v); 
 	}
 
 }

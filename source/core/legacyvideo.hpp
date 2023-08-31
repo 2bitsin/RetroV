@@ -22,11 +22,11 @@ namespace core
 	{
 		LegacyVideo(Machine& machine_v);
 
-		auto Initialize() -> std::int32_t;
+		auto Initialize() -> void;
 
-		auto Start() -> std::int32_t;
-		auto Stop() -> std::int32_t;
-		auto Restart() -> std::int32_t;
+		auto Start() -> void;
+		auto Stop() -> void;
+		auto Restart() -> void;
 
 		auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
 		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t;

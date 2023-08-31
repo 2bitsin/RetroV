@@ -49,7 +49,10 @@ int main(int argc, char** argv) try
 	SDL_Init(SDL_INIT_EVERYTHING);
 	std::atexit(SDL_Quit);
 
-	Machine vmcore_v{ Configuration() };
+	auto config_v = Configuration();
+	config_v.SetProperty("memory.size.megabytes", "64");
+	config_v.SetProperty("rom.boot.path", "@base/ROMs/BiosAMD.bin");
+	Machine vmcore_v{ config_v };
 	vmcore_v.Start();
 
 	std::uint16_t IRQstate_v{ 0 };

@@ -13,7 +13,7 @@
 
 namespace win32
 {
-	enum allocation_flags_type: std::uint32_t {
+	enum alloc_flag: std::uint32_t {
 		commit								= MEM_COMMIT,
 		reserve								= MEM_RESERVE,
 		reset									= MEM_RESET,
@@ -24,14 +24,14 @@ namespace win32
 		write_watch						= MEM_WRITE_WATCH
 	};
 
-	enum free_flags_type: std::uint32_t {
+	enum free_flag: std::uint32_t {
 		decommit							= MEM_DECOMMIT,
 		release								= MEM_RELEASE,
 		coalesce_placeholders	= MEM_COALESCE_PLACEHOLDERS,
 		preserve_placeholders	= MEM_PRESERVE_PLACEHOLDER
 	};
 
-	enum page_protection_type: std::uint32_t {
+	enum page_prot: std::uint32_t {
 		no_access							= PAGE_NOACCESS,
 		read_only							= PAGE_READONLY,
 		read_write						= PAGE_READWRITE,
@@ -48,12 +48,12 @@ namespace win32
 	};
 
 
-	DEFINE_ENUM_FLAG_OPERATORS(allocation_flags_type)
-	DEFINE_ENUM_FLAG_OPERATORS(page_protection_type)
-	DEFINE_ENUM_FLAG_OPERATORS(free_flags_type)
+	DEFINE_ENUM_FLAG_OPERATORS(alloc_flag)
+	DEFINE_ENUM_FLAG_OPERATORS(page_prot)
+	DEFINE_ENUM_FLAG_OPERATORS(free_flag)
 
 	auto virtual_free(void* address_v, std::size_t size_v,
-		free_flags_type flags_v = free_flags_type::release) -> bool;
+		free_flag flags_v = free_flag::release) -> bool;
 
 	template <typename T>
 	struct virtual_span_deleter
@@ -62,7 +62,7 @@ namespace win32
 			if (what_v.data() != nullptr) {
 				assert(what_v.size() > 0);
 				auto result_v = virtual_free(what_v.data(), 
-					0u, free_flags_type::release);
+					0u, free_flag::release);
 				assert(result_v == true);
 				what_v = ::std::span<T>{};
 			}
@@ -73,13 +73,13 @@ namespace win32
 	using unique_span = utils::unique_span<T, virtual_span_deleter<T>>;
 
 	auto virtual_alloc(std::size_t size_v,
-		page_protection_type protect_v = page_protection_type::read_write,
-		allocation_flags_type flags_v = allocation_flags_type::commit | allocation_flags_type::reserve,
+		page_prot protect_v = page_prot::read_write,
+		alloc_flag flags_v = alloc_flag::commit | alloc_flag::reserve,
 		void* target_v = nullptr) -> void*;
 
 	template <typename T = std::byte> requires (std::is_trivial_v<T>)
-	static inline auto virtual_alloc_s(std::size_t size_v, page_protection_type prot_v = page_protection_type::read_write, 
-		allocation_flags_type flags_v = allocation_flags_type::commit | allocation_flags_type::reserve,
+	static inline auto virtual_alloc_s(std::size_t size_v, page_prot prot_v = page_prot::read_write, 
+		alloc_flag flags_v = alloc_flag::commit | alloc_flag::reserve,
 		void* base_v = nullptr) -> unique_span<T>
 	{
 		

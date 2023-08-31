@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdexcept>
 #include <cstdint>
 #include <cstddef>
 #include <tuple>
@@ -20,7 +21,7 @@ namespace utils
 				surface_v = nullptr;
 		}
 
-		inline ~surface_view()
+		inline ~surface_view() noexcept
 		{
 			if (nullptr != m_surface)
 				::SDL_UnlockSurface(m_surface);
@@ -31,37 +32,35 @@ namespace utils
 		surface_view(surface_view&&) = delete;
 		auto operator=(surface_view&&) -> surface_view& = delete;
 
-		~surface_view() noexcept = default;
-
-		auto operator [] (std::size_t index_v) -> std::span<T> {
+		inline auto operator [] (std::size_t index_v) -> std::span<T> {
 			if (m_surface == nullptr || index_v >= m_surface->h)
 				throw std::out_of_range("surface_view::operator[]");
 			auto line_addr_v = ((std::byte*)m_surface->pixels) + index_v * (std::uintptr_t)m_surface->pitch;
 			return std::span<T>((T*)line_addr_v, (std::uintptr_t)m_surface->pitch / sizeof(T));
 		}
 
-		auto operator [] (std::size_t index_v) const -> std::span<T> {
+		inline auto operator [] (std::size_t index_v) const -> std::span<T> {
 			if (m_surface == nullptr || index_v >= m_surface->h)
 				throw std::out_of_range("surface_view::operator[]");
 			auto line_addr_v = ((std::byte const*)m_surface->pixels) + index_v * (std::uintptr_t)m_surface->pitch;
 			return std::span<T const>((T const*)line_addr_v, (std::uintptr_t)m_surface->pitch / sizeof(T));
 		}
 
-		auto operator [] (std::tuple<std::uint32_t, std::uint32_t> const& index_v) -> T& {
+		inline auto operator [] (std::tuple<std::uint32_t, std::uint32_t> const& index_v) -> T& {
 			auto const [yy, xx] = index_v;
 			if (m_surface == nullptr || yy >= m_surface->h || xx >= m_surface->w)
 				throw std::out_of_range("surface_view::operator[]");
 			return ((*this)[yy])[xx];
 		}
 
-		auto operator [] (std::tuple<std::uint32_t, std::uint32_t> const& index_v) const -> T& {
+		inline auto operator [] (std::tuple<std::uint32_t, std::uint32_t> const& index_v) const -> T& {
 			auto const [yy, xx] = index_v;
 			if (m_surface == nullptr || yy >= m_surface->h || xx >= m_surface->w)
 				throw std::out_of_range("surface_view::operator[]");
 			return ((*this)[yy])[xx];
 		}
 	private:
-		SDL_Surface* m_surface { nullptr }
+		SDL_Surface* m_surface { nullptr };
 	};
 
 }

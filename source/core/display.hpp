@@ -52,9 +52,9 @@ namespace core
 		Display(Machine& machine_v);
 		~Display();
 			
-		auto Initialize() -> std::int32_t;
+		auto Initialize() -> void;
 		auto StartRefresh(std::uint16_t width_v, std::uint16_t height_v, 
-			std::uint8_t refresh_v, refresh_callback callback_v) -> std::int32_t;
+			std::uint8_t refresh_v, refresh_callback callback_v) -> void;
 		auto AcquireSurface(std::uint16_t width_v, std::uint16_t height_v) -> surface_tmp;
 		auto ReleaseSurface(surface_tmp surface_v) -> void;
 		auto DisplaySurface(surface_tmp surface_v) -> void;

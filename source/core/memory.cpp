@@ -14,10 +14,10 @@ using namespace win32;
 Memory::Memory(win32::WHvPartition const& partition_v, std::uint64_t base_v, std::uint64_t size_v, Access flags_v)
 	: m_Partition { &partition_v }
 	, m_Data      { virtual_alloc_s(size_v, 
-			page_protection_type::execute_read_write, 
-			allocation_flags_type::reserve|
-			allocation_flags_type::commit|
-			allocation_flags_type::write_watch) }
+			page_prot::execute_read_write, 
+			alloc_flag::reserve|
+			alloc_flag::commit|
+			alloc_flag::write_watch) }
 	, m_Base      { base_v }
 	, m_Flags     { flags_v }
 	, m_Dirty     { }

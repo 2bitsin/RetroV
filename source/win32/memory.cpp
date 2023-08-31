@@ -26,8 +26,8 @@ static inline auto all_aligned(T&&... address_v) noexcept -> bool
 }
 
 
-auto win32::virtual_alloc(std::size_t size_v, page_protection_type prot_v,
-	allocation_flags_type flags_v, void* target_v) -> void*
+auto win32::virtual_alloc(std::size_t size_v, page_prot prot_v,
+	alloc_flag flags_v, void* target_v) -> void*
 {
 	return ::VirtualAlloc(target_v, size_v, (DWORD)flags_v, (DWORD)prot_v);  
 }
@@ -117,12 +117,12 @@ auto win32::query_and_reset_dirty_pages(void const* base_v, std::size_t size_v, 
 }
 
 auto win32::virtual_free(void* address_v, std::size_t size_v, 
-	free_flags_type flags_v) -> bool
+	free_flag flags_v) -> bool
 { 
-	if (free_flags_type::release) 
+	if (free_flag::release) 
 	{
-		if (flags_v != free_flags_type::decommit)
-			flags_v &= ~free_flags_type::decommit;
+		if (flags_v != free_flag::decommit)
+			flags_v &= ~free_flag::decommit;
 		if (size_v != 0u)
 			size_v = 0u;		
 	}

@@ -2,6 +2,7 @@
 
 #include <core/machine.hpp>
 
+#include <utils/region.hpp>
 #include <utils/algorithm.hpp>
 #include <utils/literals.hpp>
 #include <utils/logger.hpp>
@@ -26,9 +27,9 @@ Machine::Machine(Configuration const& config_v)
 	ConfigurePartition(config_v);
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);	
-	WIN32_ERROR_ASSERT(m_LegacyPic.StartRefresh());
-	WIN32_ERROR_ASSERT(m_LegacyVideo.StartRefresh());
-	WIN32_ERROR_ASSERT(m_Display.StartRefresh());
+	m_LegacyPic.Initialize();
+	m_LegacyVideo.Initialize();
+	m_Display.Initialize();
 }
 
 Machine::~Machine() 
@@ -83,12 +84,6 @@ auto Machine::RunMain() -> void
 	}
 }
 
-auto Machine::Render() -> 
-	std::tuple<LegacyVideo::buffer_type, std::chrono::microseconds>
-{
-	return m_LegacyVideo.Render();
-}
-
 auto Machine::SetIRQ(std::uint16_t state_v) -> void
 {
 	s_log.IRQState(m_Processor.GetIndex(), state_v);
@@ -104,7 +99,8 @@ auto Machine::ConfigurePartition(Configuration const&) -> void
 		(WHvCapabilityCodeSyntheticProcessorFeaturesBanks);
 
 	m_Partition = win32::WHvPartition::Create(1u, {		
-		{ WHvPartitionPropertyCodeExceptionExitBitmap, { .ExceptionExitBitmap 
+		{ WHvPartitionPropertyCodeExceptionExitBitmap, { 
+			.ExceptionExitBitmap 
 			= (1u << WHvX64ExceptionTypeGeneralProtectionFault)
 			| (1u << WHvX64ExceptionTypeDoubleFaultAbort)
 			| (1u << WHvX64ExceptionTypeInvalidOpcodeFault)
@@ -129,34 +125,39 @@ auto Machine::ResumeAllProcessors() -> void
 	m_Processor.Resume();
 }
 
-auto Machine::ConfigureMemory(Configuration const&) -> void
+auto Machine::ConfigureMemory(Configuration const& config_v) -> void
 {
+	static constexpr utils::region_64_t ram_map_s [] = 
+	{
+		{ utils::from_range, 0x00000000u, 0x000A0000u }, // Coventional memory
+	//{ utils::from_range, 0x000A0000u, 0x00100000u }, // ROM Area
+		{ utils::from_range, 0x00100000u, 0x00200000u }, // A20 memory mirror 
+		{ utils::from_range, 0x00200000u, 0x00F00000u }, // Extended memory under 15MiB
+	//{ utils::from_range, 0x00F00000u, 0x01000000u }, // ISA memory hole
+		{ utils::from_range, 0x01000000u, 0xC0000000u }, // Extended memory over 15MiB
+	//{ utils::from_range, 0xC0000000u, 0xFEE00000u }, // PCI memory hole
+	//{ utils::from_range, 0xFEE00000u, 0xFEE01000u }, // Local APIC
+	//{ utils::from_range, 0xFEE01000u, 0xFFE00000u }, // Unused ?
+	//{ utils::from_range, 0xFFE00000u, 0xFFEFFFFFu }, // High part of BIOS ROM
+
+		// Remaining
+	  { utils::from_range, 
+		  0x0000000100000000u, 
+		  0xFFFFFFFFFFFFFFFFu },
+	};
+
 	WIN32_ERROR_ASSERT(m_Partition.Reset());	
-	std::uint64_t memory_size_v = 16_MiB;
-	if (memory_size_v > 0u) {
-		auto basemem_size_v = std::min(memory_size_v, 640_KiB);
-		memory_size_v -= basemem_size_v;
-		assert(basemem_size_v + 384_KiB <= 1_MiB);
-		m_Memory.emplace_back(m_Partition, 0, basemem_size_v, kAccessMemory);
-	}
 
-	if (memory_size_v > 0u) {
-		auto extmem_size_v = std::min(memory_size_v, 14_MiB);
-		memory_size_v -= extmem_size_v;
-		assert(extmem_size_v + 2_MiB <= 16_MiB);
-		m_Memory.emplace_back(m_Partition, 1_MiB, extmem_size_v, kAccessMemory);
-	}
+	auto const megabytes_v = config_v.GetPropertyUint64("memory.size.megabytes");
+	auto total_memory_size_v = megabytes_v * 1_MiB;
 
-	if (memory_size_v > 0u) {
-		auto paemem_size_v = std::min(memory_size_v, 3056_MiB);
-		memory_size_v -= paemem_size_v;
-		assert (paemem_size_v + 16_MiB <= 3072_MiB);
-		m_Memory.emplace_back(m_Partition, 16_MiB, paemem_size_v, kAccessMemory);
+	for (auto const& region_v : ram_map_s) {
+		auto const size_v = std::min(region_v.size(), total_memory_size_v);
+		total_memory_size_v -= size_v;
+		m_Memory.emplace_back(m_Partition, region_v.base(), size_v, kAccessMemory);
+		if (total_memory_size_v < 1u)
+			break;
 	}
-
-	if (memory_size_v > 0u) {
-		m_Memory.emplace_back(m_Partition, 4096_MiB, memory_size_v, kAccessMemory);
-	}	
 }
 
 auto Machine::ConfigureBiosROM(Configuration const&) -> void
@@ -176,20 +177,22 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 		throw std::runtime_error("BIOS file not found");
 	}
 	auto size_v = std::filesystem::file_size(path_v);
-	if (size_v < 4_KiB || size_v > 256_KiB) {
-		throw std::runtime_error("BIOS size should be between 4KiB and 256KiB");
+	if (size_v < 4_KiB || size_v > 4_MiB) {
+		throw std::runtime_error("BIOS size should be between 4KiB and 4MiB");
 	}
 
-	size_v = (size_v + kPageSize - 1u) & ~(kPageSize - 1u);
-	auto addr_v = 1_MiB - size_v;
-	m_Memory.emplace_back(m_Partition, addr_v, size_v, kAccessReadOnly);
+	size_v = utils::round_ceil(size_v, 4_KiB);
+	auto const size_lo_v = std::min(size_v, 256_KiB);
+	auto const size_hi_v = std::min(size_v, 32_MiB);
+
+	m_Memory.emplace_back(m_Partition, 1_MiB - size_lo_v, size_lo_v, kAccessReadOnly);
 	m_Memory.back().Load(path_v);
 }
 
 auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
-#define MAP_RANGE(lhs, rhs, target) if(port_v>=lhs&&port_v<=rhs) \
-	return target.IoPortAccess(vcpu_v, is_write_v, port_v-lhs, data_v)
+#define MAP_RANGE(lhs_v, rhs_v, dst_v) if(port_v >= lhs_v && port_v <= rhs_v) \
+	return dst_v.IoPortAccess(vcpu_v, is_write_v, port_v - lhs_v, data_v)
 
 	MAP_RANGE(0x020u, 0x021u, m_LegacyPic.Master());
 	MAP_RANGE(0x0A0u, 0x0A1u, m_LegacyPic.Slave());

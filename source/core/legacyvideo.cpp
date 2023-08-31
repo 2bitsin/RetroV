@@ -4,6 +4,7 @@
 #include <core/legacyvideo.hpp>
 
 #include <utils/literals.hpp>
+#include <utils/surface.hpp>
 
 #include <device/resources/font.hpp>
 
@@ -20,7 +21,7 @@ LegacyVideo::LegacyVideo(Machine& machine_v)
 	, m_GraphicalWindow{ std::nullopt }
 {}
 
-auto LegacyVideo::Initialize() -> std::int32_t
+auto LegacyVideo::Initialize() -> void
 {
 	using namespace win32;
 	using namespace size_literals;
@@ -28,23 +29,20 @@ auto LegacyVideo::Initialize() -> std::int32_t
 	m_Width = 640u;
 	m_CharacterWindow.emplace(m_Machine.GetPartition(), 0xB0000u, 0x10000u, kAccessDevice | kTrackDirty);
 	m_GraphicalWindow.emplace(m_Machine.GetPartition(), 0xA0000u, 0x10000u, kAccessDevice | kTrackDirty);
-	m_TemporaryBuffer = virtual_alloc_s(0x10000u, page_protection_type::read_write);
-	return ERROR_SUCCESS;
+	m_TemporaryBuffer = virtual_alloc_s(0x10000u, page_prot::read_write);
 }
 
-auto LegacyVideo::Start() -> std::int32_t
+auto LegacyVideo::Start() -> void
 {
-	return ERROR_SUCCESS;
+	
 }
 
-auto core::LegacyVideo::Stop() -> std::int32_t
+auto core::LegacyVideo::Stop() -> void
 {
-	return ERROR_SUCCESS;
 }
 
-auto core::LegacyVideo::Restart() -> std::int32_t
+auto core::LegacyVideo::Restart() -> void
 {
-	return ERROR_SUCCESS;
 }
 
 auto LegacyVideo::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
@@ -83,9 +81,7 @@ auto LegacyVideo::Refresh(Display::surface_tmp& surface_v) -> void
 		0xFF00AA00u, 0xFF00AAAAu, 0xFFAA5500u, 0xFFAAAAAAu,
 		0xFF555555u, 0xFF5555FFu, 0xFFFF5555u, 0xFFFF55FFu,
 		0xFF55FF55u, 0xFF55FFFFu, 0xFFFFFF55u, 0xFFFFFFFFu
-	};
-
-	auto buffer_v = lock_v.get();
+	};	
 
 	for (auto yy = 0u; yy < m_Height; ++yy) 
 	for (auto xx = 0u; xx < m_Width;  ++xx) 
@@ -103,10 +99,7 @@ auto LegacyVideo::Refresh(Display::surface_tmp& surface_v) -> void
 		auto const color0_v = palette_s[(attr_v >> 4u)&0xFu];	
 		auto const color1_v = palette_s[(attr_v >> 0u)&0xFu];
 
-		
-		
-
-		/// ((glyph_v >> (7 - (xx % 8u))) & 1u) ? color1_v : color0_v;
+		auto const color_v = ((glyph_v >> (7 - (xx % 8u))) & 1u) ? color1_v : color0_v;
 	}
 
 	////////////////////////////////////////
