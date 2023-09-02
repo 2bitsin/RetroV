@@ -1,3 +1,6 @@
+#include <system_error>
+#include <filesystem>
+
 #include <win32/whvcapabilities.hpp>
 
 #include <core/machine.hpp>
@@ -10,6 +13,7 @@
 #include <utils/span.hpp>
 
 #include <SDL2/SDL.h>
+
 #undef main
 
 using namespace size_literals;
@@ -148,15 +152,17 @@ auto Machine::ConfigureMemory(Configuration const& config_v) -> void
 
 	WIN32_ERROR_ASSERT(m_Partition.Reset());	
 
-	auto const megabytes_v = config_v.GetPropertyUint64("memory.size.megabytes");
-	auto total_memory_size_v = megabytes_v * 1_MiB;
+	m_MainMemory = win32::VirtualAlloc_s(
+		config_v.GetPropertyUint64("memory.size.megabytes") * 1_MiB, 
+		win32::execute_read_write);
 
-	for (auto const& region_v : ram_map_s) {
-		auto const size_v = std::min(region_v.size(), total_memory_size_v);
-		total_memory_size_v -= size_v;
-		m_Memory.emplace_back(m_Partition, region_v.base(), size_v, kAccessMemory);
-		if (total_memory_size_v < 1u)
-			break;
+	auto memory_v = std::span(m_MainMemory);
+	for (auto&& window_v : ram_map_s) 
+	{
+		if (memory_v.empty()) break;		
+		auto slice_v = utils::take_slice(memory_v, window_v.size());
+		s_log.MapGpaRange(memory_v.data(), window_v.base(), memory_v.size(), kAccessMemory);
+		m_MappedRanges.emplace_back(GetPartition(), window_v, kAccessMemory, slice_v);
 	}
 }
 
@@ -172,21 +178,37 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 		throw std::runtime_error("Unsupported CPU vendor");
 	}
 
-	path_v = utils::path_substitute(path_v);
+	path_v = utils::build_path(path_v);
+
 	if (!std::filesystem::exists(path_v)) {
-		throw std::runtime_error("BIOS file not found");
+		throw std::system_error(std::make_error_code(std::errc::no_such_file_or_directory), path_v.string());
 	}
+
 	auto size_v = std::filesystem::file_size(path_v);
+
 	if (size_v < 4_KiB || size_v > 4_MiB) {
 		throw std::runtime_error("BIOS size should be between 4KiB and 4MiB");
 	}
 
-	size_v = utils::round_ceil(size_v, 4_KiB);
-	auto const size_lo_v = std::min(size_v, 256_KiB);
-	auto const size_hi_v = std::min(size_v, 32_MiB);
+	if (utils::round_ceil(size_v, 4_KiB) != size_v) {
+		throw std::runtime_error("BIOS size should be a multiple of 4KiB");
+	}
 
-	m_Memory.emplace_back(m_Partition, 1_MiB - size_lo_v, size_lo_v, kAccessReadOnly);
-	m_Memory.back().Load(path_v);
+	auto const size_lo_v = std::min(size_v, 256_KiB);
+	utils::region_64_t region_lo_v{ 0x0000000000100000u - size_lo_v, size_lo_v };
+
+	auto const size_hi_v = std::min(size_v, 32_MiB);
+	utils::region_64_t region_hi_v{ 0x0000000000000000u - size_hi_v, size_hi_v };
+
+	m_MappedRoms.emplace_back(path_v, utils::region_64_t{0, size_v}, win32::open_existing, win32::read_only);
+	auto const& bios_v = m_MappedRoms.back();
+	
+	s_log.MapGpaRangeFromFile(bios_v.Data().data(), region_lo_v.base(), bios_v.Data().size(), path_v, 0, size_v);
+	m_MappedRanges.emplace_back(GetPartition(), region_lo_v, kAccessReadOnly, bios_v.Data());
+
+	s_log.MapGpaRangeFromFile(bios_v.Data().data(), region_hi_v.base(), bios_v.Data().size(), path_v, 0, size_v);
+	m_MappedRanges.emplace_back(GetPartition(), region_hi_v, kAccessReadOnly, bios_v.Data());
+	
 }
 
 auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t

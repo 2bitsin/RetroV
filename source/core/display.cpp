@@ -22,16 +22,14 @@ auto Display::Initialize() -> void
 		throw std::runtime_error{ __func__ };	
 }
 
-auto Display::StartRefresh(std::uint16_t width_v, std::uint16_t height_v, std::uint8_t refresh_v, refresh_callback callback_v) -> void
-{
-	if (m_Thread.joinable()) m_Thread.join();	
+auto Display::RequestFrame(std::uint16_t width_v, std::uint16_t height_v, refresh_callback callback_v) -> void{
+	
 	if (nullptr == m_Window.get()) 
 		throw std::runtime_error{ __func__ };
 	::SDL_SetWindowSize(m_Window.get(), width_v, height_v);	 
-	m_Thread = std::jthread([this](std::stop_token token_v, std::uint16_t width_v, std::uint16_t height_v,
-		std::uint8_t refresh_v, refresh_callback callback_v) {
-		return RenderThread(token_v, width_v, height_v, refresh_v, std::move(callback_v));
-	}, width_v, height_v, refresh_v, std::move(callback_v));	
+	m_SurfacePool.clear();
+	
+	// TODO :: Do timer stuff
 }
 
 auto Display::RenderThread(std::stop_token token_v, std::uint16_t width_v, std::uint16_t height_v, std::uint8_t refresh_v, refresh_callback callback_v) -> void

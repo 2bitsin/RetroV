@@ -59,7 +59,7 @@ namespace win32
 
 	private:		
 		unique_handle m_File;
-		unique_handle m_Mapping;
+		unique_handle m_Mapp;
 		std::byte* m_MapPtr;
 		std::span<std::byte> m_Data;
 	};

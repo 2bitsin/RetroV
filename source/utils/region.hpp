@@ -25,6 +25,14 @@ namespace utils
 		constexpr auto begin() const noexcept -> base_type { return m_base; }
 		constexpr auto end() const noexcept -> base_type { return m_base + m_size; }
 
+		constexpr region() noexcept
+			: region(0)
+		{}
+
+		constexpr region(size_type size_v) noexcept 
+			: region(0, size_v)
+		{}
+
 		constexpr region(base_type base_v, size_type size_v) noexcept
 			: m_base(base_v), m_size(size_v)
 		{}

@@ -2,14 +2,17 @@
 
 #include <cstdint>
 #include <cstddef>
-
+#include <array>
 #include <deque>
-
 #include <list>
 
 #include <core/display.hpp>
-#include <core/memory.hpp>
+#include <core/mapgparange.hpp>
 
+#include <win32/error.hpp>
+#include <win32/memory.hpp>
+
+#include <utils/region.hpp>
 #include <utils/smart_span.hpp>
 #include <utils/span.hpp>
 
@@ -35,11 +38,20 @@ namespace core
 
 	private:
 		Machine& m_Machine;
+
 		std::uint16_t m_Height;
 		std::uint16_t m_Width;
 
-		std::optional<Memory> m_CharacterWindow;
-		std::optional<Memory> m_GraphicalWindow;
-		win32::unique_span<std::byte> m_TemporaryBuffer;
+		std::list<MapGpaRange> m_MappedRanges;
+
+		win32::unique_span<std::byte> m_VideoMemory;
+		win32::unique_span<std::byte> m_BackBuffer;
+
+		static inline constexpr const utils::region_64_t s_MemoryWindow [] = {
+			{ utils::from_range, 0x000B0000u, 0x00008000u },
+			{ utils::from_range, 0x000B8000u, 0x00008000u },
+			{ utils::from_range, 0x000A0000u, 0x00010000u }
+		};
+
 	};
 }

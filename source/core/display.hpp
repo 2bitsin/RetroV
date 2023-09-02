@@ -47,14 +47,14 @@ namespace core
 		using surface_ptr = std::unique_ptr<SDL_Surface, surface_deleter>;
 		using surface_tmp = std::unique_ptr<SDL_Surface, surface_releaser>;
 		using window_ptr = std::unique_ptr<SDL_Window, window_deleter>;
-		using refresh_callback = std::function<void(surface_tmp&)>;
+		using duration_type = std::chrono::microseconds;
+		using refresh_callback = std::function<duration_type(surface_tmp&)>;
 
 		Display(Machine& machine_v);
 		~Display();
 			
 		auto Initialize() -> void;
-		auto StartRefresh(std::uint16_t width_v, std::uint16_t height_v, 
-			std::uint8_t refresh_v, refresh_callback callback_v) -> void;
+		auto RequestFrame(std::uint16_t width_v, std::uint16_t height_v, refresh_callback callback_v) -> void;
 		auto AcquireSurface(std::uint16_t width_v, std::uint16_t height_v) -> surface_tmp;
 		auto ReleaseSurface(surface_tmp surface_v) -> void;
 		auto DisplaySurface(surface_tmp surface_v) -> void;
@@ -69,6 +69,5 @@ namespace core
 		Machine& m_Machine;
 		std::deque<surface_ptr> m_SurfacePool;
 		window_ptr m_Window;
-		std::jthread m_Thread;
 	};
 }

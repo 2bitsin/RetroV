@@ -7,17 +7,18 @@
 #include <win32/whvpartition.hpp>
 #include <win32/whvprocessor.hpp>
 #include <win32/workqueue.hpp>
+#include <win32/mappedfile.hpp>
 
 #include <core/configuration.hpp>
-#include <core/memory.hpp>
+#include <core/mapgparange.hpp>
 #include <core/processor.hpp>
 #include <core/legacypic.hpp>
 #include <core/legacyvideo.hpp>
 #include <core/debugger.hpp>
 #include <core/display.hpp>
 
+#include <utils/region.hpp>
 #include <utils/span.hpp>
-#include <utils/buffer2d.hpp>
 
 #include <shared_mutex>
 #include <memory>
@@ -63,8 +64,12 @@ namespace core
 		auto ConfigurePartition(Configuration const&) -> void;
 
 	private:		
-		win32::WHvPartition m_Partition;
-		std::list<Memory> m_Memory;
+		win32::WHvPartition m_Partition;		
+
+		win32::unique_span<std::byte> m_MainMemory;
+		std::list<MapGpaRange> m_MappedRanges;
+		std::list<win32::MappedFile> m_MappedRoms;
+
 		core::Processor m_Processor;
 		core::Processor::exit_future_type m_ProcessorExit;
 		core::LegacyPic m_LegacyPic;

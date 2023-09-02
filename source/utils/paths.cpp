@@ -27,7 +27,7 @@ namespace utils
 	  return buffer_v;
 	}
 
-	auto path_substitute(std::filesystem::path const& path_v) -> std::filesystem::path
+	auto build_path(std::filesystem::path const& path_v) -> std::filesystem::path
 	{
 		std::filesystem::path new_path_v;
 		auto const self_path_v = module_filename();

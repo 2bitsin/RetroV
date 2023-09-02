@@ -9,7 +9,7 @@
 namespace utils 
 {
 	template <typename T>
-	static inline auto take_span(std::span<T>& from_v, std::size_t size_v) -> std::span<T>
+	static inline auto take_slice(std::span<T>& from_v, std::size_t size_v) -> std::span<T>
 	{
 		if (size_v < 1u || from_v.size() < 1u)
 			return std::span<T>{};		

@@ -17,8 +17,6 @@ LegacyVideo::LegacyVideo(Machine& machine_v)
 	: m_Machine{ machine_v }
 	, m_Height{ 0 }
 	, m_Width{ 0 }
-	, m_CharacterWindow{ std::nullopt }
-	, m_GraphicalWindow{ std::nullopt }
 {}
 
 auto LegacyVideo::Initialize() -> void
@@ -27,23 +25,26 @@ auto LegacyVideo::Initialize() -> void
 	using namespace size_literals;
 	m_Height = 400u;
 	m_Width = 640u;
-	m_CharacterWindow.emplace(m_Machine.GetPartition(), 0xB0000u, 0x10000u, kAccessDevice | kTrackDirty);
-	m_GraphicalWindow.emplace(m_Machine.GetPartition(), 0xA0000u, 0x10000u, kAccessDevice | kTrackDirty);
-	m_TemporaryBuffer = virtual_alloc_s(0x10000u, page_prot::read_write);
+	m_VideoMemory = VirtualAlloc_s(0x10000u, page_prot::read_write, alloc_flag::commit|alloc_flag::reserve|alloc_flag::write_watch);
+	m_BackBuffer = VirtualAlloc_s(0x10000u, page_prot::read_write);
+	m_MappedRanges.emplace_back(m_Machine.GetPartition(), s_MemoryWindow[1u], kAccessDevice, m_VideoMemory);
 }
 
 auto LegacyVideo::Start() -> void
 {
-	
+	m_Machine.GetDisplay().RequestFrame(m_Width, m_Height, 1s / 60.0
+		[this] (core::Display::surface_tmp& surface_v) -> void {
+			return Refresh (surface_v);
+		});
 }
 
 auto core::LegacyVideo::Stop() -> void
 {
+	m_Machine.GetDisplay().StartRefresh();
 }
 
 auto core::LegacyVideo::Restart() -> void
-{
-}
+{}
 
 auto LegacyVideo::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
@@ -66,7 +67,9 @@ auto LegacyVideo::Refresh(Display::surface_tmp& surface_v) -> void
 	auto& vram_v = *m_CharacterWindow;	
 
 	m_Machine.SuspendAllProcessors();
-	WIN32_ERROR_ASSERT(vram_v.CopyDirtyPagesTo(m_TemporaryBuffer));
+
+	
+	
 	m_Machine.ResumeAllProcessors();
 
 
@@ -89,8 +92,8 @@ auto LegacyVideo::Refresh(Display::surface_tmp& surface_v) -> void
 		auto const y = yy/16u;
 		auto const x = xx/8u;
 
-		auto char_v = (std::uint8_t)m_TemporaryBuffer[2*(y*80u + x) + 0];
-		auto attr_v = (std::uint8_t)m_TemporaryBuffer[2*(y*80u + x) + 1];
+		auto char_v = (std::uint8_t)m_BackBuffer[2*(y*80u + x) + 0];
+		auto attr_v = (std::uint8_t)m_BackBuffer[2*(y*80u + x) + 1];
 
 		auto&& font_v = device::resources::font::get_8x16();
 

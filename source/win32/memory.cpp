@@ -26,13 +26,13 @@ static inline auto all_aligned(T&&... address_v) noexcept -> bool
 }
 
 
-auto win32::virtual_alloc(std::size_t size_v, page_prot prot_v,
+auto win32::VirtualAlloc(std::size_t size_v, page_prot prot_v,
 	alloc_flag flags_v, void* target_v) -> void*
 {
 	return ::VirtualAlloc(target_v, size_v, (DWORD)flags_v, (DWORD)prot_v);  
 }
 
-auto win32::copy_dirty_pages(std::span<std::byte> target_v, 
+auto win32::CopyPagesUsingMask(std::span<std::byte> target_v, 
 	std::span<std::byte> source_v, 
 	std::span<std::uint64_t> mask_v) -> std::int32_t
 {
@@ -107,16 +107,17 @@ auto win32::copy_dirty_pages(std::span<std::byte> target_v,
 	return ERROR_SUCCESS;
 }
 
-auto win32::query_and_reset_dirty_pages(void const* base_v, std::size_t size_v, std::span<void const*> dirty_list_v, bool reset_v) -> std::tuple<std::int32_t, std::uintptr_t, std::span<void const*>>
+auto win32::QueryDirtyPages(std::span<std::byte const> source_v, std::span<std::byte const*> dirty_list_v, bool reset_v) -> std::tuple<std::int32_t, std::uintptr_t, std::span<std::byte const*>>
 {
 	std::uintptr_t dirty_count_v { dirty_list_v.size() };
 	unsigned long granularity_v { 0u };
-	auto result_v = ::GetWriteWatch(reset_v?WRITE_WATCH_FLAG_RESET:0, (void*)base_v, size_v, (void**)dirty_list_v.data(), &dirty_count_v, &granularity_v);
+	auto result_v = ::GetWriteWatch(reset_v?WRITE_WATCH_FLAG_RESET:0, (void*)source_v.data(), source_v.size(), 
+		(void**)dirty_list_v.data(), &dirty_count_v, &granularity_v);
 	if (result_v) return { error::last_error(), 0u, {}};
 	return { S_OK, granularity_v, dirty_list_v.first(dirty_count_v) };
 }
 
-auto win32::virtual_free(void* address_v, std::size_t size_v, 
+auto win32::VirtualFree(void* address_v, std::size_t size_v, 
 	free_flag flags_v) -> bool
 { 
 	if (free_flag::release) 
@@ -127,6 +128,35 @@ auto win32::virtual_free(void* address_v, std::size_t size_v,
 			size_v = 0u;		
 	}
 
-	return ::VirtualFree(address_v, size_v, 
-		std::to_underlying(flags_v));		
+	return ::VirtualFree(address_v, size_v, std::to_underlying(flags_v));		
+}
+
+
+auto win32::CopyDirtyPages(std::span<std::byte> target_v, std::span<std::byte const> source_v) -> std::int32_t 
+{
+	std::byte const* address_buffer_v[256u];	
+	while(!source_v.empty() && !target_v.empty()) 
+	{
+		auto [status_v, granularity_v, list_v] = QueryDirtyPages(
+			source_v, address_buffer_v, false);
+		if (status_v != ERROR_SUCCESS) 
+			return status_v;
+		if (list_v.empty()) 
+			break;
+		std::byte const* last_address_v{ nullptr };
+		for (auto&& source_address_v : list_v) {
+			auto target_address_v = std::next(target_v.data(), std::distance(
+				source_v.data(), source_address_v)) ;
+			std::memcpy(target_address_v, source_address_v, granularity_v);			
+			last_address_v = source_address_v;
+		}
+		last_address_v += granularity_v;
+		auto const last_offset_v = std::distance(
+			source_v.data(), last_address_v);
+		source_v = source_v.subspan(last_offset_v);
+		target_v = target_v.subspan(last_offset_v);			
+	}
+	if (::ResetWriteWatch((void*)source_v.data(), source_v.size()))
+		return error::last_error();		
+	return S_OK;
 }
