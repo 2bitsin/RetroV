@@ -26,7 +26,10 @@ namespace core
 		using duration_type = std::chrono::microseconds;
 
 		LegacyVideo(Machine& machine_v);
+		~LegacyVideo();
+	
 
+		
 		auto Initialize() -> void;
 
 		auto Start() -> void;

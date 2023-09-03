@@ -21,6 +21,11 @@ LegacyVideo::LegacyVideo(Machine& machine_v)
 	, m_Width{ 0 }
 {}
 
+LegacyVideo::~LegacyVideo()
+{
+	Stop();
+}
+
 auto LegacyVideo::Initialize() -> void
 {
 	using namespace win32;
@@ -43,6 +48,11 @@ auto LegacyVideo::RefreshThread(std::stop_token stoppee_v) -> void
 	std::stop_callback stcbk_v(stoppee_v, [&timer_v] () { 
 		timer_v.notify_all();
 	});
+
+	auto const stop_requested_q = [&stoppee_v]() {
+		return stoppee_v.stop_requested();
+	};
+
 	auto next_frame_v = steady_clock::now();
 	auto& display_v = m_Machine.GetDisplay();
 	while (!stoppee_v.stop_requested()) {
@@ -50,8 +60,7 @@ auto LegacyVideo::RefreshThread(std::stop_token stoppee_v) -> void
 		auto const delta_time_v = Refresh(surface_v);
 		display_v.Present(std::move(surface_v));
 		next_frame_v += delta_time_v;
-		if (std::cv_status::timeout !=
-			timer_v.wait_until(lock_v, next_frame_v)) {
+		if (timer_v.wait_until(lock_v, next_frame_v, stop_requested_q)) {
 			break;
 		}
 	}

@@ -29,12 +29,12 @@ Prologue:
     call        Debug.PrintString   
     cld    
 
-    mov         di,     0xB000
+    mov         di,     0xB800
     mov         es,     di
 
   .Hello_again:
     xor         di,     di    
-    mov         cx,     0
+    mov         cx,     333
   .Hello_loop:
     mov         ax,     0x0F00 + 'H'
     stosw
