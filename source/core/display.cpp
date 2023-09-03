@@ -54,6 +54,10 @@ auto Display::Present(surface_tmp surface_v) -> void
 	if (status_v != 0) {
 		throw std::runtime_error{ __func__ };
 	}
+	status_v = ::SDL_UpdateWindowSurface(m_Window.get());
+	if (status_v != 0) {
+		throw std::runtime_error{ __func__ };
+	}
 }
 
 auto Display::FlushSurfaceCache() -> void {
