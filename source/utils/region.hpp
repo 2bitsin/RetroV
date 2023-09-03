@@ -83,7 +83,7 @@ namespace utils
 	};
 
 
-	using region_64_t = region<std::uint64_t>;
-	using region_32_t = region<std::uint32_t>;
-	using region_16_t = region<std::uint16_t>;
+	using region64_type = region<std::uint64_t>;
+	using region32_type = region<std::uint32_t>;
+	using region16_type = region<std::uint16_t>;
 }

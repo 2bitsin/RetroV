@@ -1,0 +1,3 @@
+  times (0x8000 - ($ - $$))/26 db " EAT, SLEEP, CODE, REPEAT."
+Epilogue:
+  times 0x8000 - ($ - $$) db 0x2

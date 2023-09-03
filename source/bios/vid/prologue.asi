@@ -1,0 +1,16 @@
+Prologue:
+    pusha
+    push    ds es
+
+    mov     ax,     cs
+    mov     ds,     ax
+    mov     ax,     0xB800
+    mov     es,     ax    
+    mov     si,     Strings.Hello
+    call    Debug.PrintString
+
+    pop     es ds
+    popa
+    ret
+
+

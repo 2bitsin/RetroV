@@ -6,6 +6,7 @@
 #include <utils/literals.hpp>
 #include <utils/surface.hpp>
 #include <utils/lambda.hpp>
+#include <utils/paths.hpp>
 
 #include <device/resources/font.hpp>
 
@@ -32,8 +33,11 @@ auto LegacyVideo::Initialize() -> void
 	using namespace size_literals;
 	m_Height = 400u;
 	m_Width = 640u;
-	m_VideoMemory = VirtualAlloc_s(0x10000u, page_prot::read_write, alloc_flag::commit|alloc_flag::reserve|alloc_flag::write_watch);
-	m_BackBuffer = VirtualAlloc_s(0x10000u, page_prot::read_write);
+	m_MappedROMs.emplace_back(utils::build_path("@base/ROMs/Video.bin"), utils::region64_type{});
+	m_MappedRanges.emplace_back(m_Machine.GetPartition(), s_ROMWindow[0u], kAccessDevice, m_MappedROMs.back().Data());
+
+	m_VideoMemory = VirtualAlloc_s(0x40000u, page_prot::read_write, alloc_flag::commit|alloc_flag::reserve|alloc_flag::write_watch);
+	m_BackBuffer = VirtualAlloc_s(0x40000u, page_prot::read_write);
 	m_MappedRanges.emplace_back(m_Machine.GetPartition(), s_MemoryWindow[1u], kAccessDevice, m_VideoMemory);
 }
 
@@ -104,6 +108,8 @@ auto LegacyVideo::Refresh(Display::surface_tmp& surface_v) -> duration_type
 	win32::CopyDirtyPages(m_BackBuffer, m_VideoMemory);
 	m_Machine.ResumeAllProcessors();
 
+	::SDL_FillRect(surface_v.get(), nullptr, 0xFFFF0000u);
+
 	////////////////////////////////////////
 	// 
 	//	Temporary code to render 80 col text
@@ -115,7 +121,13 @@ auto LegacyVideo::Refresh(Display::surface_tmp& surface_v) -> duration_type
 		0xFF00AA00u, 0xFF00AAAAu, 0xFFAA5500u, 0xFFAAAAAAu,
 		0xFF555555u, 0xFF5555FFu, 0xFFFF5555u, 0xFFFF55FFu,
 		0xFF55FF55u, 0xFF55FFFFu, 0xFFFFFF55u, 0xFFFFFFFFu
-	};	
+	};
+
+	utils::surface_view<std::uint32_t> view_v{ surface_v.get() };
+
+	std::span<std::uint16_t const> chars_v{ 
+		(std::uint16_t const*)m_BackBuffer.data(), 
+		m_BackBuffer.size() / sizeof(uint16_t) };
 
 	for (auto yy = 0u; yy < m_Height; ++yy) 
 	for (auto xx = 0u; xx < m_Width;  ++xx) 
@@ -123,8 +135,9 @@ auto LegacyVideo::Refresh(Display::surface_tmp& surface_v) -> duration_type
 		auto const y = yy/16u;
 		auto const x = xx/8u;
 
-		auto char_v = (std::uint8_t)m_BackBuffer[2*(y*80u + x) + 0];
-		auto attr_v = (std::uint8_t)m_BackBuffer[2*(y*80u + x) + 1];
+		auto const& cell_v = chars_v[y * 80u + x];
+		auto char_v = (cell_v >> 0) & 0xFFu;
+		auto attr_v = (cell_v >> 8) & 0xFFu;
 
 		auto&& font_v = device::resources::font::get_8x16();
 
@@ -134,6 +147,8 @@ auto LegacyVideo::Refresh(Display::surface_tmp& surface_v) -> duration_type
 		auto const color1_v = palette_s[(attr_v >> 0u)&0xFu];
 
 		auto const color_v = ((glyph_v >> (7 - (xx % 8u))) & 1u) ? color1_v : color0_v;
+
+		view_v[yy][xx] = color_v;
 	}
 
 	////////////////////////////////////////

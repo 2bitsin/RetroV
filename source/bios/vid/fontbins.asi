@@ -1,0 +1,8 @@
+
+Fonts:
+  .l8:
+    file 'fonts/IBM_VGA_8x8.bin'
+  .l14:
+    file 'fonts/IBM_VGA_8x14.bin'
+  .l16:
+    file 'fonts/IBM_VGA_8x16.bin'

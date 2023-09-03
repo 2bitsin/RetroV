@@ -1,0 +1,27 @@
+    
+Prologue:
+    cli
+    mov         sp,     STACK_SEGMENT
+    mov         ss,     sp
+    mov         sp,     STACK_OFFSSET
+
+    mov         ax,     cs
+
+    mov         ds,     ax
+    mov         es,     ax
+    mov         fs,     ax
+    mov         gs,     ax
+
+    cld
+    call        IVT.Initialize
+    sti         
+
+    mov         si,     Strings.Hello
+    call        Debug.PrintString   
+    cld    
+
+
+  .L2:
+    hlt
+    jmp         .L2
+

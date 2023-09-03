@@ -10,11 +10,13 @@ IVT:
   }
 
 .PrintInterrupt:
+  VMCallInstruction
+
   push      ds es
 
   push      cs cs
-  pop       ds es
-  
+  pop       ds es   
+
   mov       si,     Strings.IntV
   call      Debug.PrintString
   

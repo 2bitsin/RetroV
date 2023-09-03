@@ -131,7 +131,7 @@ auto Machine::ResumeAllProcessors() -> void
 
 auto Machine::ConfigureMemory(Configuration const& config_v) -> void
 {
-	static constexpr utils::region_64_t ram_map_s [] = 
+	static constexpr utils::region64_type ram_map_s [] = 
 	{
 		{ utils::from_range, 0x00000000u, 0x000A0000u }, // Coventional memory
 	//{ utils::from_range, 0x000A0000u, 0x00100000u }, // ROM Area
@@ -195,12 +195,12 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 	}
 
 	auto const size_lo_v = std::min(size_v, 256_KiB);
-	utils::region_64_t region_lo_v{ 0x0000000000100000u - size_lo_v, size_lo_v };
+	utils::region64_type region_lo_v{ 0x0000000000100000u - size_lo_v, size_lo_v };
 
 	auto const size_hi_v = std::min(size_v, 32_MiB);
-	utils::region_64_t region_hi_v{ 0x0000000100000000u - size_hi_v, size_hi_v };
+	utils::region64_type region_hi_v{ 0x0000000100000000u - size_hi_v, size_hi_v };
 
-	m_MappedRoms.emplace_back(path_v, utils::region_64_t{0, size_v}, win32::open_existing, win32::read_only);
+	m_MappedRoms.emplace_back(path_v, utils::region64_type{0, size_v}, win32::open_existing, win32::read_only);
 	auto const& bios_v = m_MappedRoms.back();
 	
 	s_log.MapGpaRangeFromFile(bios_v.Data().data(), region_lo_v.base(), bios_v.Data().size(), path_v, 0, size_v);

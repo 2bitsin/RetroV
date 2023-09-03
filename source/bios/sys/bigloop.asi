@@ -1,0 +1,34 @@
+Misc:
+  .BigFingLoop:  
+    push    eax ecx
+
+    mov     si,     Strings.LoopBegin    
+    call    Debug.PrintString    
+
+    mov     eax,    0
+  .BigFingLoopOuter:    
+    mov     ecx,    0
+  .BigFingLoopInner:
+    dec     ecx
+    jnz     .BigFingLoopInner
+
+    mov     si,     Strings.LoopTock
+    call    Debug.PrintString
+
+    push    ax
+    neg     ax
+    mov     cx,     16
+    call    Debug.PrintHex16
+    pop     ax
+
+    mov     si,     Strings.CrLf
+    call    Debug.PrintString
+
+    dec     eax
+    jnz     .BigFingLoopOuter
+
+    mov     si,     Strings.LoopEnd
+    call    Debug.PrintString
+
+    pop     ecx eax
+    ret

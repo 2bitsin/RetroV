@@ -5,7 +5,7 @@ using win32::MappedFile;
 
 MappedFile::MappedFile(
 	std::filesystem::path const& path_v,
-	utils::region_64_t regn_v, 
+	utils::region64_type regn_v, 
 	cf_mode mode_v,
 	page_prot prot_v, 
 	share_type share_v)

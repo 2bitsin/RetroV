@@ -11,6 +11,7 @@
 
 #include <win32/error.hpp>
 #include <win32/memory.hpp>
+#include <win32/mappedfile.hpp>
 
 #include <utils/region.hpp>
 #include <utils/smart_span.hpp>
@@ -27,8 +28,6 @@ namespace core
 
 		LegacyVideo(Machine& machine_v);
 		~LegacyVideo();
-	
-
 		
 		auto Initialize() -> void;
 
@@ -54,16 +53,22 @@ namespace core
 		std::uint16_t m_Width;
 
 		std::list<MapGpaRange> m_MappedRanges;
-
+		std::list<win32::MappedFile> m_MappedROMs;
 
 		win32::unique_span<std::byte> m_VideoMemory;
-		win32::unique_span<std::byte> m_BackBuffer;		
+		win32::unique_span<std::byte> m_BackBuffer;	
 
-		static inline constexpr const utils::region_64_t s_MemoryWindow [] = {
+		static inline constexpr const utils::region64_type s_MemoryWindow [] = {
 			{ utils::from_range, 0x000B0000u, 0x00008000u },
 			{ utils::from_range, 0x000B8000u, 0x00008000u },
 			{ utils::from_range, 0x000A0000u, 0x00010000u }
 		};
+
+		static inline constexpr const utils::region64_type s_ROMWindow []  = {
+			{ utils::from_range, 0x000C8000u, 0x000D0000u }
+		};
+
+		
 
 	};
 }

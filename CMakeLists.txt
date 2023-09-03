@@ -24,10 +24,14 @@ set_target_properties(HvDOS PROPERTIES LINK_FLAGS "/level='requireAdministrator'
 target_stack_size(HvDOS "256MiB")
 
 # Use add_custom_command to compile bios/bios.asm to bios.bin using fasm
-file(GLOB_RECURSE SOURCE_FILES_ASI source/bios/*.asi)
-message (STATUS "SOURCE_FILES_ASI: ${SOURCE_FILES_ASI}")
-add_fasm_target(BiosAMD "source/bios/amd.asm" ${SOURCE_FILES_ASI})
-add_fasm_target(BiosIntel "source/bios/intel.asm" ${SOURCE_FILES_ASI})
+file(GLOB_RECURSE COM_BIOS_ASI source/bios/com/*.asi)
+file(GLOB_RECURSE SYS_BIOS_ASI source/bios/sys/*.asi)
+message (STATUS "SYS_BIOS_ASI: ${SYS_BIOS_ASI}")
+add_fasm_target(BiosAMD "source/bios/sys/amd.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_target(BiosIntel "source/bios/sys/intel.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
+file(GLOB_RECURSE VID_BIOS_ASI source/bios/vid/*.asi)
+message (STATUS "VID_BIOS_ASI: ${VID_BIOS_ASI}")
+add_fasm_target(Video "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
 
 install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
 install (TARGETS HvDOS DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

@@ -4,7 +4,8 @@
 
 		include 'variables.asi'
 		include 'prologue.asi'
-		include 'debug.asi'
+		include '../com/debug.asi'
+    include 'bigloop.asi'
 		include 'intvectbl.asi'
 		include 'msrs.asi'
 		include 'lapic.asi'

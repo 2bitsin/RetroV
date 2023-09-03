@@ -41,7 +41,7 @@ namespace win32
 		using unique_handle = std::unique_ptr<void, close_handle_type>;
 
 		MappedFile(std::filesystem::path const& path_v, 
-			utils::region_64_t regn_v = {0, 0},
+			utils::region64_type regn_v = {0, 0},
 			cf_mode mode_v = cf_mode::open_existing,
 			page_prot prot_v = page_prot::execute_read,
 			share_type share_v = share_type::share_read);

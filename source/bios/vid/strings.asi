@@ -1,0 +1,6 @@
+Strings:
+
+    .Hello:  db "HvDOS video BIOS v0.1g", 13, 10
+             db "Copyright (c) 2022-2023, 2bits.in", 13, 10
+             db "All rights reserved.", 13, 10
+             db 0
