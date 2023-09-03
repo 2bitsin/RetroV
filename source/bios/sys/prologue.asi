@@ -16,6 +16,11 @@ Prologue:
     call        IVT.Initialize
     sti         
 
+    mov         si,     Strings.InitOpRom
+    call        Debug.PrintString   
+    
+    call        OptionRom.Initialize
+
     mov         si,     Strings.Hello
     call        Debug.PrintString   
     cld    

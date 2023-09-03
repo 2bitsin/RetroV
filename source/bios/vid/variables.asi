@@ -1,0 +1,4 @@
+SEG_BIOS_DATA   equ 0x40
+OFF_CURSOR_POS  equ 0x50 ; byte[8][2]
+
+

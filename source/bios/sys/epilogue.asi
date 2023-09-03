@@ -1,5 +1,5 @@
     times (0xFFF0 - ($ - $$))/48 db " ALL WORK AND NO PLAY MAKES 2BITS.IN A DULL BOY."
     times (0xFFF0 - ($ - $$))/1 db 0x1
 entry_point:
-    jmp short Prologue
+    jmp near Prologue
     times 0x10000 - ($ - $$) db 0x01

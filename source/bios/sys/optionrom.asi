@@ -1,0 +1,48 @@
+OptionRom:
+  .Initialize:    
+    push      ax bx cx dx ds si es di bp
+    
+    mov       ax,       OPROM_SCAN_BEG/0x10
+    mov       ds,       ax  
+    xor       si,       si
+  .Scan:
+    lodsw
+    xor       ax,       OPROM_SIGNATURE
+    jnz       .Skip
+    lodsb     
+    ; Check for size being between 1 x 512 and 128 x 512 bytes
+    or        al,       al
+    jz        .Skip
+    cmp       al,       0x80
+    ja        .Skip
+    ; TODO: Verify checksum
+    
+    push      ax
+    push      ds
+    push      3
+    mov       bp,       sp
+    call      far [bp]
+    add       sp,       4
+    pop       ax
+    ; Round to increment of 4
+    and       ax,       0xFF
+    add       ax,       3
+    and       ax,       0xFFFC
+    ; Multiply by 512 and divide by 16
+    shl       ax,       9 - 4
+    mov       bx,       ax
+    ; Skip that many paragraphs (16byte multiples)
+    mov       ax,       ds
+    add       ax,       bx
+    mov       ds,       ax
+    jmp       .PastEnd
+
+  .Skip:
+    mov       ax,       ds
+    add       ax,       OPROM_SCAN_INC/0x10
+    mov       ds,       ax
+  .PastEnd: 
+    cmp       ax,       OPROM_SCAN_END/0x10
+    jb        .Scan
+    pop       bp di es si ds dx cx bx ax
+    ret
