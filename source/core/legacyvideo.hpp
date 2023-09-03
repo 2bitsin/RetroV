@@ -23,6 +23,8 @@ namespace core
 
 	struct LegacyVideo
 	{
+		using duration_type = std::chrono::microseconds;
+
 		LegacyVideo(Machine& machine_v);
 
 		auto Initialize() -> void;
@@ -34,18 +36,25 @@ namespace core
 		auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
 		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t;
 
-		auto Refresh(Display::surface_tmp& surface_v) -> void;
+		auto Refresh(Display::surface_tmp& surface_v) -> duration_type;
+
+	protected:
+		auto RefreshThread(std::stop_token stoppee_v) -> void;
 
 	private:
 		Machine& m_Machine;
+
+		std::stop_source m_Stopper;
+		std::future<void> m_Refresh;
 
 		std::uint16_t m_Height;
 		std::uint16_t m_Width;
 
 		std::list<MapGpaRange> m_MappedRanges;
 
+
 		win32::unique_span<std::byte> m_VideoMemory;
-		win32::unique_span<std::byte> m_BackBuffer;
+		win32::unique_span<std::byte> m_BackBuffer;		
 
 		static inline constexpr const utils::region_64_t s_MemoryWindow [] = {
 			{ utils::from_range, 0x000B0000u, 0x00008000u },

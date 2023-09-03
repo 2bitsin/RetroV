@@ -161,7 +161,7 @@ auto Machine::ConfigureMemory(Configuration const& config_v) -> void
 	{
 		if (memory_v.empty()) break;		
 		auto slice_v = utils::take_slice(memory_v, window_v.size());
-		s_log.MapGpaRange(memory_v.data(), window_v.base(), memory_v.size(), kAccessMemory);
+		s_log.MapGpaRange(slice_v.data(), window_v.base(), slice_v.size(), kAccessMemory);
 		m_MappedRanges.emplace_back(GetPartition(), window_v, kAccessMemory, slice_v);
 	}
 }
@@ -198,7 +198,7 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 	utils::region_64_t region_lo_v{ 0x0000000000100000u - size_lo_v, size_lo_v };
 
 	auto const size_hi_v = std::min(size_v, 32_MiB);
-	utils::region_64_t region_hi_v{ 0x0000000000000000u - size_hi_v, size_hi_v };
+	utils::region_64_t region_hi_v{ 0x0000000100000000u - size_hi_v, size_hi_v };
 
 	m_MappedRoms.emplace_back(path_v, utils::region_64_t{0, size_v}, win32::open_existing, win32::read_only);
 	auto const& bios_v = m_MappedRoms.back();

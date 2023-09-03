@@ -205,6 +205,10 @@ WorkQueue::WorkQueue()
 	}
 	::InitializeThreadpoolEnvironment(&m_Cbkenv);
 	::SetThreadpoolCallbackPool(&m_Cbkenv, m_Handle);
+	::SetThreadpoolThreadMaximum(m_Handle, std::thread
+		::hardware_concurrency()*2u);
+	if (!::SetThreadpoolThreadMinimum(m_Handle, 1u))
+		throw win32::error::last_error();
 }
 
 WorkQueue::~WorkQueue() {

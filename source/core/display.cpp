@@ -14,44 +14,19 @@ Display::Display(Machine& machine_v)
 Display::~Display() 
 {}
 
-auto Display::Initialize() -> void
+auto Display::Initialize(std::uint16_t width_v, std::uint16_t height_v) -> void
 {
-	m_Window.reset(::SDL_CreateWindow("x86emu", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640*2, 400*2, 
+	m_Window.reset(::SDL_CreateWindow("x86emu", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width_v*2, height_v*2, 
 		SDL_WINDOW_SHOWN|SDL_WINDOW_ALLOW_HIGHDPI));
 	if (nullptr == m_Window.get())
 		throw std::runtime_error{ __func__ };	
-}
-
-auto Display::RequestFrame(std::uint16_t width_v, std::uint16_t height_v, refresh_callback callback_v) -> void{
-	
-	if (nullptr == m_Window.get()) 
-		throw std::runtime_error{ __func__ };
-	::SDL_SetWindowSize(m_Window.get(), width_v, height_v);	 
-	m_SurfacePool.clear();
-	
-	// TODO :: Do timer stuff
-}
-
-auto Display::RenderThread(std::stop_token token_v, std::uint16_t width_v, std::uint16_t height_v, std::uint8_t refresh_v, refresh_callback callback_v) -> void
-{
-	using namespace std::chrono_literals;
-	using std::chrono::steady_clock;
-	auto interval_v = 1s / (1.0 * refresh_v);
-	auto next_v = steady_clock::now() + interval_v;
-	while (!token_v.stop_requested())
-	{
-		auto surface_v = AcquireSurface(width_v, height_v);
-		callback_v(surface_v);
-		DisplaySurface(std::move(surface_v));
-		std::this_thread::sleep_until(next_v);
-		next_v += interval_v;
-	}
+	FlushSurfaceCache();
 }
 
 auto Display::AcquireSurface(std::uint16_t width_v, std::uint16_t height_v) -> surface_tmp 
 {
 retry:
-	if (m_SurfacePool.empty()) 
+	if (m_SurfaceCache.empty()) 
 	{
 		auto surface_p = ::SDL_CreateRGBSurface(0, width_v, height_v, 32u, 0, 0, 0, 0);
 		if (nullptr == surface_p) 
@@ -59,8 +34,8 @@ retry:
 		return { surface_p, *this };
 	}
 
-	auto surface_p = std::move(m_SurfacePool.back());
-	m_SurfacePool.pop_back();
+	auto surface_p = std::move(m_SurfaceCache.back());
+	m_SurfaceCache.pop_back();
 	if (surface_p->w != width_v || surface_p->h != height_v) 
 	{
 		surface_p.reset();
@@ -69,11 +44,7 @@ retry:
 	return { surface_p.release(), *this };
 }
 
-auto Display::ReleaseSurface(surface_tmp surface_v) -> void { 
-	return ReleaseSurface(surface_v.release()); 
-}
-
-auto Display::DisplaySurface(surface_tmp surface_v) -> void
+auto Display::Present(surface_tmp surface_v) -> void
 {
 	auto winsfc_p = ::SDL_GetWindowSurface(m_Window.get());
 	if (nullptr == winsfc_p) {
@@ -85,6 +56,13 @@ auto Display::DisplaySurface(surface_tmp surface_v) -> void
 	}
 }
 
+auto Display::FlushSurfaceCache() -> void {
+	m_SurfaceCache.clear();
+}
+
 auto Display::ReleaseSurface(SDL_Surface* ptr) -> void {
-	m_SurfacePool.emplace_front(ptr);
+	if (m_SurfaceCache.size() > kSurfaceCacheSize) {
+		::SDL_FreeSurface(ptr);
+	}
+	m_SurfaceCache.emplace_front(ptr);
 }

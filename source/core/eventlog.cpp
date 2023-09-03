@@ -1,3 +1,5 @@
+#include <cassert>
+
 #include <core/eventlog.hpp>
 #include <utils/logger.hpp>
 #include <utils/algorithm.hpp>
@@ -57,12 +59,13 @@ auto EventLog::ResetMachine() const -> void
 
 auto EventLog::MapGpaRange(void* addr_v, std::uint64_t base_v, std::uint64_t size_v, Access access_v) const -> void
 {	
+	assert(addr_v != nullptr);
 	logger::trace(logger::deflog, "Mapping {:#018x} ... {:#018x} -> {:#018x} | {}", base_v, base_v + size_v, (p)addr_v, to_string(access_v));
 }
 
 auto EventLog::MapGpaRangeFromFile(void* addr_v, std::uint64_t base_v, std::uint64_t size_v, std::filesystem::path const& path_v, std::uint64_t offset_v, std::uint64_t length_v) const -> void
 {
-	
+	assert(addr_v != nullptr);
 	std::string string_path_v = std::filesystem::relative(path_v).string();
 	logger::trace(logger::deflog, "Mapping {:#018x} ... {:#018x} -> {}[{:#x}:{:#x}]",
 		base_v, base_v+size_v, string_path_v, offset_v, length_v);

@@ -18,6 +18,8 @@ namespace core
 
 	struct Display
 	{
+		static inline constexpr const auto kSurfaceCacheSize = 3u;
+
 		struct surface_deleter {
 			auto operator()(SDL_Surface* ptr) const noexcept -> void {
 				assert(ptr != nullptr);
@@ -46,28 +48,24 @@ namespace core
 
 		using surface_ptr = std::unique_ptr<SDL_Surface, surface_deleter>;
 		using surface_tmp = std::unique_ptr<SDL_Surface, surface_releaser>;
-		using window_ptr = std::unique_ptr<SDL_Window, window_deleter>;
-		using duration_type = std::chrono::microseconds;
-		using refresh_callback = std::function<duration_type(surface_tmp&)>;
+		using window_ptr = std::unique_ptr<SDL_Window, window_deleter>;		
 
 		Display(Machine& machine_v);
 		~Display();
 			
-		auto Initialize() -> void;
-		auto RequestFrame(std::uint16_t width_v, std::uint16_t height_v, refresh_callback callback_v) -> void;
-		auto AcquireSurface(std::uint16_t width_v, std::uint16_t height_v) -> surface_tmp;
-		auto ReleaseSurface(surface_tmp surface_v) -> void;
-		auto DisplaySurface(surface_tmp surface_v) -> void;
+		auto Initialize(std::uint16_t width_v = 640, std::uint16_t height_v = 400) -> void;
+		auto AcquireSurface(std::uint16_t width_v, std::uint16_t height_v) -> surface_tmp;		
+		auto Present(surface_tmp surface_v) -> void;
+		auto FlushSurfaceCache() -> void;
 
 	protected:
 		friend struct surface_releaser;
 		auto ReleaseSurface(SDL_Surface* ptr) -> void;		
-		auto RenderThread(std::stop_token stop_v, std::uint16_t width_v, std::uint16_t height_v,
-			std::uint8_t refresh_v, refresh_callback callback_v) -> void;
 
 	private:
 		Machine& m_Machine;
-		std::deque<surface_ptr> m_SurfacePool;
 		window_ptr m_Window;
+		std::mutex x_SurfaceCache;
+		std::deque<surface_ptr> m_SurfaceCache;
 	};
 }
