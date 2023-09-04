@@ -34,7 +34,7 @@ Debug:
     and     ax,     0xf
     cmp     ax,     10
     jl      .PrintHex16.digit
-    add     ax,     'a' - '0' - 10
+    add     ax,     'A' - '0' - 10
   .PrintHex16.digit:
     add     ax,     '0'
     call    .PrintChar

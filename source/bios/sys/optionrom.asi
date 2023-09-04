@@ -25,7 +25,10 @@ OptionRom:
     mov       ax,       es
     mov       cx,       16
     call      Debug.PrintHex16
+    mov       si,       Strings.CrLf
+    call      Debug.PrintString
 
+    push      es
     push      3
     mov       bp,       sp
     call      far [bp]

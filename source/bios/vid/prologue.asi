@@ -13,6 +13,6 @@ Prologue:
 
     pop     es ds
     popa
-    ret
+    retf
 
 
