@@ -1,5 +1,6 @@
     
 Prologue:
+  .Start:
     cli
     mov         sp,     STACK_SEGMENT
     mov         ss,     sp
