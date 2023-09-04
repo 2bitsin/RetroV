@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <cassert>
 #include <cstdint>
 #include <cstddef>
@@ -96,4 +97,6 @@ namespace win32
 		-> std::tuple<std::int32_t, std::uintptr_t, std::span<std::byte const*>>;
 
 	auto CopyDirtyPages(std::span<std::byte> target_v, std::span<std::byte const> source_v) -> std::int32_t;
+
+	auto GetMappedFileName(void const* address_v) -> std::filesystem::path;
 }

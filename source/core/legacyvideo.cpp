@@ -33,8 +33,8 @@ auto LegacyVideo::Initialize() -> void
 	using namespace size_literals;
 	m_Height = 400u;
 	m_Width = 640u;
-	//m_MappedROMs.emplace_back(utils::build_path("@base/ROMs/Video.bin"), utils::region64_type{});
-	//m_MappedRanges.emplace_back(m_Machine.GetPartition(), s_ROMWindow[0u], kAccessDevice, m_MappedROMs.back().Data());
+	m_MappedROMs.emplace_back(utils::build_path("@base/ROMs/Video.bin"), utils::region64_type{});
+	m_MappedRanges.emplace_back(m_Machine.GetPartition(), s_ROMWindow[0u], kAccessDevice, m_MappedROMs.back().Data());
 
 	m_VideoMemory = VirtualAlloc_s(0x40000u, page_prot::read_write, alloc_flag::commit|alloc_flag::reserve|alloc_flag::write_watch);
 	m_BackBuffer = VirtualAlloc_s(0x40000u, page_prot::read_write);

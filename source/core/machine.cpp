@@ -161,7 +161,6 @@ auto Machine::ConfigureMemory(Configuration const& config_v) -> void
 	{
 		if (memory_v.empty()) break;		
 		auto slice_v = utils::take_slice(memory_v, window_v.size());
-		s_log.MapGpaRange(slice_v.data(), window_v.base(), slice_v.size(), kAccessMemory);
 		m_MappedRanges.emplace_back(GetPartition(), window_v, kAccessMemory, slice_v);
 	}
 }
@@ -202,11 +201,8 @@ auto Machine::ConfigureBiosROM(Configuration const&) -> void
 
 	m_MappedRoms.emplace_back(path_v, utils::region64_type{0, size_v}, win32::open_existing, win32::read_only);
 	auto const& bios_v = m_MappedRoms.back();
-	
-	s_log.MapGpaRangeFromFile(bios_v.Data().data(), region_lo_v.base(), bios_v.Data().size(), path_v, 0, size_v);
-	m_MappedRanges.emplace_back(GetPartition(), region_lo_v, kAccessReadOnly, bios_v.Data());
-
-	s_log.MapGpaRangeFromFile(bios_v.Data().data(), region_hi_v.base(), bios_v.Data().size(), path_v, 0, size_v);
+		
+	m_MappedRanges.emplace_back(GetPartition(), region_lo_v, kAccessReadOnly, bios_v.Data());	
 	m_MappedRanges.emplace_back(GetPartition(), region_hi_v, kAccessReadOnly, bios_v.Data());
 	
 }

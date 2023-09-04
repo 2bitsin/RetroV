@@ -4,3 +4,10 @@ Strings:
              db "Copyright (c) 2022-2023, 2bits.in", 13, 10
              db "All rights reserved.", 13, 10
              db 0
+             
+    .OpROMFound: db "Option rom found at :", 0
+     
+    .OpROMDone: db "Option rom init done :", 0
+
+    .CrLf: db 13, 10, 0
+    

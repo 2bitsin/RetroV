@@ -67,6 +67,8 @@ auto EventLog::MapGpaRangeFromFile(void* addr_v, std::uint64_t base_v, std::uint
 {
 	assert(addr_v != nullptr);
 	std::string string_path_v = std::filesystem::relative(path_v).string();
+	if (string_path_v.empty() && !path_v.empty())
+		string_path_v = path_v.string();
 	logger::trace(logger::deflog, "Mapping {:#018x} ... {:#018x} -> {}[{:#x}:{:#x}]",
 		base_v, base_v+size_v, string_path_v, offset_v, length_v);
 }

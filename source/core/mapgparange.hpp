@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/accessflags.hpp>
+#include <core/eventlog.hpp>
 
 #include <win32/error.hpp>
 #include <win32/whvpartition.hpp>
@@ -28,6 +29,8 @@ namespace core
 		Access m_Flags;
 		std::span<std::byte> m_View;		
 		bool m_Enabled;
+
+		static inline const EventLog s_log{ "Memory" };
 	};
 
 }
