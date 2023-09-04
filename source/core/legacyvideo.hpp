@@ -59,9 +59,9 @@ namespace core
 		win32::unique_span<std::byte> m_BackBuffer;	
 
 		static inline constexpr const utils::region64_type s_MemoryWindow [] = {
-			{ utils::from_range, 0x000B0000u, 0x00008000u },
-			{ utils::from_range, 0x000B8000u, 0x00008000u },
-			{ utils::from_range, 0x000A0000u, 0x00010000u }
+			{ utils::from_range, 0x000B0000u, 0x000B8000u },
+			{ utils::from_range, 0x000B8000u, 0x000C0000u },
+			{ utils::from_range, 0x000A0000u, 0x000B0000u }
 		};
 
 		static inline constexpr const utils::region64_type s_ROMWindow []  = {
