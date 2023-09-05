@@ -20,6 +20,11 @@ Prologue:
     mov         si,     Strings.InitOpRom
     call        Debug.PrintString   
     
+    pushf
+    mov         bp,     sp
+    or          word[bp],0x100    
+    popf
+
     call        OptionRom.Initialize
 
     mov         si,     Strings.Hello

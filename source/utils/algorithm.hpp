@@ -81,4 +81,10 @@ namespace utils
 		return round_down(value_v + alignment_v - 1u, alignment_v); 
 	}
 
+	template <typename T, std::size_t N>
+	static inline constexpr auto make_filled_array(T default_v) -> std::array<T, N> {
+		std::array<T, N> result_v{};
+		result_v.fill(default_v);
+		return result_v;
+	}
 }

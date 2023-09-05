@@ -53,7 +53,9 @@ int main(int argc, char** argv) try
 
 	auto config_v = Configuration();
 	config_v.SetProperty("memory.size.megabytes", "64");
-	config_v.SetProperty("rom.boot.path", "@base/ROMs/BiosAMD.bin");
+	config_v.SetProperty("rom.boot.amd.path", "@base/ROMs/BiosAMD.bin");
+	config_v.SetProperty("rom.boot.intel.path", "@base/ROMs/BiosIntel.bin");
+	config_v.SetProperty("rom.boot.path", "@base/ROMs/BiosIntel.bin");
 	Machine vmcore_v{ config_v };
 	vmcore_v.Start();
 

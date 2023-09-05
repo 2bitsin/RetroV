@@ -134,6 +134,11 @@ auto WHvPartition::MapGpaRange(void* src_addr_v, std::uint64_t dst_addr_v, std::
 	return ::WHvMapGpaRange(m_Handle, src_addr_v, dst_addr_v, size_v, flags_v);
 }
 
+auto WHvPartition::MapGpaRange(void const* src_addr_v, std::uint64_t dst_addr_v, std::uint64_t size_v, core::Access access_v) const->std::int32_t {
+	using enum core::Access;
+	return MapGpaRange(const_cast<void*>(src_addr_v), dst_addr_v, size_v, access_v & ~kAccessFetch);
+}
+
 auto WHvPartition::UnmapGpaRange(std::uint64_t dst_addr_v, std::uint64_t size_v) const -> std::int32_t
 {
 	return ::WHvUnmapGpaRange(m_Handle, dst_addr_v, size_v);

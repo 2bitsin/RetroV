@@ -25,6 +25,7 @@ auto Display::Initialize(std::uint16_t width_v, std::uint16_t height_v) -> void
 
 auto Display::AcquireSurface(std::uint16_t width_v, std::uint16_t height_v) -> surface_tmp 
 {
+	std::lock_guard lock_v{ x_SurfaceCache };
 retry:
 	if (m_SurfaceCache.empty()) 
 	{
@@ -61,10 +62,12 @@ auto Display::Present(surface_tmp surface_v) -> void
 }
 
 auto Display::FlushSurfaceCache() -> void {
+	std::lock_guard lock_v { x_SurfaceCache };
 	m_SurfaceCache.clear();
 }
 
 auto Display::ReleaseSurface(SDL_Surface* ptr) -> void {
+	std::lock_guard lock_v{ x_SurfaceCache };
 	if (m_SurfaceCache.size() > kSurfaceCacheSize) {
 		::SDL_FreeSurface(ptr);
 	}

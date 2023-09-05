@@ -38,10 +38,17 @@ auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::l
 {	
 	std::int32_t result_v{ ERROR_SUCCESS };
 	result_v = WHvProcessor::MemoryAccess(is_write_v, physaddr_v, data_v);
-	if (SUCCEEDED(result_v))
+	if (ERROR_SUCCESS==result_v)
 		return result_v;
 	result_v = m_Machine.MemoryAccess(*this, is_write_v, physaddr_v, data_v);		
-	return result_v;
+	if (ERROR_SUCCESS==result_v)
+		return result_v;
+	if (physaddr_v < 1_MiB) {
+		for(auto&& byte_v : data_v)
+			byte_v = std::byte(0xff);
+		return ERROR_SUCCESS;
+	}
+	return ERROR_ACCESS_DENIED;
 }
 
 auto Processor::GetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE> values_v) const -> std::int32_t
@@ -56,8 +63,9 @@ auto Processor::SetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::sp
 
 auto Processor::TranslateGvaPage(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v, WHV_TRANSLATE_GVA_RESULT_CODE& code_o, std::uint64_t& addr_o) const -> std::int32_t
 {
-	auto const [status_v, code_v, addr_v] = WHvProcessor::TranslateGva(virtaddr_v, flags_v);
-	addr_o = addr_v; code_o = code_v; return status_v;
+	std::int32_t status_v{ S_OK };
+	std::tie(status_v, code_o, addr_o) = WHvProcessor::TranslateGva(virtaddr_v, flags_v);	
+	return status_v;
 }
 
 auto Processor::UnhandledMsr(WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) -> std::int32_t
@@ -93,18 +101,16 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 	{		
 		auto const result_v = WHvProcessor::RunToExit();
 		auto [status_v, context_v] = result_v;
-		if (FAILED(status_v)) 
+		if (ERROR_SUCCESS != status_v) 
 			return result_v;	
-		if (FAILED(status_v)) 
-			return { status_v, context_v };
 		switch (context_v.ExitReason)
 		{
 		case WHvRunVpExitReasonX64MsrAccess:
 			status_v = UnhandledMsr(context_v.VpContext, context_v.MsrAccess);
-			if (FAILED(status_v))
+			if (ERROR_SUCCESS != status_v)
 				return { status_v, context_v };
 			status_v = AdvanceInstruction(context_v.VpContext);
-			if (FAILED(status_v))
+			if (ERROR_SUCCESS != status_v)
 				return { status_v, context_v };			
 			continue;
 		case WHvRunVpExitReasonX64IoPortAccess:
@@ -135,8 +141,12 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 			m_Suspend.acquire();
 			continue;
 		case WHvRunVpExitReasonException:
+			if (context_v.VpException.ExceptionType == WHvX64ExceptionTypeDebugTrapOrFault) {
+				logger::trace(logger::deflog, "CPU[{}] DebugTrap: {:04X}:{:08X}", GetIndex(), context_v.VpContext.Cs.Selector, context_v.VpContext.Rip);
+				continue;
+			}
 			status_v = UnhandledException(context_v.VpContext, context_v.VpException);
-			if (FAILED(status_v))
+			if (ERROR_SUCCESS != status_v)
 				return { status_v, context_v };
 			[[fallthrough]];		
 		default:
@@ -202,6 +212,14 @@ auto Processor::InterruptsEnabled() const -> bool
 	WHV_REGISTER_VALUE rflags_v{};
 	WIN32_ERROR_ASSERT(GetRegister(WHvX64RegisterRflags, rflags_v));
 	return !!(rflags_v.Reg64 & kInterruptFlag);
+}
+
+auto Processor::SetSingleStepMode(bool is_debug_v) -> void
+{
+	auto flags_v = GetRegister<std::uint64_t>(WHvX64RegisterRflags);
+	if (!is_debug_v) flags_v &= ~kTrapFlag;
+	else             flags_v |=  kTrapFlag;
+	WIN32_ERROR_ASSERT(SetRegister(WHvX64RegisterRflags, { .Reg64 = flags_v }));
 }
 
 auto Processor::AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& vpcontext_v) const -> std::int32_t

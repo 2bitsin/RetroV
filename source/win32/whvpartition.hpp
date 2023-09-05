@@ -38,6 +38,7 @@ namespace win32
 		auto GetHandle() const -> WHV_PARTITION_HANDLE;
 		auto Reset() const -> std::int32_t;
 		auto MapGpaRange(void*, std::uint64_t, std::uint64_t, core::Access) const -> std::int32_t;
+		auto MapGpaRange(void const*, std::uint64_t, std::uint64_t, core::Access) const->std::int32_t;
 		auto UnmapGpaRange(std::uint64_t, std::uint64_t) const -> std::int32_t;
 		auto QueryGpaRangeDirtyBitmap(std::uint64_t address_v, std::uint64_t size_v, std::span<std::uint64_t> bitmap_v) const -> std::int32_t;
 		auto ClearGpaRangeDirtyBitmap(std::uint64_t address_v, std::uint64_t size_v) const -> std::int32_t;

@@ -7,7 +7,7 @@
 		include '../com/debug.asi'
     include 'bigloop.asi'
 		include 'intvectbl.asi'
-		include 'optionrom.asi'
+		include 'optrom.asi'
 		include 'msrs.asi'
 		include 'lapic.asi'
 		include 'synic.asi'

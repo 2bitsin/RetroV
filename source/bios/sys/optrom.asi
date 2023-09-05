@@ -33,6 +33,9 @@ OptionRom:
     mov       bp,       sp
     call      far [bp]
     add       sp,       4    
+
+    mov       si,       Strings.OpROMDone
+    call      Debug.PrintString
     
     pop       ax
     ; Round to increment of 4

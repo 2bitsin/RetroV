@@ -29,8 +29,8 @@ Machine::Machine(Configuration const& config_v)
 	, m_Display			{ *this }
 {
 	ConfigurePartition(config_v);
-	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);	
+	ConfigureBiosROM(config_v);
 	m_LegacyPic.Initialize();
 	m_LegacyVideo.Initialize();
 	m_Display.Initialize();
@@ -108,7 +108,8 @@ auto Machine::ConfigurePartition(Configuration const&) -> void
 			= (1u << WHvX64ExceptionTypeGeneralProtectionFault)
 			| (1u << WHvX64ExceptionTypeDoubleFaultAbort)
 			| (1u << WHvX64ExceptionTypeInvalidOpcodeFault)
-			| (1u << WHvX64ExceptionTypeDebugTrapOrFault)
+			| (1u << WHvX64ExceptionTypeDebugTrapOrFault)			
+			| (1u << WHvX64ExceptionTypeBreakpointTrap)	
  		} },
 		{ WHvPartitionPropertyCodeX64MsrExitBitmap, {.X64MsrExitBitmap = {.UnhandledMsrs = 1 } } },
 		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .X64MsrExit = 1u, .ExceptionExit = 1u, .HypercallExit = 1u } } },
@@ -150,61 +151,60 @@ auto Machine::ConfigureMemory(Configuration const& config_v) -> void
 		  0xFFFFFFFFFFFFFFFFu },
 	};
 
+	static constexpr utils::region64_type empty_regions_s [] = {
+		{ utils::from_range, 0x000A0000u, 0x00100000u }
+	};
+
+	static constexpr auto default_page_s = utils::make_filled_array<std::uint8_t, kPageSize>(0xFFu);
+
 	WIN32_ERROR_ASSERT(m_Partition.Reset());	
 
 	m_MainMemory = win32::VirtualAlloc_s(
 		config_v.GetPropertyUint64("memory.size.megabytes") * 1_MiB, 
 		win32::execute_read_write);
 
+	auto& partition_v = GetPartition();
 	auto memory_v = std::span(m_MainMemory);
 	for (auto&& window_v : ram_map_s) 
 	{
 		if (memory_v.empty()) break;		
 		auto slice_v = utils::take_slice(memory_v, window_v.size());
-		m_MappedRanges.emplace_back(GetPartition(), window_v, kAccessMemory, slice_v);
+		m_MappedRanges.emplace_back(partition_v, window_v, kAccessMemory, slice_v);
 	}
+	
+	for (auto&& region_v : empty_regions_s)
+	for (auto curr_page_v = region_v.begin(); 
+		curr_page_v < region_v.end(); 
+		curr_page_v += default_page_s.size()) 
+	{
+		partition_v.MapGpaRange(default_page_s.data(), curr_page_v, 
+			default_page_s.size(), kAccessReadOnly);
+	}
+
 }
 
-auto Machine::ConfigureBiosROM(Configuration const&) -> void
+auto Machine::ConfigureBiosROM(Configuration const& config_v) -> void
 {
-	std::filesystem::path path_v;
-	
-	if (win32::WHvCapabilities::IsVendorAMD()) {
-		path_v = "@base/ROMs/BiosAMD.bin";
-	} else if (win32::WHvCapabilities::IsVendorIntel()) {
-		path_v = "@base/ROMs/BiosIntel.bin";
-	} else {
-		throw std::runtime_error("Unsupported CPU vendor");
-	}
-
+	std::filesystem::path path_v;	
+	if (win32::WHvCapabilities::IsVendorAMD())
+		path_v = config_v.GetPropertyString("rom.boot.amd.path");
+	else if (win32::WHvCapabilities::IsVendorIntel())
+		path_v = config_v.GetPropertyString("rom.boot.intel.path");			
+	if (path_v.empty()) 
+		path_v = config_v.GetPropertyString("rom.boot.path");	
 	path_v = utils::build_path(path_v);
-
-	if (!std::filesystem::exists(path_v)) {
-		throw std::system_error(std::make_error_code(std::errc::no_such_file_or_directory), path_v.string());
-	}
-
+	if (!std::filesystem::exists(path_v)) throw std::system_error(std::make_error_code(std::errc::no_such_file_or_directory), path_v.string());	
 	auto size_v = std::filesystem::file_size(path_v);
-
-	if (size_v < 4_KiB || size_v > 4_MiB) {
-		throw std::runtime_error("BIOS size should be between 4KiB and 4MiB");
-	}
-
-	if (utils::round_ceil(size_v, 4_KiB) != size_v) {
-		throw std::runtime_error("BIOS size should be a multiple of 4KiB");
-	}
-
+	if (size_v < 4_KiB || size_v > 4_MiB) throw std::runtime_error("BIOS size should be between 4KiB and 4MiB");
+	if (utils::round_ceil(size_v, 4_KiB) != size_v) throw std::runtime_error("BIOS size should be a multiple of 4KiB");
 	auto const size_lo_v = std::min(size_v, 256_KiB);
-	utils::region64_type region_lo_v{ 0x0000000000100000u - size_lo_v, size_lo_v };
-
 	auto const size_hi_v = std::min(size_v, 32_MiB);
+	utils::region64_type region_lo_v{ 0x0000000000100000u - size_lo_v, size_lo_v };
 	utils::region64_type region_hi_v{ 0x0000000100000000u - size_hi_v, size_hi_v };
-
 	m_MappedRoms.emplace_back(path_v, utils::region64_type{0, size_v}, win32::open_existing, win32::read_only);
-	auto const& bios_v = m_MappedRoms.back();
-		
+	auto const& bios_v = m_MappedRoms.back();		
 	m_MappedRanges.emplace_back(GetPartition(), region_lo_v, kAccessReadOnly, bios_v.Data());	
-	m_MappedRanges.emplace_back(GetPartition(), region_hi_v, kAccessReadOnly, bios_v.Data());
-	
+	m_MappedRanges.emplace_back(GetPartition(), region_hi_v, kAccessReadOnly, bios_v.Data());	
 }
 
 auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
@@ -223,6 +223,5 @@ auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16
 
 auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t
 {	
-	__debugbreak();
 	return ERROR_ACCESS_DENIED;
 }
