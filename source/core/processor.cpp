@@ -94,7 +94,7 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 		WHvProcessor::Cancel();
 		m_Suspend.release();
 	}};
-
+	
 	std::unique_lock lock_v{ m_IsRunning };
 	auto& emulator_v = Emulator();
 	while (!stoppee_v.stop_requested())
@@ -105,30 +105,15 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 			return result_v;	
 		switch (context_v.ExitReason)
 		{
-		case WHvRunVpExitReasonX64MsrAccess:
-			status_v = UnhandledMsr(context_v.VpContext, context_v.MsrAccess);
-			if (ERROR_SUCCESS != status_v)
-				return { status_v, context_v };
-			status_v = AdvanceInstruction(context_v.VpContext);
-			if (ERROR_SUCCESS != status_v)
-				return { status_v, context_v };			
-			continue;
 		case WHvRunVpExitReasonX64IoPortAccess:
 			emulator_v.TryIoEmulation(*this, context_v.VpContext, context_v.IoPortAccess);
 			continue;
 		case WHvRunVpExitReasonMemoryAccess:
 			emulator_v.TryMmioEmulation(*this, context_v.VpContext, context_v.MemoryAccess);
 			continue;		
-		case WHvRunVpExitReasonX64InterruptWindow:			
-			switch (context_v.InterruptWindow.DeliverableType)
-			{ 
-			case WHvX64PendingInterrupt:
-			case WHvX64PendingNmi:
-			case WHvX64PendingException:
-				break;
-			default: 
-				break;
-			}
+		case WHvRunVpExitReasonSynicSintDeliverable:
+			continue;			
+		case WHvRunVpExitReasonX64InterruptWindow:						
 			continue;
 		case WHvRunVpExitReasonX64Halt:
 			if (InterruptsEnabled()) { 
@@ -140,11 +125,15 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 				return result_v;
 			m_Suspend.acquire();
 			continue;
+		case WHvRunVpExitReasonX64MsrAccess:
+			status_v = UnhandledMsr(context_v.VpContext, context_v.MsrAccess);
+			if (ERROR_SUCCESS != status_v)
+				return { status_v, context_v };
+			status_v = AdvanceInstruction(context_v.VpContext);
+			if (ERROR_SUCCESS != status_v)
+				return { status_v, context_v };
+			continue;
 		case WHvRunVpExitReasonException:
-			if (context_v.VpException.ExceptionType == WHvX64ExceptionTypeDebugTrapOrFault) {
-				logger::trace(logger::deflog, "CPU[{}] DebugTrap: {:04X}:{:08X}", GetIndex(), context_v.VpContext.Cs.Selector, context_v.VpContext.Rip);
-				continue;
-			}
 			status_v = UnhandledException(context_v.VpContext, context_v.VpException);
 			if (ERROR_SUCCESS != status_v)
 				return { status_v, context_v };

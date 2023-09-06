@@ -14,11 +14,15 @@
 
 
 
+
 namespace core
-{
-	
+{	
 	struct MapGpaRange 
 	{		
+		inline MapGpaRange(win32::WHvPartition& partition_v, utils::region64_type region_v, Access flags_v, auto const& other_v)
+			: MapGpaRange(partition_v, region_v, flags_v, std::span<std::byte>(other_v))
+		{}
+
 		MapGpaRange(win32::WHvPartition& partition_v, utils::region64_type region_v, Access flags_v, std::span<std::byte> view_v);
 		~MapGpaRange();
 		auto Disable() -> void;

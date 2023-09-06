@@ -31,7 +31,7 @@ add_fasm_target(BiosAMD "source/bios/sys/amd.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI
 add_fasm_target(BiosIntel "source/bios/sys/intel.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
 file(GLOB_RECURSE VID_BIOS_ASI source/bios/vid/*.asi)
 message (STATUS "VID_BIOS_ASI: ${VID_BIOS_ASI}")
-add_fasm_target(Video "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_target(Video "source/bios/vid/video.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
 
 install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
 install (TARGETS HvDOS DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

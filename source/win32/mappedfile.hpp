@@ -43,7 +43,7 @@ namespace win32
 		MappedFile(std::filesystem::path const& path_v, 
 			utils::region64_type regn_v = {0, 0},
 			cf_mode mode_v = cf_mode::open_existing,
-			page_prot prot_v = page_prot::execute_read,
+			page_prot prot_v = page_prot::execute_write_copy,
 			share_type share_v = share_type::share_read);
 
 		~MappedFile() = default;
@@ -56,6 +56,8 @@ namespace win32
 
 		auto Data() const noexcept -> std::span<std::byte>;
 		auto Size() const noexcept -> std::size_t;
+
+		operator std::span<std::byte>() const noexcept { return Data(); }
 
 	private:		
 		unique_handle m_File;

@@ -14,7 +14,7 @@
 #include <core/mapgparange.hpp>
 #include <core/processor.hpp>
 #include <core/legacypic.hpp>
-#include <core/legacyvideo.hpp>
+#include <core/videodevice.hpp>
 #include <core/debugger.hpp>
 #include <core/display.hpp>
 
@@ -74,7 +74,7 @@ namespace core
 		core::Processor m_Processor;
 		core::Processor::exit_future_type m_ProcessorExit;
 		core::LegacyPic m_LegacyPic;
-		core::LegacyVideo m_LegacyVideo;
+		core::VideoDevice m_VideoDevice;
 		core::Debugger m_Debugger;
 		core::Display m_Display;
 

@@ -5,6 +5,7 @@ Header:
     jmp     Prologue 
 
 include     'prologue.asi'
+include     'vidmode.asi'
 include     '../com/debug.asi'
 include     'fontbins.asi'
 include     'strings.asi'

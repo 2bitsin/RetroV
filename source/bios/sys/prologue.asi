@@ -17,20 +17,14 @@ Prologue:
     call        IVT.Initialize
     sti         
 
-    mov         si,     Strings.InitOpRom
+    mov         si,     Strings.OpROMInit
     call        Debug.PrintString   
     
-    pushf
-    mov         bp,     sp
-    or          word[bp],0x100    
-    popf
-
     call        OptionRom.Initialize
 
     mov         si,     Strings.Hello
     call        Debug.PrintString   
     cld    
-
 
   .L2:
     hlt

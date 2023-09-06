@@ -11,6 +11,7 @@
 #include <utils/logger.hpp>
 #include <utils/paths.hpp>
 #include <utils/span.hpp>
+#include <utils/validate.hpp>
 
 #include <SDL2/SDL.h>
 
@@ -25,15 +26,15 @@ Machine::Machine(Configuration const& config_v)
 	, m_Processor		{ *this, 0u }
 	, m_LegacyPic		{ *this, 0u }
 	, m_Debugger		{ *this }
-	, m_LegacyVideo { *this }
+	, m_VideoDevice { *this }
 	, m_Display			{ *this }
 {
 	ConfigurePartition(config_v);
 	ConfigureMemory(config_v);	
 	ConfigureBiosROM(config_v);
 	m_LegacyPic.Initialize();
-	m_LegacyVideo.Initialize();
 	m_Display.Initialize();
+	m_VideoDevice.Initialize(config_v);
 }
 
 Machine::~Machine() 
@@ -42,7 +43,7 @@ Machine::~Machine()
 auto Machine::Start() -> void
 {
 	s_log.StartMachine();
-	m_LegacyVideo.Start();
+	m_VideoDevice.Start();
 	m_ProcessorExit = m_Processor.Start();
 }
 
@@ -53,7 +54,7 @@ auto Machine::Stop() -> void
 	if (m_ProcessorExit.valid()) {
 		m_ProcessorExit.wait();
 	}
-	m_LegacyVideo.Stop();
+	m_VideoDevice.Stop();
 }
 
 auto Machine::Reset() -> void
@@ -114,8 +115,9 @@ auto Machine::ConfigurePartition(Configuration const&) -> void
 		{ WHvPartitionPropertyCodeX64MsrExitBitmap, {.X64MsrExitBitmap = {.UnhandledMsrs = 1 } } },
 		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .X64MsrExit = 1u, .ExceptionExit = 1u, .HypercallExit = 1u } } },
 		{ WHvPartitionPropertyCodeProcessorCount, { .ProcessorCount = 1u } },		
-		{ WHvPartitionPropertyCodeSyntheticProcessorFeaturesBanks, { .SyntheticProcessorFeaturesBanks = synic_features_v } },
-	  { WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeXApic } },
+		//{ WHvPartitionPropertyCodeSyntheticProcessorFeaturesBanks, { .SyntheticProcessorFeaturesBanks = synic_features_v } },
+	  //{ WHvPartitionPropertyCodeLocalApicEmulationMode, { .LocalApicEmulationMode = WHvX64LocalApicEmulationModeXApic } },
+		{ WHvPartitionPropertyCodeLocalApicEmulationMode, {.LocalApicEmulationMode = WHvX64LocalApicEmulationModeNone } },
 		{ WHvPartitionPropertyCodeProcessorFeatures, { .ProcessorFeatures = WHvCapabilities::Get<WHV_PROCESSOR_FEATURES>(WHvCapabilityCodeProcessorFeatures) } }
 	});
 }
@@ -193,18 +195,16 @@ auto Machine::ConfigureBiosROM(Configuration const& config_v) -> void
 	if (path_v.empty()) 
 		path_v = config_v.GetPropertyString("rom.boot.path");	
 	path_v = utils::build_path(path_v);
-	if (!std::filesystem::exists(path_v)) throw std::system_error(std::make_error_code(std::errc::no_such_file_or_directory), path_v.string());	
+	utils::validate_binary(path_v, 4_KiB, 1u, 8192u);
 	auto size_v = std::filesystem::file_size(path_v);
-	if (size_v < 4_KiB || size_v > 4_MiB) throw std::runtime_error("BIOS size should be between 4KiB and 4MiB");
-	if (utils::round_ceil(size_v, 4_KiB) != size_v) throw std::runtime_error("BIOS size should be a multiple of 4KiB");
 	auto const size_lo_v = std::min(size_v, 256_KiB);
 	auto const size_hi_v = std::min(size_v, 32_MiB);
 	utils::region64_type region_lo_v{ 0x0000000000100000u - size_lo_v, size_lo_v };
 	utils::region64_type region_hi_v{ 0x0000000100000000u - size_hi_v, size_hi_v };
 	m_MappedRoms.emplace_back(path_v, utils::region64_type{0, size_v}, win32::open_existing, win32::read_only);
 	auto const& bios_v = m_MappedRoms.back();		
-	m_MappedRanges.emplace_back(GetPartition(), region_lo_v, kAccessReadOnly, bios_v.Data());	
-	m_MappedRanges.emplace_back(GetPartition(), region_hi_v, kAccessReadOnly, bios_v.Data());	
+	m_MappedRanges.emplace_back(GetPartition(), region_lo_v, kAccessReadOnly, bios_v);	
+	m_MappedRanges.emplace_back(GetPartition(), region_hi_v, kAccessReadOnly, bios_v);	
 }
 
 auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
@@ -215,6 +215,7 @@ auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16
 	MAP_RANGE(0x020u, 0x021u, m_LegacyPic.Master());
 	MAP_RANGE(0x0A0u, 0x0A1u, m_LegacyPic.Slave());
 	MAP_RANGE(0x0E8u, 0x0EAu, m_Debugger);	
+	MAP_RANGE(0x3B0u, 0x3DFu, m_VideoDevice);
 
 #undef MAP_RANGE
 	__debugbreak();

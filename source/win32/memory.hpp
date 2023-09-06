@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstddef>
+#include <variant>
 #include <span>
 
 #include <win32/error.hpp>
@@ -98,5 +99,5 @@ namespace win32
 
 	auto CopyDirtyPages(std::span<std::byte> target_v, std::span<std::byte const> source_v) -> std::int32_t;
 
-	auto GetMappedFileName(void const* address_v) -> std::filesystem::path;
+	auto GetMappedFileName(void const* address_v) -> std::variant<std::int32_t, std::filesystem::path>;
 }

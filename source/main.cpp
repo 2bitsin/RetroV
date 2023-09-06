@@ -25,6 +25,22 @@
 #include <format>
 #include <chrono>
 
+static inline auto MakeConfiguration() -> core::Configuration 
+{
+	auto config_v = core::Configuration();
+
+	config_v.SetProperty("video.memory.kilobytes", "256");
+	config_v.SetProperty("video.bios.path", "@base/ROMs/Video.bin");
+
+	config_v.SetProperty("memory.size.megabytes", "64");
+
+	config_v.SetProperty("rom.boot.amd.path", "@base/ROMs/BiosAMD.bin");
+	config_v.SetProperty("rom.boot.intel.path", "@base/ROMs/BiosIntel.bin");
+	config_v.SetProperty("rom.boot.path", "@base/ROMs/BiosIntel.bin");
+
+	return config_v;
+}
+
 
 #undef main
 int main(int argc, char** argv) try
@@ -51,13 +67,10 @@ int main(int argc, char** argv) try
 	SDL_Init(SDL_INIT_EVERYTHING);
 	std::atexit(SDL_Quit);
 
-	auto config_v = Configuration();
-	config_v.SetProperty("memory.size.megabytes", "64");
-	config_v.SetProperty("rom.boot.amd.path", "@base/ROMs/BiosAMD.bin");
-	config_v.SetProperty("rom.boot.intel.path", "@base/ROMs/BiosIntel.bin");
-	config_v.SetProperty("rom.boot.path", "@base/ROMs/BiosIntel.bin");
-	Machine vmcore_v{ config_v };
+
+	Machine vmcore_v{ MakeConfiguration() };
 	vmcore_v.Start();
+
 
 	std::uint16_t IRQstate_v{ 0 };
 	std::uint16_t last_IRQstate_v{ 0 };

@@ -22,13 +22,13 @@ auto MapGpaRange::Enable() -> void {
 	if (!m_Enabled) {
 		auto const size_v = std::min(m_Region.size(), m_View.size());
 	#ifndef NDEBUG
-		try { 
-			auto path_v = win32::GetMappedFileName(m_View.data()); 
-			path_v = path_v.filename();
-			s_log.MapGpaRangeFromFile(m_View.data(), m_Region.base(), size_v, path_v, 0, size_v); 
-		}	catch (...) {
-			s_log.MapGpaRange(m_View.data(), m_Region.base(), size_v, m_Flags);
-		}
+		std::visit([&]<typename T>(T const& what_v) {
+			if constexpr (std::is_same_v<T, std::filesystem::path>) {				
+				s_log.MapGpaRangeFromFile(m_View.data(), m_Region.base(), size_v, what_v, 0, size_v); 
+			} else {
+				s_log.MapGpaRange(m_View.data(), m_Region.base(), size_v, m_Flags);
+			}
+		}, win32::GetMappedFileName(m_View.data()));
 
 	#endif
 		WIN32_ERROR_ASSERT(m_Partition.MapGpaRange(m_View.data(), m_Region.base(), size_v, m_Flags));

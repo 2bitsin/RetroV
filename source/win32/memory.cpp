@@ -112,7 +112,7 @@ auto win32::CopyPagesUsingMask(std::span<std::byte> target_v,
 #undef GetMappedFileName
 
 
-auto win32::GetMappedFileName(void const* address_v) -> std::filesystem::path
+auto win32::GetMappedFileName(void const* address_v) -> std::variant<std::int32_t, std::filesystem::path>
 {
 	std::wstring buffer_v{  };
 	std::uint32_t length_v{ 0 } ;
@@ -123,13 +123,11 @@ auto win32::GetMappedFileName(void const* address_v) -> std::filesystem::path
 		length_v = ::K32GetMappedFileNameW(::GetCurrentProcess(), (void*)address_v, 
 			buffer_v.data(), (uint32_t)buffer_v.size());
 		if (auto error_v = error::last_error(); error_v != ERROR_INSUFFICIENT_BUFFER) {
-			WIN32_ERROR_ASSERT(error_v);				
-			buffer_v.resize(length_v);
-			return buffer_v;
+			return error_v;
 		}
 		buffer_v.resize(buffer_v.size()*2);
 	}
-	return buffer_v;
+	return std::filesystem::path(buffer_v);
 }
 
 auto win32::QueryDirtyPages(std::span<std::byte const> source_v, std::span<std::byte const*> dirty_list_v, bool reset_v) -> std::tuple<std::int32_t, std::uintptr_t, std::span<std::byte const*>>

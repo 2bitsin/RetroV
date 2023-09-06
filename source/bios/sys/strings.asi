@@ -6,8 +6,8 @@ Strings:
 
     .Hello:       db "Booting HvDOS ..."    
     .CrLf:        db 13, 10, 0
-    .InitOpRom:   db "Scanning for Option ROMs ...", 13, 10, 0
     .IntV:        db "Interrupt vector: ", 0
 
+    .OpROMInit:   db "Scanning for Option ROMs ...", 13, 10, 0
     .OpROMFound:  db "Option rom found at: ", 0     
-    .OpROMDone:   db "Option rom init done.", 0
+    .OpROMDone:   db "Option rom init done.", 13, 10, 0
