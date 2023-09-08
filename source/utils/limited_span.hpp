@@ -17,6 +17,10 @@ namespace utils
 		using size_type = decltype(Limit);
 		static inline constexpr const size_type limit = Limit;
 
+		constexpr inline limited_span() noexcept
+			: limited_span{ nullptr, 0u }
+		{}
+
 		constexpr inline limited_span(value_type* data_v, size_type size_v) noexcept
 			: m_data{ data_v }
 			, m_size{ std::min<size_type>(size_v, limit) }
@@ -61,8 +65,7 @@ namespace utils
 		constexpr inline auto subspan(size_type offset_v, size_type size_v) const noexcept
 			-> limited_span<value_type, limit>
 		{
-			if (offset_v >= m_size)
-				return {};
+			if (offset_v >= m_size) return { };
 			return { m_data + offset_v, std::min(size_v, m_size - offset_v) };
 		}
 
@@ -88,9 +91,16 @@ namespace utils
 		constexpr inline auto cend() const noexcept -> value_type const* { return m_data + m_size; }
 
 
-		template <typename Q> requires (std::is_trivial_v<Q>)
+		template <typename Q> requires (std::is_trivial_v<Q> && sizeof(Q) <= limit)
 			constexpr inline auto as() const noexcept -> Q {
-			return *reinterpret_cast<Q const*>(m_data);
+			return (*(Q const*)m_data);
+		}
+
+		template <typename Q> requires (std::is_trivial_v<Q> && sizeof(Q) <= limit)
+		constexpr inline auto write(Q const& what_v) noexcept -> bool {
+			if (sizeof(Q) > m_size) return false;
+			(*(Q*)m_data) = what_v;
+			return true;
 		}
 
 	private:
