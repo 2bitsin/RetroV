@@ -222,7 +222,19 @@ auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16
 	return 0;
 }
 
-auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t
+auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t
 {	
+	if (physaddr_v >= 0xA0000u && physaddr_v <= 0xBFFFFu) {
+		return m_VideoDevice.MemoryAccess(vcpu_v, is_write_v, physaddr_v, data_v);
+	}
+
+	if (physaddr_v >= 0xC0000u && physaddr_v <= 0xFFFFFu) {
+		if (!is_write_v) {
+			for (auto&& byte_v : data_v)
+				byte_v = std::byte(0xff);
+		}
+		return ERROR_SUCCESS;
+	}
+
 	return ERROR_ACCESS_DENIED;
 }

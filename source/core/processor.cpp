@@ -43,11 +43,7 @@ auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::l
 	result_v = m_Machine.MemoryAccess(*this, is_write_v, physaddr_v, data_v);		
 	if (ERROR_SUCCESS==result_v)
 		return result_v;
-	if (physaddr_v < 1_MiB) {
-		for(auto&& byte_v : data_v)
-			byte_v = std::byte(0xff);
-		return ERROR_SUCCESS;
-	}
+	__debugbreak();
 	return ERROR_ACCESS_DENIED;
 }
 

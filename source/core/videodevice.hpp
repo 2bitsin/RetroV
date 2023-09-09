@@ -30,10 +30,11 @@ namespace core
 		using duration_type = std::chrono::microseconds;
 
 		enum class MemoryWindow: int {
-			kNoMapping = -1,
-			kGraphical = 0,
-			kTextLower = 1,
-			kTextUpper = 2
+			kNoMapping     = -1,
+			kGraphical64k  = +0, // 0xA0000 - 0xC0000
+			kGraphical128k = +1, // 0xA0000 - 0xB0000
+			kTextLower32k  = +2, // 0xB0000 - 0xB8000
+			kTextUpper32k  = +3  // 0xB8000 - 0xC0000
 		};
 
 		VideoDevice(Machine& machine_v);
@@ -50,6 +51,7 @@ namespace core
 	protected:
 		auto ConfigureBiosROM(Configuration const& config_v) -> void;
 		auto ConfigureMemory(Configuration const& config_v) -> void;
+		auto ConfigureRegisters(Configuration const& config_v) -> void;
 		auto SetLegacyMapping(MemoryWindow target_v, std::size_t offset_v) -> void;
 		auto RefreshThread(std::stop_token stoppee_v) -> void;
 
@@ -163,7 +165,92 @@ namespace core
 				std::uint8_t bits;
 			} misc;
 
+			// Color don't care register index = 0x07
+			union
+			{
+				struct
+				{
+					std::uint8_t map0:1;
+					std::uint8_t map1:1;
+					std::uint8_t rsvd700:6;
+				};
+				std::uint8_t bits;
+			} compare_enable;
+
 		} m_GCreg;
+
+		struct
+		{
+			std::uint8_t index;
+
+			// Reset register index = 0x00
+			union
+			{
+				struct 
+				{
+					std::uint8_t async:1;
+					std::uint8_t sync:1;
+					std::uint8_t rsvd000:6;
+				};
+				std::uint8_t bits;
+			} reset;
+
+			// Clocking mode register index = 0x01
+			union
+			{
+				struct
+				{
+					std::uint8_t clock_8dots:1;
+					std::uint8_t rsvd100:1;
+					std::uint8_t shift_load:1;
+					std::uint8_t div_by_2:1;
+					std::uint8_t shift_4:1;
+					std::uint8_t screen_off:1;
+					std::uint8_t rsvd101:2;					
+				};
+				std::uint8_t bits;
+			} clock;
+
+			// Map mask register index = 0x02
+			union
+			{
+				struct
+				{
+					std::uint8_t value:4;
+					std::uint8_t rsvd200:4;
+				};
+				std::uint8_t bits;
+			} write_mask;
+
+			// Character map select register index = 0x03
+			union
+			{
+				struct
+				{
+					std::uint8_t sel0_hi:2;
+					std::uint8_t sel1_hi:2;
+					std::uint8_t sel0_lo:1;
+					std::uint8_t sel1_lo:1;
+					std::uint8_t rsvd300:2;
+				};
+				std::uint8_t bits;
+			} char_map;
+
+			// Sequencer memory mode register index = 0x04
+			union
+			{
+				struct
+				{
+					std::uint8_t rsvd400:1;
+					std::uint8_t enable_256k:1;
+					std::uint8_t odd_even:1;
+					std::uint8_t chain_4:1;
+					std::uint8_t rsvd401:4;
+				};
+				std::uint8_t bits;
+			} mem_mode;
+
+		} m_SQreg;
 	#pragma pack(pop)
 		
 	};

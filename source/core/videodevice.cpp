@@ -310,10 +310,16 @@ auto VideoDevice::ConfigureMemory(Configuration const& config_v) -> void
 	m_VideoMemory[1] = VirtualAlloc_s(memory_kilobytes_v * 1_KiB, page_prot::read_write);
 }
 
+auto VideoDevice::ConfigureRegisters(Configuration const& config_v) -> void {
+	std::memset(&m_GCreg, 0, sizeof(m_GCreg));
+	std::memset(&m_SQreg, 0, sizeof(m_SQreg));
+}
+
 auto VideoDevice::SetLegacyMapping(MemoryWindow target_v, std::size_t offset_v) -> void
 {
 	static constexpr utils::region64_type s_MemoryWindow[] = {
-		{ utils::from_range, 0xA0000u, 0xB0000u },
+		{ utils::from_range, 0xA0000u, 0xC0000u },
+		{ utils::from_range, 0xA0000u, 0xB0000u },	
 		{ utils::from_range, 0xB0000u, 0xB8000u },
 		{ utils::from_range, 0xB8000u, 0xC0000u }
 	};
@@ -350,9 +356,8 @@ auto VideoDevice::Initialize(Configuration const& config_v) -> void
 
 	ConfigureBiosROM(config_v);
 	ConfigureMemory(config_v);
-
-	SetLegacyMapping(kTextUpper, 0u);
-
+	ConfigureRegisters(config_v);
+	SetLegacyMapping(kTextUpper32k, 0u);
 	m_Height = 400u;
 	m_Width = 640u;
 
@@ -435,26 +440,37 @@ auto VideoDevice::IoPortWrite(Processor const& vcpu_v, std::uint16_t port_v, std
 {
 	switch (port_v) 
 	{
-	case Q(0x3CEu): m_GCreg.index = value_v; return;		
+	case Q(0x3CEu): m_GCreg.index = value_v&7u; return ERROR_SUCCESS;	
 	case Q(0x3CFu): 
 		switch (m_GCreg.index)
 		{
-		case 0: m_GCreg.set_reset.bits = value_v; return;
-		case 1: m_GCreg.enable_set_reset.bits = value_v; return;
-		case 2: m_GCreg.color_compare.bits = value_v; return;
-		case 3: m_GCreg.data_rotate.bits = value_v; return;
-		case 4: m_GCreg.read_map_select.bits = value_v; return;
-		case 5: m_GCreg.mode.bits = value_v; return;
-		case 6: m_GCreg.miscellaneous.bits = value_v; return;
-		case 7: m_GCreg.color_dont_care.bits = value_v; return;
+		case 0: m_GCreg.set_reset.bits        = value_v; return ERROR_SUCCESS;
+		case 1: m_GCreg.enable_set_reset.bits = value_v; return ERROR_SUCCESS;
+		case 2: m_GCreg.color_compare.bits    = value_v; return ERROR_SUCCESS;
+		case 3: m_GCreg.data_rotate.bits      = value_v; return ERROR_SUCCESS;
+		case 4: m_GCreg.read_map_select.bits  = value_v; return ERROR_SUCCESS;
+		case 5: m_GCreg.mode.bits             = value_v; return ERROR_SUCCESS;
+		case 6: m_GCreg.misc.bits             = value_v; return ERROR_SUCCESS;
+		case 7: m_GCreg.compare_enable.bits   = value_v; return ERROR_SUCCESS;
 		default:
 			__debugbreak();
 			return ERROR_SUCCESS;
 		}
 		break;
-	default:
-		__debugbreak();
-		return ERROR_SUCCESS;
+	case Q(0x3C4u): m_SQreg.index = value_v&7u; return ERROR_SUCCESS;
+	case Q(0x3C5u):
+		switch (m_SQreg.index)
+		{
+		case 0: m_SQreg.reset.bits      = value_v; return ERROR_SUCCESS;
+		case 1: m_SQreg.clock.bits      = value_v; return ERROR_SUCCESS;
+		case 2: m_SQreg.write_mask.bits = value_v; return ERROR_SUCCESS;
+		case 3: m_SQreg.char_map.bits   = value_v; return ERROR_SUCCESS;
+		case 4: m_SQreg.mem_mode.bits   = value_v; return ERROR_SUCCESS;
+		default: 
+			__debugbreak();
+			return ERROR_SUCCESS;		
+		}
+	default: return ERROR_SUCCESS;
 	}
 	return ERROR_SUCCESS;
 }
@@ -475,10 +491,21 @@ auto VideoDevice::IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> 
 		case 4: return { ERROR_SUCCESS, m_GCreg.read_map_select.bits };
 		case 5: return { ERROR_SUCCESS, m_GCreg.mode.bits };
 		case 6: return { ERROR_SUCCESS, m_GCreg.misc.bits };
-		case 7: return { ERROR_SUCCESS, m_GCreg.color_dont_care.bits };
-		default:
-			__debugbreak();
-			break;
+		case 7: return { ERROR_SUCCESS, m_GCreg.compare_enable.bits };
+		default: return { ERROR_SUCCESS, 0u };
+		}
+		break;
+	case Q(0x3C4):
+		return { ERROR_SUCCESS, m_SQreg.index };
+	case Q(0x3C5):
+		switch (m_SQreg.index)
+		{
+		case 0: return { ERROR_SUCCESS, m_SQreg.reset.bits };
+		case 1: return { ERROR_SUCCESS, m_SQreg.clock.bits };
+		case 2: return { ERROR_SUCCESS, m_SQreg.write_mask.bits };
+		case 3: return { ERROR_SUCCESS, m_SQreg.char_map.bits };
+		case 4: return { ERROR_SUCCESS, m_SQreg.mem_mode.bits };
+		default: return { ERROR_SUCCESS, 0u };
 		}
 		break;
 	default:
@@ -490,6 +517,7 @@ auto VideoDevice::IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> 
 
 auto VideoDevice::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t
 {
+	__debugbreak();
 	return S_OK;
 }
 
