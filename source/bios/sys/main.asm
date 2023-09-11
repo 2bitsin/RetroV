@@ -1,7 +1,5 @@
 		org 0x0000
 		
-		VMCallInstruction equ vmcall
-
 		include 'variables.asi'
 		include 'prologue.asi'
 		include '../com/debug.asi'

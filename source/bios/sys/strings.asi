@@ -9,5 +9,5 @@ Strings:
     .IntV:        db "Interrupt vector: ", 0
 
     .OpROMInit:   db "Scanning for Option ROMs ...", 13, 10, 0
-    .OpROMFound:  db "Option rom found at: ", 0     
-    .OpROMDone:   db "Option rom init done.", 13, 10, 0
+    .OpROMFound:  db "Initializing ROM at ", 0     
+    .OpROMDone:   db "Done.", 13, 10, 0

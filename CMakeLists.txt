@@ -23,15 +23,25 @@ target_link_libraries(HvDOS PRIVATE ${LIB_WINHVPLATFORM} ${LIB_WINHVEMULATION} S
 set_target_properties(HvDOS PROPERTIES LINK_FLAGS "/level='requireAdministrator' /uiAccess='false'")
 target_stack_size(HvDOS "256MiB")
 
+string(TIMESTAMP TODAY "%Y-%m-%d")
+string(TIMESTAMP NOW "%H:%M:%S")
+
 # Use add_custom_command to compile bios/bios.asm to bios.bin using fasm
 file(GLOB_RECURSE COM_BIOS_ASI source/bios/com/*.asi)
 file(GLOB_RECURSE SYS_BIOS_ASI source/bios/sys/*.asi)
 message (STATUS "SYS_BIOS_ASI: ${SYS_BIOS_ASI}")
-add_fasm_target(BiosAMD "source/bios/sys/amd.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_target(BiosIntel "source/bios/sys/intel.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_target(BiosAMD "source/bios/sys/main.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_option(BiosAMD -d hypercall=vmmcall -d date=${TODAY} -d time=${NOW})
+
+add_fasm_target(BiosIntel "source/bios/sys/main.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_option(BiosIntel -d hypercall=vmcall -d date=${TODAY} -d time=${NOW})
+
+
 file(GLOB_RECURSE VID_BIOS_ASI source/bios/vid/*.asi)
 message (STATUS "VID_BIOS_ASI: ${VID_BIOS_ASI}")
-add_fasm_target(Video "source/bios/vid/video.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_target(BsVideo "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_option(BsVideo -d date=${TODAY} -d time=${NOW})
+
 
 install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
 install (TARGETS HvDOS DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

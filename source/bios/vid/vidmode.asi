@@ -2,49 +2,7 @@
 VideoMode:
 
   .SetFont:
-    push    ax dx di si es
-		;in: edi=4k buffer
-		;out: buffer filled with font
-		;clear even/odd mode
-		mov			dx,       0x03ce
-		mov			ax,       0x0005
-		out			dx,       ax
-		;map VGA memory to 0A0000h
-		mov			ax,       0x0406
-		out			dx,       ax
-		;set bitplane 2
-		mov			dx,       0x03c4
-		mov			ax,       0x0402
-		out			dx,       ax
-		;clear even/odd mode (the other way, don't ask why)
-		mov			ax,       0x0604
-		out			dx,       ax
-		;copy charmap
-		mov			di,       0xA000
-    mov     es,       di
-    xor     di,       di
-		mov			cx,       256
-		;copy 16 bytes to bitmap
-  .SetFont.L0:
-    movsd
-		movsd
-		movsd
-		movsd
-		;skip another 16 bytes
-		add			di,       16
-		loop		.SetFont.L0
-		;restore VGA state to normal operation
-		mov			ax,       0x302
-		out			dx,       ax
-		mov			ax,       0x204
-		out			dx,       ax
-		mov			dx,       0x3ce
-		mov			ax,       0x1005
-		out			dx,       ax
-		mov			ax,       0xE06
-		out			dx,       ax
-    
-    pop     es si di dx ax
-    ret  
-
-    
+		; ds:si - pointer to font
+		; cl    - glyph height
+		; ch    - glyphu count - 1
+		ret

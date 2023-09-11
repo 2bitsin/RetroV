@@ -22,9 +22,18 @@ OptionRom:
 
     mov       si,       Strings.OpROMFound
     call      Debug.PrintString
+
     mov       ax,       es
     mov       cx,       16
     call      Debug.PrintHex16
+
+    mov       al,       ':'
+    call      Debug.PrintChar
+
+    mov       ax,       0
+    mov       cx,       16
+    call      Debug.PrintHex16
+    
     mov       si,       Strings.CrLf
     call      Debug.PrintString
 

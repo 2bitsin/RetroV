@@ -24,7 +24,7 @@ Prologue:
 
     mov         si,     Strings.Hello
     call        Debug.PrintString   
-    cld    
+    
 
   .L2:
     hlt

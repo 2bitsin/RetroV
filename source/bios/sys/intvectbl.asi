@@ -10,7 +10,7 @@ IVT:
   }
 
 .PrintInterrupt:
-  VMCallInstruction
+  hypercall
 
   push      ds es
 
