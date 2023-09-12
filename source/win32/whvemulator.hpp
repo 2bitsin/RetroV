@@ -26,7 +26,7 @@ namespace win32
 
 		template <typename ObjectT>
 		concept Has_MemoryAccess = requires(ObjectT&& object_v, 
-			bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v)
+			bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v)
 		{		
 			{ object_v.MemoryAccess(is_write_v, addr_v, data_v) } -> std::same_as<std::int32_t>;
 		};
@@ -136,11 +136,12 @@ namespace win32
 				{
 					if (context_v == nullptr)
 						return E_INVALIDARG;
-					return static_cast<T*>(context_v)->MemoryAccess(
+					auto status_v = static_cast<T*>(context_v)->MemoryAccess(
 						(bool)access_v->Direction,
 						(std::uint64_t)access_v->GpaAddress,
 						utils::as_static_mutable_bytes(access_v->Data)
 							.first(access_v->AccessSize));
+					return status_v;
 				};
 			}
 

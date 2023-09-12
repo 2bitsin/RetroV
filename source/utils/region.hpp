@@ -10,12 +10,14 @@
 namespace utils
 {
 	struct range_flag_t { };
+	struct size_invert_flag_t { };
 
 	static constexpr inline const auto from_range = range_flag_t{};
+	static constexpr inline const auto size_invert = size_invert_flag_t{};
 
 	template <typename T>
 	struct region 	
-	{
+	{		
 		using base_type = T;
 		using size_type = std::make_unsigned_t<decltype(std::declval<T>() - std::declval<T>())>;
 
@@ -33,12 +35,16 @@ namespace utils
 			: region(0, size_v)
 		{}
 
-		constexpr region(base_type base_v, size_type size_v) noexcept
-			: m_base(base_v), m_size(size_v)
+		constexpr region(base_type base_v, size_type size_v, size_type align_v = 1) noexcept
+			: m_base(round_ceil(base_v, align_v)), m_size(round_ceil(size_v, align_v))
 		{}
 
-		constexpr region(range_flag_t, base_type begin_v, base_type end_v) noexcept
-			: m_base(begin_v), m_size(end_v - begin_v)
+		constexpr region(range_flag_t, base_type begin_v, base_type end_v, size_type align_v = 1) noexcept
+			: m_base(round_ceil(begin_v, align_v)), m_size(round_ceil(end_v, align_v) - round_ceil(begin_v, align_v))
+		{}
+
+		constexpr region(size_invert_flag_t, base_type base_v, size_type size_v, size_type align_v = 1) noexcept
+			: m_base(round_ceil(base_v, align_v) - round_ceil(size_v, align_v)), m_size(round_ceil(size_v, align_v))
 		{}
 
 		constexpr region(region&&) noexcept = default;

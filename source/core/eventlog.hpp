@@ -24,6 +24,8 @@ namespace core
 		auto UnmapGpaRange(std::uint64_t base_v, std::uint64_t size_v) const -> void;
 	
 		auto UnrealModeEnabled(std::uint32_t) const -> void;
+    auto UnrealModeDisabled(std::uint32_t) const -> void;
+
 		auto EmitPostCode(utils::limited_span<std::byte, 4u> data_v) const -> void;
 
 		auto VCpuExited(std::uint32_t vcpu_index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_context_v) const -> void;

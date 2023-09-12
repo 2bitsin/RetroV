@@ -4,12 +4,13 @@
 #include <concepts>
 #include <iterator>
 #include <string>
+#include <array>
 
 namespace utils
 {
 
-  template<typename Iterator, typename T>
-  constexpr Iterator upper_bound(Iterator first, Iterator last, const T& value)
+  template <typename Iterator, typename T>
+	static inline constexpr auto upper_bound(Iterator first, Iterator last, const T& value) -> Iterator
   {
     Iterator it;
     typename std::iterator_traits<Iterator>::difference_type count, step;
@@ -30,8 +31,8 @@ namespace utils
     return first;
   }
 
-	template<typename Iterator, typename T>
-	constexpr Iterator lower_bound(Iterator first, Iterator last, const T& value)
+	template <typename Iterator, typename T>
+	static inline constexpr auto lower_bound(Iterator first, Iterator last, const T& value) -> Iterator
 	{
 		Iterator it;
 		typename std::iterator_traits<Iterator>::difference_type count, step;
@@ -71,12 +72,12 @@ namespace utils
 		return result_v;
 	}
 
-	constexpr auto round_down(std::integral auto value_v, std::integral auto alignment_v = 0x1000u) 
+	static inline constexpr auto round_down(std::integral auto value_v, std::integral auto alignment_v = 0x1000u)
 	{
 		return value_v & ~(alignment_v - 1u);
 	}
 
-	constexpr auto round_ceil(std::integral auto value_v, std::integral auto alignment_v = 0x1000u) 
+	static inline constexpr auto round_ceil(std::integral auto value_v, std::integral auto alignment_v = 0x1000u)
 	{ 
 		return round_down(value_v + alignment_v - 1u, alignment_v); 
 	}
@@ -87,4 +88,78 @@ namespace utils
 		result_v.fill(default_v);
 		return result_v;
 	}
+
+	namespace detail
+	{
+		template <typename T, std::size_t N>
+		struct split_type;
+
+		template <typename T>
+		struct split_type<T, 1u> {
+			using type = std::tuple<T>;
+		};
+
+		template <typename T>
+		struct split_type<T, 2u> {
+			using type = std::tuple<T, T>;
+		};
+
+		template <typename T>
+		struct split_type<T, 4u> {
+			using type = std::tuple<T, T, T, T>;
+		};
+
+		template <typename T>
+		struct split_type<T, 8u> {
+			using type = std::tuple<T, T, T, T, T, T, T, T>;
+		};
+	}
+
+	template <std::integral Target, std::integral Source,
+		std::size_t Ways = sizeof(Source) / sizeof(Target)>
+	requires (sizeof(Target) <= sizeof(Source))
+	static inline constexpr auto integral_split(Source value_v) -> 
+		std::array<Target, Ways>
+	{		
+		if constexpr (Ways == 1u) {
+			return 
+			{ 
+				static_cast<Target>(value_v >> (sizeof(Target) * 0u))
+			};
+		} else if constexpr (Ways == 2u) {
+			return 
+			{
+				static_cast<Target>(value_v >> (sizeof(Target) * 0u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 8u)) 
+			};
+		}
+		else if constexpr (Ways == 4u) 
+		{
+			return {
+				static_cast<Target>(value_v >> (sizeof(Target) * 0u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 8u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 16u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 24u))
+			};
+		}
+		else if constexpr (Ways == 8u) 
+		{
+			return {
+				static_cast<Target>(value_v >> (sizeof(Target) * 0u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 8u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 16u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 24u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 32u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 40u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 48u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 56u))
+			};
+		}
+		else 
+		{
+			static_assert(sizeof(Target*)==0u, "Invalid split type");
+		}
+	}
+		
+
 }

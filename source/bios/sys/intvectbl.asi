@@ -35,7 +35,7 @@ IVT:
   out       0xa1,   al
 
   popad
-  iret        
+  iret    
 
 .Initialize:
 

@@ -7,11 +7,11 @@
 #include <win32/whvpartition.hpp>
 #include <win32/whvprocessor.hpp>
 #include <win32/workqueue.hpp>
-#include <win32/mappedfile.hpp>
 #include <win32/workqueue.hpp>
 
 #include <core/configuration.hpp>
 #include <core/mapgparange.hpp>
+#include <core/romimage.hpp>
 #include <core/processor.hpp>
 #include <core/legacypic.hpp>
 #include <core/videodevice.hpp>
@@ -58,11 +58,14 @@ namespace core
 		friend Debugger;		
 
 		auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
-		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t;
+		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t;
+		auto Hypercall(Processor const& vcpu_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_HYPERCALL_CONTEXT const& hypercall_v) -> std::int32_t;
 	
 		auto ConfigureMemory(Configuration const&) -> void;
 		auto ConfigureBiosROM(Configuration const&) -> void;
 		auto ConfigurePartition(Configuration const&) -> void;
+
+		auto HypercallGetFunction(Processor const& vcpu_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_HYPERCALL_CONTEXT const& hypercall_v)->std::tuple<std::int32_t, std::uint16_t>;
 
 	private:		
     win32::WorkQueue m_WorkQueue;

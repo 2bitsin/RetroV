@@ -106,11 +106,8 @@ auto Machine::ConfigurePartition(Configuration const&) -> void
 	m_Partition = win32::WHvPartition::Create(1u, {		
 		{ WHvPartitionPropertyCodeExceptionExitBitmap, { 
 			.ExceptionExitBitmap 
-			= (1u << WHvX64ExceptionTypeGeneralProtectionFault)
-			| (1u << WHvX64ExceptionTypeDoubleFaultAbort)
-			| (1u << WHvX64ExceptionTypeInvalidOpcodeFault)
-			| (1u << WHvX64ExceptionTypeDebugTrapOrFault)			
-			| (1u << WHvX64ExceptionTypeBreakpointTrap)	
+			= (1u << WHvX64ExceptionTypeDoubleFaultAbort)
+			| (1u << WHvX64ExceptionTypeInvalidOpcodeFault)			
  		} },
 		{ WHvPartitionPropertyCodeX64MsrExitBitmap, {.X64MsrExitBitmap = {.UnhandledMsrs = 1 } } },
 		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .X64MsrExit = 1u, .ExceptionExit = 1u, .HypercallExit = 1u } } },
@@ -194,13 +191,12 @@ auto Machine::ConfigureBiosROM(Configuration const& config_v) -> void
 		path_v = config_v.GetPropertyString("rom.boot.intel.path");			
 	if (path_v.empty()) 
 		path_v = config_v.GetPropertyString("rom.boot.path");	
+
 	path_v = utils::build_path(path_v);
 	utils::validate_binary(path_v, 4_KiB, 1u, 8192u);
 	auto size_v = std::filesystem::file_size(path_v);
-	auto const size_lo_v = std::min(size_v, 256_KiB);
-	auto const size_hi_v = std::min(size_v, 32_MiB);
-	utils::region64_type region_lo_v{ 0x0000000000100000u - size_lo_v, size_lo_v };
-	utils::region64_type region_hi_v{ 0x0000000100000000u - size_hi_v, size_hi_v };
+	utils::region64_type const region_lo_v{ utils::size_invert, 0x0000000000100000u, std::min(size_v, 192_KiB ) };
+	utils::region64_type const region_hi_v{ utils::size_invert, 0x0000000100000000u, std::min(size_v, 16_MiB  ) };
 	m_MappedRoms.emplace_back(path_v, utils::region64_type{0, size_v}, win32::open_existing, win32::read_only);
 	auto const& bios_v = m_MappedRoms.back();		
 	m_MappedRanges.emplace_back(GetPartition(), region_lo_v, kAccessReadOnly, bios_v);	
@@ -222,7 +218,51 @@ auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16
 	return 0;
 }
 
-auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t
+auto Machine::HypercallGetFunction(Processor const& vcpu_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_HYPERCALL_CONTEXT const& hypercall_v) -> std::tuple<std::int32_t, std::uint16_t>
+{
+	if (context_v.ExecutionState.Cpl != 0)
+		return { ERROR_ACCESS_DENIED, 0 };
+
+	auto address_v = context_v.Cs.Base + context_v.Rip;
+	auto code_v = (std::uint32_t)hypercall_v.Rax;
+
+	if (address_v >= 3u) {
+		address_v -= 3u;
+	}
+
+	if (context_v.ExecutionState.Cr0Pe != 0) {
+		auto const [status_v, result_v, out_address_v] =
+			vcpu_v.TranslateGva(address_v, WHvTranslateGvaFlagNone);
+		if (status_v != ERROR_SUCCESS)
+			return { status_v, 0 };
+		address_v = out_address_v;
+	}
+
+	std::uint16_t opcode_v{ 0 };
+	if (opcode_v = vcpu_v.MemoryFetch<std::uint8_t>(address_v); opcode_v == 0x68u)
+		code_v = vcpu_v.MemoryFetch<std::uint16_t>(address_v + 1u);
+
+	return { ERROR_SUCCESS, code_v };
+}
+
+auto Machine::Hypercall(Processor const& vcpu_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_HYPERCALL_CONTEXT const& hypercall_v) -> std::int32_t
+{
+	auto const [status_v, code_v] = HypercallGetFunction(vcpu_v, context_v, hypercall_v);
+
+	if (status_v != ERROR_SUCCESS)
+		return status_v;
+		
+	switch (code_v&0xff00u)
+	{	  
+	case 0x0000: return m_VideoDevice.Hypercall(vcpu_v, code_v, context_v, hypercall_v);		
+	case 0xFF00: return m_Debugger.Hypercall(vcpu_v, code_v, context_v, hypercall_v);
+	default: break;
+	}
+	
+	return ERROR_ACCESS_DENIED;
+}
+
+auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t
 {	
 	if (physaddr_v >= 0xA0000u && physaddr_v <= 0xBFFFFu) {
 		return m_VideoDevice.MemoryAccess(vcpu_v, is_write_v, physaddr_v, data_v);

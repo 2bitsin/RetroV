@@ -51,8 +51,10 @@ namespace win32
 		MappedFile(MappedFile const&) = delete;
 		auto operator=(MappedFile const&) -> MappedFile& = delete;
 
-		MappedFile(MappedFile&&) = default;
-		auto operator=(MappedFile&&) -> MappedFile& = default;
+		MappedFile(MappedFile&&) noexcept ;
+		auto operator=(MappedFile&&) noexcept -> MappedFile&;
+		
+		auto swap(MappedFile& other_v) noexcept -> void;
 
 		auto Data() const noexcept -> std::span<std::byte>;
 		auto Size() const noexcept -> std::size_t;

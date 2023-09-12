@@ -83,6 +83,11 @@ auto EventLog::UnrealModeEnabled(std::uint32_t vcpu_index_v) const -> void
 	logger::info(logger::deflog, "CPU[{}] flat real mode hack enabled!", vcpu_index_v);
 }
 
+auto EventLog::UnrealModeDisabled(std::uint32_t vcpu_index_v) const -> void
+{
+	logger::info(logger::deflog, "CPU[{}] flat real mode hack disabled!", vcpu_index_v);
+}
+
 auto EventLog::EmitPostCode(utils::limited_span<std::byte, 4u> data_v) const -> void
 {
 	switch (data_v.size())

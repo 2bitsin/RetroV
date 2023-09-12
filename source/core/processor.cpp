@@ -34,7 +34,7 @@ auto Processor::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limit
 	return m_Machine.IoPortAccess(*this, is_write_v, port_v, data_v);
 }
 
-auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 8u> data_v) const -> std::int32_t
+auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) const -> std::int32_t
 {	
 	std::int32_t result_v{ ERROR_SUCCESS };
 	result_v = WHvProcessor::MemoryAccess(is_write_v, physaddr_v, data_v);
@@ -107,10 +107,18 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 		case WHvRunVpExitReasonMemoryAccess:
 			emulator_v.TryMmioEmulation(*this, context_v.VpContext, context_v.MemoryAccess);
 			continue;		
-		case WHvRunVpExitReasonSynicSintDeliverable:
-			continue;			
-		case WHvRunVpExitReasonX64InterruptWindow:						
+		case WHvRunVpExitReasonHypercall:
+			m_Machine.Hypercall(*this, context_v.VpContext, context_v.Hypercall);
+			AdvanceInstruction(context_v.VpContext);
 			continue;
+
+		case WHvRunVpExitReasonSynicSintDeliverable:
+			__debugbreak();
+			continue;			
+		case WHvRunVpExitReasonX64InterruptWindow:
+			__debugbreak();
+			continue;
+
 		case WHvRunVpExitReasonX64Halt:
 			if (InterruptsEnabled()) { 
 				m_Suspend.acquire();
@@ -121,6 +129,7 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 				return result_v;
 			m_Suspend.acquire();
 			continue;
+
 		case WHvRunVpExitReasonX64MsrAccess:
 			status_v = UnhandledMsr(context_v.VpContext, context_v.MsrAccess);
 			if (ERROR_SUCCESS != status_v)

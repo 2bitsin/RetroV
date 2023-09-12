@@ -30,13 +30,15 @@ static inline auto MakeConfiguration() -> core::Configuration
 	auto config_v = core::Configuration();
 
 	config_v.SetProperty("video.memory.kilobytes", "256");
-	config_v.SetProperty("video.bios.path", "@base/ROMs/Video.bin");
+	config_v.SetProperty("video.bios.amd.path", "@base/ROMs/BsVideoAMD.bin");
+	config_v.SetProperty("video.bios.intel.path", "@base/ROMs/BsVideoIntel.bin");
+	config_v.SetProperty("video.bios.path", "@base/ROMs/BsVideoAMD.bin");
 
 	config_v.SetProperty("memory.size.megabytes", "64");
 
 	config_v.SetProperty("rom.boot.amd.path", "@base/ROMs/BiosAMD.bin");
 	config_v.SetProperty("rom.boot.intel.path", "@base/ROMs/BiosIntel.bin");
-	config_v.SetProperty("rom.boot.path", "@base/ROMs/BiosIntel.bin");
+	config_v.SetProperty("rom.boot.path", "@base/ROMs/BiosAMD.bin");
 
 	return config_v;
 }

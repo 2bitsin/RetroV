@@ -41,7 +41,7 @@ namespace win32
 		}
 
 		auto TranslateGva(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v) const -> std::tuple<std::int32_t, WHV_TRANSLATE_GVA_RESULT_CODE, std::uint64_t>;
-		auto MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 8u> data_v, WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) const -> std::int32_t;
+		auto MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v, WHV_CACHE_TYPE cache_v = WHvCacheTypeUncached) const -> std::int32_t;
 
 		template<typename T> requires(std::is_trivial_v<T>)
 		auto MemoryWrite(std::uint64_t physaddr_v, T what_v) const -> std::int32_t {

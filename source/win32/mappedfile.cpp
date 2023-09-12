@@ -29,8 +29,7 @@ MappedFile::MappedFile(
 
 	auto const wpath_v = path_v.wstring();
 
-	unique_handle file_handle_v{ ::CreateFileW(wpath_v.c_str(), access_v,
-		share_v, nullptr, mode_v, FILE_ATTRIBUTE_NORMAL, nullptr) };
+	unique_handle file_handle_v{ ::CreateFileW(wpath_v.c_str(), access_v, share_v, nullptr, mode_v, FILE_ATTRIBUTE_NORMAL, nullptr) };
 
 	if(INVALID_HANDLE_VALUE == file_handle_v.get()) 
 		error::throw_last_error();
@@ -45,33 +44,52 @@ MappedFile::MappedFile(
 		regn_v.resize(size_v.QuadPart);
 	}	
 
-	auto round_regn_v = regn_v.round_outside_new(
-		sysinfo_v.dwAllocationGranularity);
+	auto round_regn_v = regn_v.round_outside_new(sysinfo_v.dwAllocationGranularity);
 
 	round_regn_v.clamp(regn_v.end());
 
-	auto size_lo_v = (round_regn_v.end() >> 0x00u)&0xffffffffu;
-	auto size_hi_v = (round_regn_v.end() >> 0x20u)&0xffffffffu;
+	auto const [size_lo_v, size_hi_v] = utils::integral_split<std::uint32_t>(round_regn_v.end());
 
-	unique_handle mapp_handle_v{ ::CreateFileMappingW(
-		file_handle_v.get(), nullptr, prot_v, size_hi_v, size_lo_v, nullptr) };
+	unique_handle mapp_handle_v{ ::CreateFileMappingW(file_handle_v.get(), nullptr, prot_v, size_hi_v, size_lo_v, nullptr) };
 
 	if (INVALID_HANDLE_VALUE == mapp_handle_v.get())
 		error::throw_last_error();
 
-	auto const fileoff_lo_v = (round_regn_v.base() >> 0x00u)&0xffffffffu;
-	auto const fileoff_hi_v = (round_regn_v.base() >> 0x20u)&0xffffffffu;
+	auto const [fileoff_lo_v, fileoff_hi_v] = utils::integral_split<std::uint32_t>(round_regn_v.base());
 
 	auto const mapoffset_v = regn_v.base() - round_regn_v.base();
 
-	m_MapPtr = (std::byte*)::MapViewOfFile(mapp_handle_v.get(),
-		m_prot_v, fileoff_hi_v, fileoff_lo_v, round_regn_v.size());
+	m_MapPtr = (std::byte*)::MapViewOfFile(mapp_handle_v.get(), m_prot_v, fileoff_hi_v, fileoff_lo_v, round_regn_v.size());
 
 	if (nullptr == m_MapPtr) error::throw_last_error();
 
 	m_Data = std::span{ m_MapPtr + mapoffset_v, regn_v.size() };		
 	m_File = std::move(file_handle_v);
 	m_Mapp = std::move(mapp_handle_v);
+}
+
+MappedFile::MappedFile(MappedFile&& from_v) noexcept
+	: m_File   { std::exchange(from_v.m_File,   nullptr) }
+	, m_Mapp   { std::exchange(from_v.m_Mapp,   nullptr) }
+	, m_MapPtr { std::exchange(from_v.m_MapPtr, nullptr) }
+	, m_Data   { std::exchange(from_v.m_Data,   {})}
+{}
+
+auto MappedFile::operator=(MappedFile&& from_v) noexcept -> MappedFile&
+{    
+	if (this != &from_v) {
+		MappedFile tmp_v{ std::move(from_v) };
+		tmp_v.swap(*this);
+	}
+	return *this;
+}
+
+auto MappedFile::swap(MappedFile& other_v) noexcept -> void
+{
+	std::swap(m_File, other_v.m_File);
+	std::swap(m_Mapp, other_v.m_Mapp);
+	std::swap(m_MapPtr, other_v.m_MapPtr);
+	std::swap(m_Data, other_v.m_Data);
 }
 
 auto MappedFile::Data() const noexcept -> std::span<std::byte>

@@ -1,6 +1,7 @@
 Debug:
   .PrintString:
-    push    ax cx dx si di es ds
+    push    ecx esi edi ax dx es ds
+
     pop     es
     cld
     mov     cx,     0xffff
@@ -9,10 +10,21 @@ Debug:
     repne   scasb
     mov     dx,     0xffff
     sub     dx,     cx
+    dec     dx
     mov     cx,     dx
-    mov     dx,     0xe9
-    rep     outsb
-    pop     es di si dx cx ax
+
+    and     ecx,    0xFFFF
+    mov     di,     ds
+    and     edi,    0xFFFF
+    shl     edi,    4
+    and     esi,    0xFFFF
+    add     esi,    edi
+
+    push    word 0xFF01
+    hypercall
+    add     sp,     2
+   
+    pop     es dx ax edi esi ecx
     ret
 
   .PrintChar:

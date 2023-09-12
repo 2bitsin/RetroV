@@ -8,7 +8,6 @@
 #include <utils/lambda.hpp>
 #include <utils/paths.hpp>
 
-
 #include <algorithm>
 #include <chrono>
 #include <ranges>
@@ -284,79 +283,18 @@ VideoDevice::~VideoDevice()
 	Stop();
 }
 
-
-auto VideoDevice::ConfigureBiosROM(Configuration const& config_v) -> void
-{
-	using namespace size_literals;
-	using namespace win32;
-
-	auto const video_rom_path_v = utils::build_path(config_v.GetPropertyString("video.bios.path"));
-	utils::validate_binary(video_rom_path_v, 4_KiB, 1u, 16u);
-	auto const size_v = std::filesystem::file_size(video_rom_path_v);
-	auto const where_v = utils::region64_type{ utils::from_range, 0xD0000u - size_v, 0xD0000u };
-	m_MappedRomFile.emplace(MappedFile(video_rom_path_v, {}, open_existing, execute_write_copy));
-	m_MappedRomRange.emplace(m_Machine.GetPartition(), where_v , kAccessDevice, m_MappedRomFile.value());
-}
-
-auto VideoDevice::ConfigureMemory(Configuration const& config_v) -> void
-{
-	using namespace win32;
-	using namespace size_literals;
-	auto const memory_kilobytes_v = config_v.GetPropertyUint64("video.memory.kilobytes");
-	m_VideoMemory[0] = VirtualAlloc_s(memory_kilobytes_v * 1_KiB, page_prot::read_write, alloc_flag::commit | alloc_flag::reserve | alloc_flag::write_watch);
-	m_VideoMemory[1] = VirtualAlloc_s(memory_kilobytes_v * 1_KiB, page_prot::read_write);
-}
-
 auto VideoDevice::Initialize(Configuration const& config_v) -> void
 {
 	using namespace win32;
 	using namespace size_literals;
-
-	ConfigureBiosROM(config_v);
-	ConfigureMemory(config_v);	
-
-}
-
-auto VideoDevice::RefreshThread(std::stop_token stoppee_v) -> void
-{
-	using namespace std::chrono_literals;
-	using namespace std::chrono;
-
-	std::mutex mutex_v;
-	std::unique_lock lock_v{ mutex_v };
-	std::condition_variable timer_v;
-	std::stop_callback stcbk_v(stoppee_v, [&timer_v]() {
-		timer_v.notify_all();
-	});
-
-	auto const stop_requested_q = [&stoppee_v]() {
-		return stoppee_v.stop_requested();
-	};
-
-	auto next_frame_v = steady_clock::now();
-	auto& display_v = m_Machine.GetDisplay();
-	while (!stoppee_v.stop_requested()) {		
-		auto const delta_time_v = Refresh(display_v);		
-		next_frame_v += delta_time_v;
-		if (timer_v.wait_until(lock_v, next_frame_v, stop_requested_q)) {
-			break;
-		}
-	}
 }
 
 auto VideoDevice::Start() -> void
 {
-	m_Refresh = std::async(std::launch::async,
-		utils::lambda(this, &VideoDevice::RefreshThread),
-		m_Stopper.get_token());
 }
 
 auto VideoDevice::Stop() -> void
 {
-	if (m_Refresh.valid()) {
-		m_Stopper.request_stop();
-		m_Refresh.wait();
-	}
 }
 
 auto VideoDevice::Restart() -> void
@@ -369,15 +307,14 @@ auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::ui
 	return S_OK;
 }
 
-auto VideoDevice::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t
+auto VideoDevice::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t
 {
 	__debugbreak();
 	return S_OK;
 }
 
-auto VideoDevice::Refresh(Display& surface_v) -> duration_type
+auto VideoDevice::Hypercall(Processor const& vcpu_v, std::uint16_t code_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_HYPERCALL_CONTEXT const& hypercall_v) -> std::int32_t
 {
-	using namespace std::chrono_literals;
-	return 1s;
+	__debugbreak();
+	return S_OK;
 }
-

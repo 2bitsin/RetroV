@@ -39,8 +39,11 @@ add_fasm_option(BiosIntel -d hypercall=vmcall -d date=${TODAY} -d time=${NOW})
 
 file(GLOB_RECURSE VID_BIOS_ASI source/bios/vid/*.asi)
 message (STATUS "VID_BIOS_ASI: ${VID_BIOS_ASI}")
-add_fasm_target(BsVideo "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BsVideo -d date=${TODAY} -d time=${NOW})
+add_fasm_target(BsVideoAMD "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_option(BsVideoAMD -d hypercall=vmmcall -d date=${TODAY} -d time=${NOW})
+
+add_fasm_target(BsVideoIntel "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_option(BsVideoIntel -d hypercall=vmcall -d date=${TODAY} -d time=${NOW})
 
 
 install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
