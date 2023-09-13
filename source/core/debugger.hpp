@@ -17,18 +17,23 @@ namespace core
 {
 	struct Machine;
 	struct Processor;
+	struct HypercallContext;
 
 	struct Debugger
 	{
 		Debugger(Machine& machine_v);
 
 		auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t addr_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
-		auto Hypercall(Processor const& vcpu_v, std::uint16_t code_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_HYPERCALL_CONTEXT const& hypercall_v) -> std::int32_t;
+		auto Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
 		auto Reset() -> void;
 		
 	protected:
 		auto Hypercall_UnrealModeEnable(Processor const& vcpu_v, bool enable) -> std::int32_t;
 		auto Hypercall_WriteLogString(Processor const& vcpu_v, std::uint64_t addr_v, std::uint64_t length_v) -> std::int32_t;
+		auto Hypercall_DebuggerBreak(Processor const& vcpu_v, std::uint64_t lin_v, std::uint16_t seg_v, std::uint64_t off_v) -> std::int32_t;
+
+		auto FetchMemory(Processor const& vcpu_v, std::uint64_t address_v, std::uint64_t length_v, 
+			std::vector<std::byte>& buffer_v) -> std::int32_t;
 
 	private:		
 		Machine& m_Machine;

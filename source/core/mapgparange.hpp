@@ -4,6 +4,7 @@
 #include <core/eventlog.hpp>
 
 #include <win32/error.hpp>
+#include <win32/mappedfile.hpp>
 #include <win32/whvpartition.hpp>
 
 #include <utils/region.hpp>
@@ -11,9 +12,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
-
-
-
 
 namespace core
 {	

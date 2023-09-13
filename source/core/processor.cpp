@@ -64,7 +64,7 @@ auto Processor::TranslateGvaPage(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLA
 	return status_v;
 }
 
-auto Processor::UnhandledMsr(WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) -> std::int32_t
+auto Processor::UnhandledMsr(WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) const -> std::int32_t
 {
 	using utils::logger;
 	if (access_v.AccessInfo.IsWrite) {
@@ -75,11 +75,21 @@ auto Processor::UnhandledMsr(WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_A
 	return S_OK;
 }
 
-auto Processor::UnhandledException(WHV_VP_EXIT_CONTEXT const& context_v, WHV_VP_EXCEPTION_CONTEXT const& exception_v) -> std::int32_t
+auto Processor::UnhandledException(WHV_VP_EXIT_CONTEXT const& context_v, WHV_VP_EXCEPTION_CONTEXT const& exception_v) const -> std::int32_t
 {
 	using utils::logger;
 	logger::error(logger::deflog, "CPU[{}] raised exception: {:d}({:#04X}) at {:04X}:{:08X}.", GetIndex(), exception_v.ExceptionType, exception_v.ExceptionType, context_v.Cs.Selector, context_v.Rip);  
 	return S_OK;
+}
+
+auto Processor::HypercallDispatch(WHV_RUN_VP_EXIT_CONTEXT const& context_v) const -> std::int32_t
+{
+	HypercallContext hypercall_v{ };
+	auto status_v = HypercallFunction(context_v, 
+		std::ref(hypercall_v));
+	if (status_v != ERROR_SUCCESS)
+		return status_v;
+	return m_Machine.Hypercall(*this, hypercall_v);
 }
 
 auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
@@ -108,7 +118,7 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 			emulator_v.TryMmioEmulation(*this, context_v.VpContext, context_v.MemoryAccess);
 			continue;		
 		case WHvRunVpExitReasonHypercall:
-			m_Machine.Hypercall(*this, context_v.VpContext, context_v.Hypercall);
+			HypercallDispatch(context_v);
 			AdvanceInstruction(context_v.VpContext);
 			continue;
 
@@ -229,4 +239,39 @@ auto Processor::AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& vpcontext_v) const
 		.Reg64 = vpcontext_v.InstructionLength
 		       + vpcontext_v.Rip
 	});
+}
+
+auto Processor::HypercallFunction(WHV_RUN_VP_EXIT_CONTEXT const& context_v, HypercallContext& output_v) const -> std::int32_t
+{
+	auto const& vpcontext_v = context_v.VpContext;
+	auto const& hypercall_v = context_v.Hypercall;
+
+	if (vpcontext_v.ExecutionState.Cpl != 0)
+		return ERROR_ACCESS_DENIED;
+
+	output_v.VpContext = vpcontext_v;
+	output_v.Hypercall = hypercall_v;
+	output_v.Function = (std::uint16_t)hypercall_v.Rax;
+	output_v.RaxUsed = 1;
+
+	if (auto iaddress_v = vpcontext_v.Cs.Base + vpcontext_v.Rip; 
+		iaddress_v >= 3u)
+	{
+		iaddress_v -= 3u;	
+		if (PagingEnabled()) 
+		{
+			auto const [status_v, result_v, oaddress_v] = 
+				TranslateGva(iaddress_v, WHvTranslateGvaFlagNone);
+			if (status_v != ERROR_SUCCESS)
+				return status_v;
+			iaddress_v = oaddress_v;
+		}
+		auto const opcode_v = MemoryFetch<uint8_t>(iaddress_v); 
+		iaddress_v += 1u;
+		if (0x68==opcode_v) {
+			output_v.Function = MemoryFetch<uint16_t>(iaddress_v);
+			output_v.RaxUsed = 0;
+		}		
+	}
+	return ERROR_SUCCESS;
 }

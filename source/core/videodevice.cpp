@@ -30,17 +30,7 @@ auto VideoDevice::Initialize(Configuration const& config_v) -> void
 	using namespace win32;
 	using namespace size_literals;
 
-	std::filesystem::path path_v = config_v.GetPropertyString("video.bios.path");
-	if (win32::WHvCapabilities::IsVendorAMD()) 
-		path_v = config_v.GetPropertyString("video.bios.amd.path");
-	else if (win32::WHvCapabilities::IsVendorIntel()) 
-		path_v = config_v.GetPropertyString("video.bios.intel.path");		
-
-	auto const validate_v = RomImage::validate{ 0x1000u, 0x01u, 0x10u };
-	auto const region_v = RomImage::region_type{ utils::from_range, 0xC0000u, 0xD0000u };
-	auto const options_v = RomImage::kTopAligned;
-	m_BiosRom.emplace(m_Machine.GetPartition(), 
-		validate_v, path_v, region_v, options_v);
+	ConfigureROM(config_v);
 }
 
 auto VideoDevice::Start() -> void
@@ -94,13 +84,20 @@ auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::ui
 auto VideoDevice::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t
 {
 	__debugbreak();
-	return S_OK;
+	return ERROR_SUCCESS;
 }
 
-auto VideoDevice::Hypercall(Processor const& vcpu_v, std::uint16_t code_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_HYPERCALL_CONTEXT const& hypercall_v) -> std::int32_t
+auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t
 {
-	__debugbreak();
-	return S_OK;
+	switch (hypercall_v.Minor)
+	{
+	case 0x00: //SetVideMode
+	case 0x01: //MapMemory
+	case 0x02: //SetBaseAdddress
+	case 0x03: 
+		break;
+	}
+	return ERROR_SUCCESS;
 }
 
 auto VideoDevice::IoPortWrite(Processor const& vcpu_v, std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t
@@ -128,4 +125,21 @@ auto VideoDevice::IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> 
 		return m_RamDAC.IoPortFetch(port_v - 0x016u);
 	}
 	return { ERROR_ACCESS_DENIED, 0 };
+}
+
+auto VideoDevice::ConfigureROM(core::Configuration const& config_v) -> void
+{
+	std::filesystem::path path_v = config_v.GetPropertyString("video.bios.path");
+	if (win32::WHvCapabilities::IsVendorAMD())
+		path_v = config_v.GetPropertyString("video.bios.amd.path");
+	else if (win32::WHvCapabilities::IsVendorIntel())
+		path_v = config_v.GetPropertyString("video.bios.intel.path");
+
+	auto const validate_v = RomImage::validate{
+		0x1000u, 0x01u, 0x10u };
+	auto const region_v = RomImage::region_type{
+		utils::from_range, 0xC0000u, 0xD0000u };
+	auto const options_v = RomImage::kTopAligned;
+	m_BiosRom.emplace(m_Machine.GetPartition(),
+		validate_v, path_v, region_v, options_v);
 }

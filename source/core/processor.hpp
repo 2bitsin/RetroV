@@ -22,6 +22,27 @@ namespace core
 {
 	struct Machine;
 
+
+	struct HypercallContext
+	{	union
+		{	std::uint32_t Function;
+			struct
+			{	std::uint32_t Minor : 8;
+				std::uint32_t Major : 8;
+				std::uint32_t _0 : 16;
+			};
+		};
+		union
+		{	std::uint32_t Flags;
+			struct
+			{	std::uint32_t RaxUsed : 1;
+				std::uint32_t _1 : 31;
+			};
+		};
+		WHV_HYPERCALL_CONTEXT Hypercall;
+		WHV_VP_EXIT_CONTEXT VpContext;
+	};
+
 	struct Processor: 
 		public win32::WHvProcessor
 	{
@@ -55,13 +76,15 @@ namespace core
 		using WHvProcessor::MemoryWrite;
 
 	protected:
+		auto UnhandledMsr(WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) const -> std::int32_t;
+		auto UnhandledException(WHV_VP_EXIT_CONTEXT const& context_v, WHV_VP_EXCEPTION_CONTEXT const& exception_v) const -> std::int32_t;
 
-		auto UnhandledMsr(WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) -> std::int32_t;
-		auto UnhandledException(WHV_VP_EXIT_CONTEXT const& context_v, WHV_VP_EXCEPTION_CONTEXT const& exception_v) -> std::int32_t;
+		auto AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& context_v) const -> std::int32_t;
+
+		auto HypercallDispatch(WHV_RUN_VP_EXIT_CONTEXT const& context_v) const -> std::int32_t;
+		auto HypercallFunction(WHV_RUN_VP_EXIT_CONTEXT const& context_v, HypercallContext& output_v) const -> std::int32_t;
 
  		static auto Emulator () -> win32::WHvEmulator&;
-
-		auto AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& vpcontext_v) const -> std::int32_t;
 	private:
 		Machine& m_Machine;		
 		std::mutex m_IsRunning;

@@ -1,5 +1,8 @@
 #include <system_error>
 #include <filesystem>
+#include <algorithm>
+#include <ranges>
+
 
 #include <win32/whvcapabilities.hpp>
 
@@ -218,44 +221,13 @@ auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16
 	return 0;
 }
 
-auto Machine::HypercallGetFunction(Processor const& vcpu_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_HYPERCALL_CONTEXT const& hypercall_v) -> std::tuple<std::int32_t, std::uint16_t>
-{
-	if (context_v.ExecutionState.Cpl != 0)
-		return { ERROR_ACCESS_DENIED, 0 };
 
-	auto address_v = context_v.Cs.Base + context_v.Rip;
-	auto code_v = (std::uint32_t)hypercall_v.Rax;
-
-	if (address_v >= 3u) {
-		address_v -= 3u;
-	}
-
-	if (context_v.ExecutionState.Cr0Pe != 0) {
-		auto const [status_v, result_v, out_address_v] =
-			vcpu_v.TranslateGva(address_v, WHvTranslateGvaFlagNone);
-		if (status_v != ERROR_SUCCESS)
-			return { status_v, 0 };
-		address_v = out_address_v;
-	}
-
-	std::uint16_t opcode_v{ 0 };
-	if (opcode_v = vcpu_v.MemoryFetch<std::uint8_t>(address_v); opcode_v == 0x68u)
-		code_v = vcpu_v.MemoryFetch<std::uint16_t>(address_v + 1u);
-
-	return { ERROR_SUCCESS, code_v };
-}
-
-auto Machine::Hypercall(Processor const& vcpu_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_HYPERCALL_CONTEXT const& hypercall_v) -> std::int32_t
-{
-	auto const [status_v, code_v] = HypercallGetFunction(vcpu_v, context_v, hypercall_v);
-
-	if (status_v != ERROR_SUCCESS)
-		return status_v;
-		
-	switch (code_v&0xff00u)
+auto Machine::Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t
+{		
+	switch (hypercall_v.Major)
 	{	  
-	case 0x0000: return m_VideoDevice.Hypercall(vcpu_v, code_v, context_v, hypercall_v);		
-	case 0xFF00: return m_Debugger.Hypercall(vcpu_v, code_v, context_v, hypercall_v);
+	case 0x00: return m_VideoDevice.Hypercall(vcpu_v, hypercall_v);		
+	case 0xFF: return m_Debugger.Hypercall(vcpu_v, hypercall_v);
 	default: break;
 	}
 	
@@ -264,15 +236,14 @@ auto Machine::Hypercall(Processor const& vcpu_v, WHV_VP_EXIT_CONTEXT const& cont
 
 auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t
 {	
+	using std::ranges::fill;
+
 	if (physaddr_v >= 0xA0000u && physaddr_v <= 0xBFFFFu) {
 		return m_VideoDevice.MemoryAccess(vcpu_v, is_write_v, physaddr_v, data_v);
 	}
 
 	if (physaddr_v >= 0xC0000u && physaddr_v <= 0xFFFFFu) {
-		if (!is_write_v) {
-			for (auto&& byte_v : data_v)
-				byte_v = std::byte(0xff);
-		}
+		if (!is_write_v) fill(data_v, std::byte{0xff});		
 		return ERROR_SUCCESS;
 	}
 

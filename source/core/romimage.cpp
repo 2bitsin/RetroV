@@ -27,6 +27,15 @@ RomImage::RomImage(partition_type& partition_v,
 			kAccessReadOnly, m_Image
 	}
 {
+	s_log.MapGpaRangeFromFile(
+		m_Image.Data().data(),
+		target_region_v.base(),
+		std::min(target_region_v.size(),
+			m_Image.Data().size()),
+		image_path_v,
+		source_region_v.base(),
+		m_Image.Data().size()
+	);
 }
 
 RomImage::RomImage(partition_type& partition_v,

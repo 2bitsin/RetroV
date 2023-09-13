@@ -54,6 +54,7 @@ namespace core
 		~Display();
 			
 		auto Initialize(std::uint16_t width_v = 640, std::uint16_t height_v = 400) -> void;
+		auto GetWindowSize() const->std::tuple<std::int32_t, std::int32_t>;
 		auto AcquireSurface(std::uint16_t width_v, std::uint16_t height_v) -> surface_tmp;		
 		auto Present(surface_tmp surface_v) -> void;
 		auto FlushSurfaceCache() -> void;

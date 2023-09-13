@@ -16,11 +16,22 @@ Display::~Display()
 
 auto Display::Initialize(std::uint16_t width_v, std::uint16_t height_v) -> void
 {
-	m_Window.reset(::SDL_CreateWindow("x86emu", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width_v*2, height_v*2, 
-		SDL_WINDOW_SHOWN|SDL_WINDOW_ALLOW_HIGHDPI));
+	if (nullptr != m_Window) {		
+		::SDL_SetWindowSize(m_Window.get(), width_v*2, height_v*2);
+		if (nullptr == m_Window.get())
+			throw std::runtime_error{ __func__ };
+	} else {
+		m_Window.reset(::SDL_CreateWindow("x86emu", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width_v*2, height_v*2, 
+			SDL_WINDOW_SHOWN|SDL_WINDOW_ALLOW_HIGHDPI));
+	}
+}
+
+auto Display::GetWindowSize() const -> std::tuple<std::int32_t, std::int32_t> {
+	std::int32_t width_v=0, height_v=0;
 	if (nullptr == m_Window.get())
-		throw std::runtime_error{ __func__ };	
-	FlushSurfaceCache();
+		throw std::runtime_error{ __func__ };
+	::SDL_GetWindowSize(m_Window.get(), &width_v, &height_v);
+	return { width_v, height_v };
 }
 
 auto Display::AcquireSurface(std::uint16_t width_v, std::uint16_t height_v) -> surface_tmp 
