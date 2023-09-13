@@ -10,8 +10,11 @@
 #include <core/videodevice/bscharacter.hpp>
 #include <core/videodevice/bsgraphical.hpp>
 #include <core/videodevice/bscommon.hpp>
+#include <core/videodevice/ramdac.hpp>
+
 #include <core/configuration.hpp>
 #include <core/mapgparange.hpp>
+#include <core/romimage.hpp>
 #include <core/display.hpp>
 
 #include <utils/limited_span.hpp>
@@ -45,7 +48,13 @@ namespace core
 		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t;
 		auto Hypercall(Processor const& vcpu_v, std::uint16_t code_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_HYPERCALL_CONTEXT const& hypercall_v) -> std::int32_t;		
 
+	protected:
+		auto IoPortWrite(Processor const& vcpu_v, std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t;
+		auto IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>;
+
 	private:	
 		Machine& m_Machine;		
+		std::optional<RomImage> m_BiosRom;
+		RamDAC m_RamDAC;
 	};
 }

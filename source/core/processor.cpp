@@ -208,6 +208,13 @@ auto Processor::InterruptsEnabled() const -> bool
 	return !!(rflags_v.Reg64 & kInterruptFlag);
 }
 
+auto Processor::PagingEnabled() const -> bool
+{
+	auto const cr0r_v = GetRegister<uint64_t>(WHvX64RegisterCr0);
+	auto const mask_v = 0x80000001u;
+	return mask_v == (cr0r_v & mask_v);
+}
+
 auto Processor::SetSingleStepMode(bool is_debug_v) -> void
 {
 	auto flags_v = GetRegister<std::uint64_t>(WHvX64RegisterRflags);

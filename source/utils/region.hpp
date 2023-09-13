@@ -82,6 +82,15 @@ namespace utils
 			return *this = round_inside_new(aligment_v);
 		}
 
+		constexpr auto last(size_type size_v) const noexcept -> region {
+			if (size_v >= size()) return *this;
+			return region{ size_invert, end(), size_v };
+		}
+
+		constexpr auto first(size_type size_v) const noexcept -> region {
+			if (size_v >= size()) return *this;
+			return region{ begin(), size() };
+		}
 
 	private:
 		base_type m_base;

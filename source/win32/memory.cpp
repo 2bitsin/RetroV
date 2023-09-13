@@ -155,23 +155,25 @@ auto win32::VirtualFree(void* address_v, std::size_t size_v,
 }
 
 
-auto win32::CopyDirtyPages(std::span<std::byte> target_v, std::span<std::byte const> source_v) -> std::int32_t 
+auto win32::CopyDirtyPages(std::span<std::byte> target_v, std::span<std::byte const> source_v) -> std::tuple<std::int32_t, std::size_t>
 {
 	std::byte const* address_buffer_v[256u];	
+	std::size_t copied_pages_v{ 0u };
 	while(!source_v.empty() && !target_v.empty()) 
 	{
 		auto [status_v, granularity_v, list_v] = QueryDirtyPages(
 			source_v, address_buffer_v, false);
 		if (status_v != ERROR_SUCCESS) 
-			return status_v;
+			return { status_v, 0u };
 		if (list_v.empty()) 
-			break;
+			return { ERROR_SUCCESS, 0u };
 		std::byte const* last_address_v{ nullptr };
 		for (auto&& source_address_v : list_v) {
 			auto target_address_v = std::next(target_v.data(), std::distance(
 				source_v.data(), source_address_v)) ;
 			std::memcpy(target_address_v, source_address_v, granularity_v);			
 			last_address_v = source_address_v;
+			copied_pages_v += 1u;
 		}
 		last_address_v += granularity_v;
 		auto const last_offset_v = std::distance(
@@ -180,6 +182,6 @@ auto win32::CopyDirtyPages(std::span<std::byte> target_v, std::span<std::byte co
 		target_v = target_v.subspan(last_offset_v);			
 	}
 	if (::ResetWriteWatch((void*)source_v.data(), source_v.size()))
-		return error::last_error();		
-	return S_OK;
+		return { error::last_error(), copied_pages_v };
+	return { ERROR_SUCCESS, copied_pages_v };
 }

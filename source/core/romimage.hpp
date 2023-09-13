@@ -33,17 +33,20 @@ namespace core
 			std::size_t const min_size{ 0x00000000000001ull };
 			std::size_t const max_size{ 0x10000000000000ull };
 		};
+		
+		static inline constexpr auto kTopAligned = 0x1u;
 
 		RomImage(partition_type& partition_v, 
 			validate const& validate_v,
 			std::filesystem::path const& image_path_v, 
 			region_type target_region_v,
+			std::uint32_t flags_v = 0u,
 			region_type source_region_v = {});
 			
-
 		RomImage(partition_type& partition_v,
 			std::filesystem::path const& image_path_v, 
 			region_type target_region_v,
+			std::uint32_t flags_v = 0u,
 			region_type source_region_v = {});
 
 		~RomImage() = default;

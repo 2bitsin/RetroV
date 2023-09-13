@@ -45,7 +45,9 @@ namespace core
 		auto Resume() -> void;
 
 		auto ReadTsc() const -> std::tuple<std::int32_t, std::uint64_t>;
+
 		auto InterruptsEnabled() const -> bool;
+		auto PagingEnabled() const -> bool;
 
 		auto SetSingleStepMode(bool is_debug_v) -> void;
 

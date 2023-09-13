@@ -91,28 +91,25 @@ namespace utils
 
 	namespace detail
 	{
-		template <typename T, std::size_t N>
-		struct split_type;
+		template <std::size_t Bytes, bool IsSigned>
+		struct integer_by_size;
 
-		template <typename T>
-		struct split_type<T, 1u> {
-			using type = std::tuple<T>;
-		};
-
-		template <typename T>
-		struct split_type<T, 2u> {
-			using type = std::tuple<T, T>;
-		};
-
-		template <typename T>
-		struct split_type<T, 4u> {
-			using type = std::tuple<T, T, T, T>;
-		};
-
-		template <typename T>
-		struct split_type<T, 8u> {
-			using type = std::tuple<T, T, T, T, T, T, T, T>;
-		};
+		template <> struct integer_by_size<1u, false> { using type = std::uint8_t;  };
+		template <> struct integer_by_size<2u, false> { using type = std::uint16_t; };
+		template <> struct integer_by_size<3u, false> { using type = std::uint32_t; };
+		template <> struct integer_by_size<4u, false> { using type = std::uint32_t; };
+		template <> struct integer_by_size<5u, false> { using type = std::uint64_t; };
+		template <> struct integer_by_size<6u, false> { using type = std::uint64_t; };
+		template <> struct integer_by_size<7u, false> { using type = std::uint64_t; };
+		template <> struct integer_by_size<8u, false> { using type = std::uint64_t; };
+		template <> struct integer_by_size<1u, true > { using type = std::int8_t;   };
+		template <> struct integer_by_size<2u, true > { using type = std::int16_t;  };
+		template <> struct integer_by_size<3u, true > { using type = std::int32_t;  };
+		template <> struct integer_by_size<4u, true > { using type = std::int32_t;  };
+		template <> struct integer_by_size<5u, true > { using type = std::int64_t;  };
+		template <> struct integer_by_size<6u, true > { using type = std::int64_t;  };
+		template <> struct integer_by_size<7u, true > { using type = std::int64_t;  };
+		template <> struct integer_by_size<8u, true > { using type = std::int64_t;  };
 	}
 
 	template <std::integral Target, std::integral Source,
@@ -161,5 +158,14 @@ namespace utils
 		}
 	}
 		
+	
+	template<std::integral... Source, typename result_type = typename
+		detail::integer_by_size<(sizeof(Source) + ...), (std::is_signed_v<Source> || ...)>::type>
+	static inline constexpr auto integral_join(Source... value_v) -> result_type
+	{
+		result_type result_v{};
+		(((result_v <<= sizeof(Source) * 8u) |= value_v), ...);
+		return result_v;
+	}
 
 }

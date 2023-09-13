@@ -4,17 +4,16 @@ Debug:
 
     pop     es
     cld
-    mov     cx,     0xffff
+    xor     cx,     cx
+    not     cx
     mov     di,     si
     xor     al,     al
     repne   scasb
-    mov     dx,     0xffff
-    sub     dx,     cx
-    dec     dx
-    mov     cx,     dx
+    not     cx
+    dec     cx
+    mov     di,     ds
 
     and     ecx,    0xFFFF
-    mov     di,     ds
     and     edi,    0xFFFF
     shl     edi,    4
     and     esi,    0xFFFF

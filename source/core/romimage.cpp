@@ -10,7 +10,8 @@ using core::RomImage;
 RomImage::RomImage(partition_type& partition_v, 
 	validate const& validate_v, 
 	std::filesystem::path const& image_path_v, 
-	region_type target_region_v, 
+	region_type target_region_v,
+	std::uint32_t flags_v,
 	region_type source_region_v)
 	: m_Image{
 			utils::validate_binary(image_path_v, validate_v.granularity, validate_v.min_size, validate_v.max_size), 
@@ -20,7 +21,9 @@ RomImage::RomImage(partition_type& partition_v,
 			win32::share_type::share_read
 	}
 	, m_Mapping{
-			partition_v, target_region_v,
+			partition_v, flags_v&kTopAligned 
+			? target_region_v.first(m_Image.Size())
+			: target_region_v.last(m_Image.Size()),
 			kAccessReadOnly, m_Image
 	}
 {
@@ -29,6 +32,7 @@ RomImage::RomImage(partition_type& partition_v,
 RomImage::RomImage(partition_type& partition_v,
 	std::filesystem::path const& image_path_v, 
 	region_type target_region_v,
+	std::uint32_t flags_v,
 	region_type source_region_v)
 	: m_Image   {
 			utils::build_path(image_path_v), 
@@ -38,7 +42,9 @@ RomImage::RomImage(partition_type& partition_v,
 			win32::share_type::share_read 
 		}
 	, m_Mapping { 
-			partition_v, target_region_v, 
+			partition_v, (flags_v&kTopAligned)
+			? target_region_v.last(m_Image.Size())
+			: target_region_v.first(m_Image.Size()),
 			kAccessReadOnly, m_Image
 		}
 {

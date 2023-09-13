@@ -15,7 +15,8 @@
 
 namespace win32
 {
-	enum alloc_flag: std::uint32_t {
+	enum alloc_flag: std::uint32_t 
+	{
 		commit								= MEM_COMMIT,
 		reserve								= MEM_RESERVE,
 		reset									= MEM_RESET,
@@ -26,14 +27,16 @@ namespace win32
 		write_watch						= MEM_WRITE_WATCH
 	};
 
-	enum free_flag: std::uint32_t {
+	enum free_flag: std::uint32_t 
+	{
 		decommit							= MEM_DECOMMIT,
 		release								= MEM_RELEASE,
 		coalesce_placeholders	= MEM_COALESCE_PLACEHOLDERS,
 		preserve_placeholders	= MEM_PRESERVE_PLACEHOLDER
 	};
 
-	enum page_prot: std::uint32_t {
+	enum page_prot: std::uint32_t 
+	{
 		no_access							= PAGE_NOACCESS,
 		read_only							= PAGE_READONLY,
 		read_write						= PAGE_READWRITE,
@@ -97,7 +100,8 @@ namespace win32
 	auto QueryDirtyPages(std::span<std::byte const> source_v, std::span<std::byte const*> dirty_list_v, bool reset_v = true)
 		-> std::tuple<std::int32_t, std::uintptr_t, std::span<std::byte const*>>;
 
-	auto CopyDirtyPages(std::span<std::byte> target_v, std::span<std::byte const> source_v) -> std::int32_t;
+	auto CopyDirtyPages(std::span<std::byte> target_v, std::span<std::byte const> source_v) 
+		-> std::tuple<std::int32_t, std::size_t>;
 
 	auto GetMappedFileName(void const* address_v) -> std::variant<std::int32_t, std::filesystem::path>;
 }
