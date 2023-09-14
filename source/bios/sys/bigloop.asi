@@ -1,11 +1,11 @@
 Misc:
   .BigFingLoop:  
-    push    eax ecx
+    push    ebx ecx
 
     mov     si,     Strings.LoopBegin    
     call    Debug.PrintString    
 
-    mov     eax,    0
+    mov     ebx,    0
   .BigFingLoopOuter:    
     mov     ecx,    0
   .BigFingLoopInner:
@@ -15,20 +15,20 @@ Misc:
     mov     si,     Strings.LoopTock
     call    Debug.PrintString
 
-    push    ax
-    neg     ax
+    push    bx
+    neg     bx
     mov     cx,     16
     call    Debug.PrintNumber
-    pop     ax
+    pop     bx
 
     mov     si,     Strings.CrLf
     call    Debug.PrintString
 
-    dec     eax
+    dec     ebx
     jnz     .BigFingLoopOuter
 
     mov     si,     Strings.LoopEnd
     call    Debug.PrintString
 
-    pop     ecx eax
+    pop     ecx ebx
     ret

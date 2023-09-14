@@ -30,7 +30,7 @@ Debug:
     ret
 
   .PrintChar:
-    ; al -> Char    
+    ; bl -> Char    
     push    word 0xFF03
     hypercall
     add     sp,     2    

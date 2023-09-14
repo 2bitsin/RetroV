@@ -4,11 +4,11 @@
 using core::MapGpaRange;
 
 MapGpaRange::MapGpaRange(win32::WHvPartition& partition_v, utils::region64_type region_v, Access flags_v, std::span<std::byte> view_v)
-	: m_Partition	{ &partition_v }
-	, m_Region		{ region_v		 }
-	, m_Flags			{ flags_v			 }
-	, m_View			{ view_v			 }
-	, m_Enabled		{ false				 }
+	: m_Partition	{ &partition_v			}
+	, m_Region		{ region_v					}
+	, m_Flags			{ flags_v						}
+	, m_View			{ view_v						}
+	, m_Enabled		{ false							}
 {	
 	Enable();
 }

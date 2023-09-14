@@ -23,14 +23,14 @@ OptionRom:
     mov       si,       Strings.OpROMFound
     call      Debug.PrintString
 
-    mov       ax,       es
+    mov       bx,       es
     mov       cx,       16
     call      Debug.PrintNumber
 
-    mov       al,       ':'
+    mov       bl,       ':'
     call      Debug.PrintChar
 
-    mov       ax,       0
+    mov       bx,       0
     mov       cx,       16
     call      Debug.PrintNumber
     

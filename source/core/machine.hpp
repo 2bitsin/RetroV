@@ -70,7 +70,7 @@ namespace core
 		win32::WHvPartition m_Partition;		
 		win32::unique_span<std::byte> m_MainMemory;
 		std::list<MapGpaRange> m_MappedRanges;
-		std::list<win32::MappedFile> m_MappedRoms;
+		std::list<RomImage> m_MappedRoms;
 
 		core::Processor m_Processor;
 		core::Processor::exit_future_type m_ProcessorExit;

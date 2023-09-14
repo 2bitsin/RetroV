@@ -195,6 +195,7 @@ auto Machine::ConfigureBiosROM(Configuration const& config_v) -> void
 	if (path_v.empty()) 
 		path_v = config_v.GetPropertyString("rom.boot.path");	
 
+	/*
 	path_v = utils::build_path(path_v);
 	utils::validate_binary(path_v, 4_KiB, 1u, 8192u);
 	auto size_v = std::filesystem::file_size(path_v);
@@ -204,6 +205,7 @@ auto Machine::ConfigureBiosROM(Configuration const& config_v) -> void
 	auto const& bios_v = m_MappedRoms.back();		
 	m_MappedRanges.emplace_back(GetPartition(), region_lo_v, kAccessReadOnly, bios_v);	
 	m_MappedRanges.emplace_back(GetPartition(), region_hi_v, kAccessReadOnly, bios_v);	
+	*/
 }
 
 auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t

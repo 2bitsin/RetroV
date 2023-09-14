@@ -64,16 +64,7 @@ auto Debugger::Hypercall_WriteLogString(Processor const& vcpu_v, std::uint64_t a
 	auto status_v = FetchMemory(vcpu_v, address_v, length_v, output_v);
 	if (status_v != ERROR_SUCCESS)
 		return status_v;
-	std::lock_guard lock{ m_Mutex };
-	for (auto char_v : output_v) 
-	{		
-		if (char_v == std::byte('\n')) {
-			logger::debug(logger::deflog, "CPU[{}] : {}", vcpu_v.GetIndex(), m_Buffer);
-			m_Buffer.clear();
-			continue;
-		}
-		m_Buffer.push_back((char)char_v);
-	}			
+	WriteLogString(vcpu_v, { (char*)output_v.data(), output_v.size() });
 	return ERROR_SUCCESS;
 }
 
@@ -119,23 +110,20 @@ auto Debugger::Hypercall_WriteLogNumber(Processor const& vcpu_v, std::uint32_t v
 	{
 		auto length_v = result_v.ptr - (buffer_v + 64u);		
 		if (std::has_single_bit((std::uint8_t)base_v)) {
-			auto const digit_width_v = std::bit_width((std::size_t)base_v);
-			length_v = (length_v + digit_width_v - 1u) / digit_width_v;
+			auto const digit_width_v = std::bit_width((std::size_t)base_v - 1u);
 			size_v = (size_v + digit_width_v - 1u) / digit_width_v;
-			std::lock_guard lock_v{ m_Mutex };
-			m_Buffer.append(buffer_v + 64u - (size_v - length_v), result_v.ptr);
+			WriteLogString(vcpu_v, { buffer_v + 64u - (size_v - length_v), result_v.ptr });
 		} else {
-			std::lock_guard lock_v{ m_Mutex };
-			m_Buffer.append(buffer_v + 64u, result_v.ptr);
+			WriteLogString(vcpu_v, { buffer_v + 64u, result_v.ptr });
 		}
+		return ERROR_SUCCESS;
 	}
-	return ERROR_SUCCESS;
+	return ERROR_ACCESS_DENIED;
 }
 
 auto Debugger::Hypercall_WriteLogChar(Processor const& vcpu_v, char value_v) -> std::int32_t
 {
-	std::lock_guard lock_v{ m_Mutex };
-	m_Buffer.push_back(value_v);
+	WriteLogString(vcpu_v, { &value_v, 1u });
 	return ERROR_SUCCESS;
 }
 
@@ -188,6 +176,19 @@ auto Debugger::FetchMemory(Processor const& vcpu_v, std::uint64_t address_v, std
 	}
 Done:
 	return ERROR_SUCCESS;
+}
+
+auto Debugger::WriteLogString(Processor const& vcpu_v, std::string_view message_v) -> void
+{
+	std::lock_guard lock_v{ m_Mutex };
+	for (auto value_v: message_v) {	
+		if (value_v != '\n') {
+			m_Buffer.push_back(value_v);
+			continue;
+		}
+		utils::logger::debug(utils::logger::deflog, "CPU[{}] : {}", vcpu_v.GetIndex(), m_Buffer);
+		m_Buffer.clear();
+	}
 }
 
 auto Debugger::Hypercall(Processor const& vcpu_v, HypercallContext const& context_v) -> std::int32_t

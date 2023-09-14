@@ -37,6 +37,8 @@ namespace core
 		auto FetchMemory(Processor const& vcpu_v, std::uint64_t address_v, std::uint64_t length_v, 
 			std::vector<std::byte>& buffer_v) -> std::int32_t;
 
+		auto WriteLogString(Processor const& vcpu_v, std::string_view message_v) -> void;
+
 	private:		
 		Machine& m_Machine;
 		std::mutex m_Mutex;
