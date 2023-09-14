@@ -25,14 +25,14 @@ OptionRom:
 
     mov       ax,       es
     mov       cx,       16
-    call      Debug.PrintHex16
+    call      Debug.PrintNumber
 
     mov       al,       ':'
     call      Debug.PrintChar
 
     mov       ax,       0
     mov       cx,       16
-    call      Debug.PrintHex16
+    call      Debug.PrintNumber
     
     mov       si,       Strings.CrLf
     call      Debug.PrintString

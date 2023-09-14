@@ -46,10 +46,9 @@ namespace win32
 		};
 
 		template <typename ObjectT>
-		concept Has_TranslateGvaPage = requires(ObjectT&& object_v, std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v, 
-			WHV_TRANSLATE_GVA_RESULT_CODE& code_v, std::uint64_t& physaddr_v)
+		concept Has_TranslateGvaPage = requires(ObjectT&& object_v, std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v)
 		{		
-			{ object_v.TranslateGvaPage(virtaddr_v, flags_v, code_v, physaddr_v) } -> std::same_as<std::int32_t>;
+			{ object_v.TranslateGva(virtaddr_v, flags_v) } -> std::same_as<std::tuple<std::int32_t, WHV_TRANSLATE_GVA_RESULT_CODE, std::uint64_t>>;
 		};
 
 	}
@@ -179,10 +178,12 @@ namespace win32
 				callbacks_v.TranslateGvaPage = [](void* context_v, uint64_t gva_v, WHV_TRANSLATE_GVA_FLAGS flags_v, 
 					WHV_TRANSLATE_GVA_RESULT_CODE* code_v, uint64_t* gpa_v) -> HRESULT
 				{
+					using std::tie;
 					if (context_v == nullptr)
 						return E_INVALIDARG;
-					return static_cast<T*>(context_v)->TranslateGvaPage(
-						gva_v, flags_v, *code_v, *gpa_v);
+					int32_t status_v=0;
+					tie(status_v, *code_v, *gpa_v) = static_cast<T*>(context_v)->TranslateGva(gva_v, flags_v);
+					return status_v;
 				};
 			}			
 		}

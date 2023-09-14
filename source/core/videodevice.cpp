@@ -139,7 +139,7 @@ auto VideoDevice::ConfigureROM(core::Configuration const& config_v) -> void
 		0x1000u, 0x01u, 0x10u };
 	auto const region_v = RomImage::region_type{
 		utils::from_range, 0xC0000u, 0xD0000u };
-	auto const options_v = RomImage::kTopAligned;
+	auto const options_v = 0u;
 	m_BiosRom.emplace(m_Machine.GetPartition(),
 		validate_v, path_v, region_v, options_v);
 }

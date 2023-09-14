@@ -7,6 +7,8 @@ Prologue:
     mov     si,         Fonts.l16
     mov     cx,         0xFF10 ; cl = 16, ch = 255
     call    VideoMode.SetFont
+    mov     si,         Strings.Hello
+    call    Debug.PrintString
 
     pop     es ds
     popa

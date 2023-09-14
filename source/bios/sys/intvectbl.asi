@@ -22,7 +22,7 @@ IVT:
   
   ;         ax is already set to the interrupt number
   mov       cx,     16
-  call      Debug.PrintHex16
+  call      Debug.PrintNumber
 
   mov       si,     Strings.CrLf
   call      Debug.PrintString

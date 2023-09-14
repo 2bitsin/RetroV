@@ -21,7 +21,7 @@ RomImage::RomImage(partition_type& partition_v,
 			win32::share_type::share_read
 	}
 	, m_Mapping{
-			partition_v, flags_v&kTopAligned 
+			partition_v, !(flags_v&kTopAligned) 
 			? target_region_v.first(m_Image.Size())
 			: target_region_v.last(m_Image.Size()),
 			kAccessReadOnly, m_Image
@@ -29,7 +29,9 @@ RomImage::RomImage(partition_type& partition_v,
 {
 	s_log.MapGpaRangeFromFile(
 		m_Image.Data().data(),
-		target_region_v.base(),
+		(!(flags_v & kTopAligned)
+			? target_region_v.first(m_Image.Size())
+			: target_region_v.last(m_Image.Size())).base(),
 		std::min(target_region_v.size(),
 			m_Image.Data().size()),
 		image_path_v,
@@ -51,15 +53,17 @@ RomImage::RomImage(partition_type& partition_v,
 			win32::share_type::share_read 
 		}
 	, m_Mapping { 
-			partition_v, (flags_v&kTopAligned)
-			? target_region_v.last(m_Image.Size())
-			: target_region_v.first(m_Image.Size()),
+			partition_v, !(flags_v&kTopAligned)
+			? target_region_v.first(m_Image.Size())
+			: target_region_v.last(m_Image.Size()),
 			kAccessReadOnly, m_Image
 		}
 {
 	s_log.MapGpaRangeFromFile(
 		m_Image.Data().data(),
-		target_region_v.base(),
+		(!(flags_v & kTopAligned)
+			? target_region_v.first(m_Image.Size())
+			: target_region_v.last(m_Image.Size())).base(),
 		std::min(target_region_v.size(),
 			m_Image.Data().size()), 
 		image_path_v, 

@@ -57,11 +57,19 @@ auto Processor::SetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::sp
 	return WHvProcessor::SetRegisters(names_v, values_v);
 }
 
-auto Processor::TranslateGvaPage(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v, WHV_TRANSLATE_GVA_RESULT_CODE& code_o, std::uint64_t& addr_o) const -> std::int32_t
+auto Processor::TranslateAddress(std::uint64_t vaddress_v, core::Access access_v) const -> std::tuple<std::int32_t, std::uint64_t>
 {
-	std::int32_t status_v{ S_OK };
-	std::tie(status_v, code_o, addr_o) = WHvProcessor::TranslateGva(virtaddr_v, flags_v);	
-	return status_v;
+	if (!PagingEnabled()) return { ERROR_SUCCESS, vaddress_v };	
+	using enum core::Access;
+	WHV_TRANSLATE_GVA_FLAGS flags_v{ };
+	if (access_v & kAccessWrite) flags_v |= WHvTranslateGvaFlagValidateWrite;
+	if (access_v & kAccessFetch) flags_v |= WHvTranslateGvaFlagValidateRead;
+	auto const [status_v, code_v, paddress_v] = WHvProcessor::TranslateGva(vaddress_v, flags_v);
+	if (ERROR_SUCCESS != status_v)
+		return { status_v, 0u };
+	if (WHvTranslateGvaResultSuccess != code_v)
+		return { ERROR_ACCESS_DENIED, 0u };
+	return { status_v, paddress_v };
 }
 
 auto Processor::UnhandledMsr(WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) const -> std::int32_t

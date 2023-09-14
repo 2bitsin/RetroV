@@ -1,57 +1,38 @@
 Debug:
   .PrintString:
-    push    ecx esi edi ax dx es ds
-
-    pop     es
-    cld
-    xor     cx,     cx
-    not     cx
-    mov     di,     si
-    xor     al,     al
-    repne   scasb
-    not     cx
-    dec     cx
-    mov     di,     ds
-
-    and     ecx,    0xFFFF
-    and     edi,    0xFFFF
-    shl     edi,    4
+    ; ds:si =-> StringZ
+    push    esi edi ecx
     and     esi,    0xFFFF
+    mov     edi,    ds    
+    shl     edi,    4
     add     esi,    edi
-
+    xor     ecx,    ecx 
     push    word 0xFF01
     hypercall
     add     sp,     2
-   
-    pop     es dx ax edi esi ecx
+    pop     ecx edi esi
+    ret
+
+  .PrintNumber:
+    ; bl      -> Value [ cx > 0  ]
+    ; bx      -> Value [ cx > 8  ]
+    ; dx:bx   -> Value [ cx > 16 ]
+    ; edx:ebx -> Value [ cx > 32 ]
+    ; cl      -> Size => 1...64
+    ; ch      -> Base => 2...16
+    cmp     ch,     1
+    ja      .PrintNumber.base_ok
+    mov     ch,     16
+  .PrintNumber.base_ok:
+    push    word 0xFF02
+    hypercall
+    add     sp,     2
     ret
 
   .PrintChar:
-    ; al = char    
-    out     0xe9,   al
-    ret
-
-  .PrintHex16:
-    ; ax = 16bit value
-    ; cx = bits to print in 4 bit increments or 0 for default
-    pusha
-    or      cx,     cx 
-    jnz     .PrintHex16.loop
-    mov     cx,     16    
-  .PrintHex16.loop:
-    sub     cx,     4
-    push    ax
-    shr     ax,     cl
-    and     ax,     0xf
-    cmp     ax,     10
-    jl      .PrintHex16.digit
-    add     ax,     'A' - '0' - 10
-  .PrintHex16.digit:
-    add     ax,     '0'
-    call    .PrintChar
-    pop     ax
-    test    cx,     cx
-    jnz     .PrintHex16.loop
-    popa
+    ; al -> Char    
+    push    word 0xFF03
+    hypercall
+    add     sp,     2    
     ret
 

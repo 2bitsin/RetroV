@@ -24,9 +24,7 @@ MapGpaRange::MapGpaRange(MapGpaRange&& from_v) noexcept
 	, m_Flags			{ std::exchange(from_v.m_Flags		, {})      }
 	, m_View			{ std::exchange(from_v.m_View			, {})      }
 	, m_Enabled		{ std::exchange(from_v.m_Enabled	, false)   }
-{
-
-}
+{}
 
 auto MapGpaRange::operator=(MapGpaRange&& from_v) noexcept -> MapGpaRange&
 {

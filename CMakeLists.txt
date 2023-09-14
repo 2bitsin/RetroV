@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(HvDOS)
+project(RetroV)
 
 set (CMAKE_SYSTEM_VERSION "10.0.22621.0")
 
@@ -12,16 +12,16 @@ include(${CMAKE_SOURCE_DIR}/cmake/msvcfix.cmake)
 find_package(SDL2 CONFIG REQUIRED)
 find_package(capstone CONFIG REQUIRED)
 
-# Main HvDOS executable target
+# Main RetroV executable target
 file(GLOB_RECURSE SOURCE_FILES source/*.cpp source/*.hpp)
-add_executable(HvDOS ${SOURCE_FILES})
-target_include_directories(HvDOS PRIVATE source)
-target_compile_features(HvDOS PRIVATE cxx_std_23)
+add_executable(RetroV ${SOURCE_FILES})
+target_include_directories(RetroV PRIVATE source)
+target_compile_features(RetroV PRIVATE cxx_std_23)
 find_library(LIB_WINHVPLATFORM NAMES WinHvPlatform)
 find_library(LIB_WINHVEMULATION NAMES WinHvEmulation)
-target_link_libraries(HvDOS PRIVATE ${LIB_WINHVPLATFORM} ${LIB_WINHVEMULATION} SDL2::SDL2 capstone::capstone)
-set_target_properties(HvDOS PROPERTIES LINK_FLAGS "/level='requireAdministrator' /uiAccess='false'")
-target_stack_size(HvDOS "256MiB")
+target_link_libraries(RetroV PRIVATE ${LIB_WINHVPLATFORM} ${LIB_WINHVEMULATION} SDL2::SDL2 capstone::capstone)
+set_target_properties(RetroV PROPERTIES LINK_FLAGS "/level='requireAdministrator' /uiAccess='false'")
+target_stack_size(RetroV "256MiB")
 
 string(TIMESTAMP TODAY "%Y-%m-%d")
 string(TIMESTAMP NOW "%H:%M:%S")
@@ -47,5 +47,5 @@ add_fasm_option(BsVideoIntel -d hypercall=vmcall -d date=${TODAY} -d time=${NOW}
 
 
 install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
-install (TARGETS HvDOS DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install (TARGETS RetroV DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 install (DIRECTORY ${CMAKE_SOURCE_DIR}/extras/ROMS DESTINATION ${CMAKE_INSTALL_PREFIX})

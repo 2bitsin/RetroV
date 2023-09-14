@@ -18,7 +18,7 @@ Misc:
     push    ax
     neg     ax
     mov     cx,     16
-    call    Debug.PrintHex16
+    call    Debug.PrintNumber
     pop     ax
 
     mov     si,     Strings.CrLf
