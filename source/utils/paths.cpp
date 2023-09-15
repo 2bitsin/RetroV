@@ -1,7 +1,12 @@
 #include <utils/paths.hpp>
 
-#include <win32/error.hpp>
+#include <win32/whvcapabilities.hpp>
 #include <win32/windows.hpp>
+#include <win32/error.hpp>
+
+#include <unordered_map>
+#include <string_view>
+#include <filesystem>
 
 namespace utils
 {
@@ -29,17 +34,29 @@ namespace utils
 
 	auto build_path(std::filesystem::path const& path_v) -> std::filesystem::path
 	{
+		using namespace std::string_view_literals;
 		std::filesystem::path new_path_v;
 		auto const self_path_v = module_filename();
 		auto const bin_path_v = self_path_v.parent_path();
 		auto const base_path_v = bin_path_v.parent_path();
 
+		std::unordered_map<std::string_view, std::filesystem::path> variables_v{
+			{ "@bin"sv, bin_path_v },
+			{ "@base"sv, base_path_v },
+			{ "@roms"sv, base_path_v / "ROMs"},
+			{ "@vendor"sv, std::filesystem::path{
+				(win32::WHvCapabilities::IsVendorAMD() ? "AMD" :
+				(win32::WHvCapabilities::IsVendorIntel() ? "Intel" :
+				"."))
+			}}
+		};
+
 		for (auto const& part_v : path_v) {
-			if (part_v == L"@bin") {
-				new_path_v /= bin_path_v; 
-			} else if (part_v == L"@base") {
-				new_path_v /= base_path_v;
-			} else {
+			auto it = variables_v.find(part_v.string());
+			if (it != variables_v.end()) {
+				new_path_v /= it->second;
+			}
+			else {
 				new_path_v /= part_v;
 			}
 		}

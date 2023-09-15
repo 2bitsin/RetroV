@@ -71,7 +71,7 @@ auto Debugger::Hypercall_WriteLogString(Processor const& vcpu_v, std::uint64_t a
 auto Debugger::Hypercall_DebuggerBreak(Processor const& vcpu_v, std::uint64_t lin_v, std::uint16_t seg_v, std::uint64_t off_v) -> std::int32_t
 {
 	using utils::logger;
-	logger::debug(logger::deflog, "CPU[{}]: DebuggerBreak at ({:08x}) with CS={:04x} IP={:08x}", vcpu_v.GetIndex(), lin_v, seg_v, off_v);	
+	s_log.DebugTrap(lin_v, seg_v, off_v);
 	__debugbreak();
   return ERROR_SUCCESS;
 }

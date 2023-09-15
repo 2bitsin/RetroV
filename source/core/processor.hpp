@@ -77,8 +77,6 @@ namespace core
 
 	protected:
 		auto UnhandledMsr(WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) const -> std::int32_t;
-		auto UnhandledException(WHV_VP_EXIT_CONTEXT const& context_v, WHV_VP_EXCEPTION_CONTEXT const& exception_v) const -> std::int32_t;
-
 		auto AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& context_v) const -> std::int32_t;
 
 		auto HypercallDispatch(WHV_RUN_VP_EXIT_CONTEXT const& context_v) const -> std::int32_t;

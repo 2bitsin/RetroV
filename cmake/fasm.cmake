@@ -24,9 +24,8 @@ function(add_fasm_target TARGET_NAME MAIN_SRC)
     COMMAND_EXPAND_LISTS
     VERBATIM
   )
-
-  add_custom_target(${TARGET_NAME} ALL DEPENDS ${TARGET_BIN})
-  install (FILES  ${TARGET_BIN} DESTINATION ${CMAKE_INSTALL_PREFIX}/ROMs)
+  add_custom_target(${TARGET_NAME} ALL DEPENDS ${TARGET_BIN})  
+  set_target_properties(${TARGET_NAME} PROPERTIES OUTPUT_FILE_PATH ${TARGET_BIN})
 endfunction()
 
 function(add_fasm_option TARGET_NAME)

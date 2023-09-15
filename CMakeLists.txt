@@ -29,23 +29,25 @@ string(TIMESTAMP NOW "%H:%M:%S")
 # Use add_custom_command to compile bios/bios.asm to bios.bin using fasm
 file(GLOB_RECURSE COM_BIOS_ASI source/bios/com/*.asi)
 file(GLOB_RECURSE SYS_BIOS_ASI source/bios/sys/*.asi)
-message (STATUS "SYS_BIOS_ASI: ${SYS_BIOS_ASI}")
-add_fasm_target(BiosAMD "source/bios/sys/main.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BiosAMD -d hypercall=vmmcall -d date=${TODAY} -d time=${NOW})
-
-add_fasm_target(BiosIntel "source/bios/sys/main.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BiosIntel -d hypercall=vmcall -d date=${TODAY} -d time=${NOW})
-
-
 file(GLOB_RECURSE VID_BIOS_ASI source/bios/vid/*.asi)
+
+message (STATUS "SYS_BIOS_ASI: ${SYS_BIOS_ASI}")
 message (STATUS "VID_BIOS_ASI: ${VID_BIOS_ASI}")
-add_fasm_target(BsVideoAMD "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BsVideoAMD -d hypercall=vmmcall -d date=${TODAY} -d time=${NOW})
 
-add_fasm_target(BsVideoIntel "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BsVideoIntel -d hypercall=vmcall -d date=${TODAY} -d time=${NOW})
+add_fasm_target(BsSystem.AMD "source/bios/sys/main.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_option(BsSystem.AMD -d hypercall=vmmcall -d date=${TODAY} -d time=${NOW})
+add_fasm_target(BsSystem.INT "source/bios/sys/main.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_option(BsSystem.INT -d hypercall=vmcall -d date=${TODAY} -d time=${NOW})
 
+add_fasm_target(BsVideo.AMD "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_option(BsVideo.AMD -d hypercall=vmmcall -d date=${TODAY} -d time=${NOW})
+add_fasm_target(BsVideo.INT "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
+add_fasm_option(BsVideo.INT -d hypercall=vmcall -d date=${TODAY} -d time=${NOW})
 
 install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
 install (TARGETS RetroV DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-install (DIRECTORY ${CMAKE_SOURCE_DIR}/extras/ROMS DESTINATION ${CMAKE_INSTALL_PREFIX})
+install (DIRECTORY ${CMAKE_SOURCE_DIR}/extras/ROMS/ DESTINATION ${CMAKE_INSTALL_PREFIX}/ROMs/extras)
+install (FILES $<TARGET_PROPERTY:BsVideo.AMD,OUTPUT_FILE_PATH> DESTINATION ${CMAKE_INSTALL_PREFIX}/ROMS/AMD RENAME video.bin) 
+install (FILES $<TARGET_PROPERTY:BsVideo.INT,OUTPUT_FILE_PATH> DESTINATION ${CMAKE_INSTALL_PREFIX}/ROMS/Intel RENAME video.bin)
+install (FILES $<TARGET_PROPERTY:BsSystem.AMD,OUTPUT_FILE_PATH> DESTINATION ${CMAKE_INSTALL_PREFIX}/ROMS/AMD RENAME system.bin)
+install (FILES $<TARGET_PROPERTY:BsSystem.INT,OUTPUT_FILE_PATH> DESTINATION ${CMAKE_INSTALL_PREFIX}/ROMS/Intel RENAME system.bin)

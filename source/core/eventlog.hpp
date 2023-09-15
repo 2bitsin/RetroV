@@ -31,6 +31,10 @@ namespace core
 		auto VCpuExited(std::uint32_t vcpu_index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_context_v) const -> void;
 
 		auto IRQState(std::uint32_t vcpu_index_v, std::uint16_t irq_v) const -> void;
+
+		auto DebugTrap(std::uint64_t linaddr_v, std::uint16_t segsel_v, std::uint64_t offset_v) const -> void;
+
+		auto UnhandledException(const WHV_VP_EXCEPTION_CONTEXT& exception_v, const WHV_VP_EXIT_CONTEXT& context_v) const -> void;
 		
 		EventLog(std::string_view module_v);
 

@@ -36,3 +36,8 @@ Debug:
     add     sp,     2    
     ret
 
+  .Trap:
+    push    word 0xFFFF
+    hypercall
+    add     sp,     2
+    ret

@@ -42,25 +42,25 @@ static inline auto to_string(WHV_RUN_VP_EXIT_REASON reason_v) -> std::string_vie
 auto EventLog::StartMachine() const -> void
 {
 	using utils::logger;
-	logger::trace(logger::deflog, "Starting machine...");
+	logger::debug(logger::deflog, "Starting machine...");
 }
 
 auto EventLog::StopMachine() const -> void
 {
 	using utils::logger;
-	logger::trace(logger::deflog, "Stopping machine...");
+	logger::debug(logger::deflog, "Stopping machine...");
 }
 
 auto EventLog::ResetMachine() const -> void
 {
 	using utils::logger;
-	logger::trace(logger::deflog, "Resetting machine...");
+	logger::debug(logger::deflog, "Resetting machine...");
 }
 
 auto EventLog::MapGpaRange(void* addr_v, std::uint64_t base_v, std::uint64_t size_v, Access access_v) const -> void
 {	
 	assert(addr_v != nullptr);
-	logger::trace(logger::deflog, "Mapping {:#018x} ... {:#018x} -> {:#018x} | {}", base_v, base_v + size_v, (p)addr_v, to_string(access_v));
+	logger::debug(logger::deflog, "Mapping {:#018x} ... {:#018x} -> {:#018x} | {}", base_v, base_v + size_v, (p)addr_v, to_string(access_v));
 }
 
 auto EventLog::MapGpaRangeFromFile(void* addr_v, std::uint64_t base_v, std::uint64_t size_v, std::filesystem::path const& path_v, std::uint64_t offset_v, std::uint64_t length_v) const -> void
@@ -69,13 +69,13 @@ auto EventLog::MapGpaRangeFromFile(void* addr_v, std::uint64_t base_v, std::uint
 	std::string string_path_v = std::filesystem::relative(path_v).string();
 	if (string_path_v.empty() && !path_v.empty())
 		string_path_v = path_v.string();
-	logger::trace(logger::deflog, "Mapping {:#018x} ... {:#018x} -> {}[{:#x}:{:#x}]",
+	logger::debug(logger::deflog, "Mapping {:#018x} ... {:#018x} -> {}[{:#x}:{:#x}]",
 		base_v, base_v+size_v, string_path_v, offset_v, length_v);
 }
 
 auto EventLog::UnmapGpaRange(std::uint64_t base_v, std::uint64_t size_v) const -> void
 {
-	logger::trace(logger::deflog, "Unmapping {:#016x} ... {:#016x}", base_v, base_v + size_v);
+	logger::debug(logger::deflog, "Unmapping {:#016x} ... {:#016x}", base_v, base_v + size_v);
 }
 
 auto EventLog::UnrealModeEnabled(std::uint32_t vcpu_index_v) const -> void
@@ -106,8 +106,17 @@ auto EventLog::VCpuExited(std::uint32_t vcpu_index_v, WHV_RUN_VP_EXIT_CONTEXT co
 
 auto EventLog::IRQState(std::uint32_t vcpu_index_v, std::uint16_t state_v) const -> void
 {
-	using utils::logger;
 	logger::info(logger::deflog, "CPU[{}] raised IRQ [{}]", vcpu_index_v, utils::bitset_to_string(state_v));
+}
+
+auto EventLog::DebugTrap(std::uint64_t linaddr_v, std::uint16_t segsel_v, std::uint64_t offset_v) const -> void
+{
+	logger::debug(logger::deflog, "CPU[{}] : DebuggerBreak at ({:08x}) with CS={:04x} IP={:08x}", vcpu_v.GetIndex(), lin_v, seg_v, off_v);
+}
+
+auto EventLog::UnhandledException(const WHV_VP_EXCEPTION_CONTEXT& exception_v, const WHV_VP_EXIT_CONTEXT& context_v) const -> void
+{
+	logger::error(logger::deflog, "CPU[{}] raised exception: {:d}({:#04X}) at {:04X}:{:08X}.", GetIndex(), exception_v.ExceptionType, exception_v.ExceptionType, context_v.Cs.Selector, context_v.Rip);
 }
 
 EventLog::EventLog(std::string_view name_v)

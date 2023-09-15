@@ -92,6 +92,10 @@ namespace utils
 			return region{ begin(), size() };
 		}
 
+		constexpr auto rebase(base_type base_v) const noexcept -> region {
+			return region{ base_v, size() };
+		}
+
 	private:
 		base_type m_base;
 		size_type m_size;

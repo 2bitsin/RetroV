@@ -129,12 +129,7 @@ auto VideoDevice::IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> 
 
 auto VideoDevice::ConfigureROM(core::Configuration const& config_v) -> void
 {
-	std::filesystem::path path_v = config_v.GetPropertyString("video.bios.path");
-	if (win32::WHvCapabilities::IsVendorAMD())
-		path_v = config_v.GetPropertyString("video.bios.amd.path");
-	else if (win32::WHvCapabilities::IsVendorIntel())
-		path_v = config_v.GetPropertyString("video.bios.intel.path");
-
+	auto const path_v = config_v.GetPropertyString("rom.path.video");
 	auto const validate_v = RomImage::validate{
 		0x1000u, 0x01u, 0x10u };
 	auto const region_v = RomImage::region_type{

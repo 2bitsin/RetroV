@@ -187,25 +187,16 @@ auto Machine::ConfigureMemory(Configuration const& config_v) -> void
 
 auto Machine::ConfigureBiosROM(Configuration const& config_v) -> void
 {
-	std::filesystem::path path_v;	
-	if (win32::WHvCapabilities::IsVendorAMD())
-		path_v = config_v.GetPropertyString("rom.boot.amd.path");
-	else if (win32::WHvCapabilities::IsVendorIntel())
-		path_v = config_v.GetPropertyString("rom.boot.intel.path");			
-	if (path_v.empty()) 
-		path_v = config_v.GetPropertyString("rom.boot.path");	
-
-	/*
-	path_v = utils::build_path(path_v);
-	utils::validate_binary(path_v, 4_KiB, 1u, 8192u);
-	auto size_v = std::filesystem::file_size(path_v);
-	utils::region64_type const region_lo_v{ utils::size_invert, 0x0000000000100000u, std::min(size_v, 192_KiB ) };
-	utils::region64_type const region_hi_v{ utils::size_invert, 0x0000000100000000u, std::min(size_v, 16_MiB  ) };
-	m_MappedRoms.emplace_back(path_v, utils::region64_type{0, size_v}, win32::open_existing, win32::read_only);
-	auto const& bios_v = m_MappedRoms.back();		
-	m_MappedRanges.emplace_back(GetPartition(), region_lo_v, kAccessReadOnly, bios_v);	
-	m_MappedRanges.emplace_back(GetPartition(), region_hi_v, kAccessReadOnly, bios_v);	
-	*/
+	
+	auto const path_v = config_v.GetPropertyString("rom.path.system");	
+	static constexpr auto const region_lo = RomImage::region_type{ utils::size_invert, 1_MiB, 192_KiB };
+	static constexpr auto const check_lo = RomImage::validate{ 4_KiB, 1u, region_lo.size() / 4_KiB };
+	static constexpr auto const region_hi = RomImage::region_type{ utils::size_invert, 4_GiB, 16_MiB };
+	static constexpr auto const check_hi = RomImage::validate{ 4_KiB, 1u, region_hi.size() / 4_KiB };
+	static constexpr auto const align_v = RomImage::kTopAligned;
+	
+	m_MappedRoms.emplace_back(m_Partition, check_lo, path_v, region_lo, align_v);
+	m_MappedRoms.emplace_back(m_Partition, check_hi, path_v, region_hi, align_v);
 }
 
 auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
