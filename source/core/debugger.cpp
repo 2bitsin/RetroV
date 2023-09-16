@@ -2,6 +2,7 @@
 #include <core/machine.hpp>
 
 #include <utils/logger.hpp>
+#include <bios/com/hypercall.hpp>
 
 #include <charconv>
 #include <cassert>
@@ -71,7 +72,7 @@ auto Debugger::Hypercall_WriteLogString(Processor const& vcpu_v, std::uint64_t a
 auto Debugger::Hypercall_DebuggerBreak(Processor const& vcpu_v, std::uint64_t lin_v, std::uint16_t seg_v, std::uint64_t off_v) -> std::int32_t
 {
 	using utils::logger;
-	s_log.DebugTrap(lin_v, seg_v, off_v);
+	s_log.DebugTrap(vcpu_v.GetIndex(), lin_v, seg_v, off_v);
 	__debugbreak();
   return ERROR_SUCCESS;
 }
@@ -196,42 +197,43 @@ auto Debugger::Hypercall(Processor const& vcpu_v, HypercallContext const& contex
 	auto const& hypercall_v = context_v.Hypercall;
 	auto const& vpcontext_v = context_v.VpContext;	
 
-	switch (context_v.Minor) 
+	using namespace core::hypercall;
+	switch (context_v.Function) 
 	{
 	/****************************
 	 *	Enable/Disable Unreal Mode
 	 ****************************/
-	case 0x00:
+	case HYPERCALL_DEBUG_TOGGLE_UNREAL_MODE:
 		if (vpcontext_v.ExecutionState.Cr0Pe||vpcontext_v.ExecutionState.Cpl!=0)
 			return ERROR_ACCESS_DENIED;
 		return Hypercall_UnrealModeEnable(vcpu_v, !!(hypercall_v.Rbx&1u));
 
+
+	/****************************
+	 *	Write Log Char
+	 ****************************/
+	case HYPERCALL_DEBUG_WRITE_LOG_CHAR:
+		return Hypercall_WriteLogChar(vcpu_v, hypercall_v.Rbx & 0xFFu);
+
+
 	/****************************
 	 *	Write Log String
 	 ****************************/
-	case 0x01: 
+	case HYPERCALL_DEBUG_WRITE_LOG_STRING: 
 		return Hypercall_WriteLogString(vcpu_v, hypercall_v.Rsi, hypercall_v.Rcx);
 
 
  /****************************
 	*	Write Log Number
 	****************************/
-	case 0x02: 
+	case HYPERCALL_DEBUG_WRITE_LOG_NUMBER: 
 		return Hypercall_WriteLogNumber(vcpu_v, hypercall_v.Rdx, hypercall_v.Rbx, 
 			(hypercall_v.Rcx >> 0u)&0xFFu, (hypercall_v.Rcx >> 8u)&0xFFu);
-
-
- /****************************
-  *	Write Log Char
-  ****************************/
-	case 0x03:
-		return Hypercall_WriteLogChar(vcpu_v, hypercall_v.Rbx&0xFFu);
-
 
 	/****************************
 	 *	Debugger Break
 	 ****************************/
-	case 0xff: 
+	case HYPERCALL_DEBUG_DEBUGGER_BREAK: 
 		return Hypercall_DebuggerBreak(vcpu_v, vpcontext_v.Cs.Base + vpcontext_v.Rip, 
 			vpcontext_v.Cs.Selector, vpcontext_v.Rip);
 	}

@@ -7,7 +7,7 @@ Debug:
     shl     edi,    4
     add     esi,    edi
     xor     ecx,    ecx 
-    push    word 0xFF01
+    push    HYPERCALL_DEBUG_WRITE_LOG_STRING
     hypercall
     add     sp,     2
     pop     ecx edi esi
@@ -24,20 +24,20 @@ Debug:
     ja      .PrintNumber.base_ok
     mov     ch,     16
   .PrintNumber.base_ok:
-    push    word 0xFF02
+    push    HYPERCALL_DEBUG_WRITE_LOG_NUMBER
     hypercall
     add     sp,     2
     ret
 
   .PrintChar:
     ; bl -> Char    
-    push    word 0xFF03
+    push    HYPERCALL_DEBUG_WRITE_LOG_CHAR
     hypercall
     add     sp,     2    
     ret
 
   .Trap:
-    push    word 0xFFFF
+    push    HYPERCALL_DEBUG_DEBUGGER_BREAK
     hypercall
     add     sp,     2
     ret

@@ -54,6 +54,11 @@ namespace core
 		auto IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>;
 		auto ConfigureROM(core::Configuration const&) -> void;
 
+		auto Hypercall_SetMode(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
+		auto Hypercall_MemoryMap(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
+		auto Hypercall_MemoryUnmap(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
+		auto Hypercall_SetView(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
+
 	private:	
 		Machine& m_Machine;		
 		std::optional<RomImage> m_BiosRom;

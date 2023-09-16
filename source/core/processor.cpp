@@ -72,24 +72,6 @@ auto Processor::TranslateAddress(std::uint64_t vaddress_v, core::Access access_v
 	return { status_v, paddress_v };
 }
 
-auto Processor::UnhandledMsr(WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) const -> std::int32_t
-{
-	using utils::logger;
-	if (access_v.AccessInfo.IsWrite) {
-		logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) write at {:#06x}:{:#010x}, EDX:EAX={:010X}:{:010X}",GetIndex(), access_v.MsrNumber, context_v.Cs.Selector, context_v.Rip, access_v.Rdx, access_v.Rax);
-	} else {
-		logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) read at {:#06x}:{:#010x}", GetIndex(), access_v.MsrNumber, context_v.Cs.Selector, context_v.Rip);
-	}
-	return S_OK;
-}
-
-auto Processor::UnhandledException(WHV_VP_EXIT_CONTEXT const& context_v, WHV_VP_EXCEPTION_CONTEXT const& exception_v) const -> std::int32_t
-{
-	s_log.UnhandledException(exception_v, context_v);
-	return S_OK;
-}
-
-
 auto Processor::HypercallDispatch(WHV_RUN_VP_EXIT_CONTEXT const& context_v) const -> std::int32_t
 {
 	HypercallContext hypercall_v{ };
@@ -127,7 +109,9 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 			continue;		
 		case WHvRunVpExitReasonHypercall:
 			HypercallDispatch(context_v);
-			AdvanceInstruction(context_v.VpContext);
+			status_v = AdvanceInstruction(context_v.VpContext);
+			if (ERROR_SUCCESS != status_v)
+				return { status_v, context_v };
 			continue;
 
 		case WHvRunVpExitReasonSynicSintDeliverable:
@@ -149,17 +133,13 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 			continue;
 
 		case WHvRunVpExitReasonX64MsrAccess:
-			status_v = UnhandledMsr(context_v.VpContext, context_v.MsrAccess);
-			if (ERROR_SUCCESS != status_v)
-				return { status_v, context_v };
+			s_log.UnhandledMSR(GetIndex(), context_v.VpContext, context_v.MsrAccess);
 			status_v = AdvanceInstruction(context_v.VpContext);
 			if (ERROR_SUCCESS != status_v)
 				return { status_v, context_v };
 			continue;
 		case WHvRunVpExitReasonException:
-			status_v = UnhandledException(context_v.VpContext, context_v.VpException);
-			if (ERROR_SUCCESS != status_v)
-				return { status_v, context_v };
+			s_log.UnhandledException(GetIndex(), context_v.VpException, context_v.VpContext);
 			[[fallthrough]];		
 		default:
 			return result_v;

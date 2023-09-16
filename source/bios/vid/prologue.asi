@@ -9,7 +9,7 @@ Prologue:
     call    VideoMode.SetFont
     mov     si,         Strings.Hello
     call    Debug.PrintString
-    call    Debug.Trap
+    ;call    Debug.Trap
 
     pop     es ds
     popa

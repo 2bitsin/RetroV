@@ -1,6 +1,7 @@
 		org 0x0000
 		
 		include 'variables.asi'
+		include '../gen/hypercall.asi'
 		include 'prologue.asi'
 		include '../com/debug.asi'
     include 'bigloop.asi'

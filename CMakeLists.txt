@@ -7,6 +7,7 @@ set (CMAKE_SYSTEM_VERSION "10.0.22621.0")
 include(${CMAKE_SOURCE_DIR}/cmake/stack.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/fasm.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/msvcfix.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/utils.cmake)
 
 # find packages SDL2 and capstone
 find_package(SDL2 CONFIG REQUIRED)
@@ -25,11 +26,12 @@ target_stack_size(RetroV "256MiB")
 
 string(TIMESTAMP TODAY "%Y-%m-%d")
 string(TIMESTAMP NOW "%H:%M:%S")
-
+preprocess_file(hypercall_ash source/bios/com/hypercall.ash source/bios/gen/hypercall.asi)
 # Use add_custom_command to compile bios/bios.asm to bios.bin using fasm
 file(GLOB_RECURSE COM_BIOS_ASI source/bios/com/*.asi)
 file(GLOB_RECURSE SYS_BIOS_ASI source/bios/sys/*.asi)
 file(GLOB_RECURSE VID_BIOS_ASI source/bios/vid/*.asi)
+list(APPEND COM_BIOS_ASI source/bios/gen/hypercall.asi)
 
 message (STATUS "SYS_BIOS_ASI: ${SYS_BIOS_ASI}")
 message (STATUS "VID_BIOS_ASI: ${VID_BIOS_ASI}")

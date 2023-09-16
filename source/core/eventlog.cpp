@@ -109,14 +109,25 @@ auto EventLog::IRQState(std::uint32_t vcpu_index_v, std::uint16_t state_v) const
 	logger::info(logger::deflog, "CPU[{}] raised IRQ [{}]", vcpu_index_v, utils::bitset_to_string(state_v));
 }
 
-auto EventLog::DebugTrap(std::uint64_t linaddr_v, std::uint16_t segsel_v, std::uint64_t offset_v) const -> void
+auto EventLog::DebugTrap(std::uint32_t vcpu_index_v, std::uint64_t linaddr_v, std::uint16_t segsel_v, std::uint64_t offset_v) const -> void
 {
-	logger::debug(logger::deflog, "CPU[{}] : DebuggerBreak at ({:08x}) with CS={:04x} IP={:08x}", vcpu_v.GetIndex(), lin_v, seg_v, off_v);
+	logger::debug(logger::deflog, "CPU[{}] : DebuggerBreak at ({:08x}) with CS={:04x} IP={:08x}", vcpu_index_v, linaddr_v, segsel_v, offset_v);
 }
 
-auto EventLog::UnhandledException(const WHV_VP_EXCEPTION_CONTEXT& exception_v, const WHV_VP_EXIT_CONTEXT& context_v) const -> void
+auto EventLog::UnhandledException(std::uint32_t vcpuindex_v, const WHV_VP_EXCEPTION_CONTEXT& exception_v, const WHV_VP_EXIT_CONTEXT& context_v) const -> void
 {
-	logger::error(logger::deflog, "CPU[{}] raised exception: {:d}({:#04X}) at {:04X}:{:08X}.", GetIndex(), exception_v.ExceptionType, exception_v.ExceptionType, context_v.Cs.Selector, context_v.Rip);
+	logger::error(logger::deflog, "CPU[{}] raised exception: {:d}({:#04X}) at {:04X}:{:08X}.", vcpuindex_v, exception_v.ExceptionType, exception_v.ExceptionType, context_v.Cs.Selector, context_v.Rip);
+}
+
+auto EventLog::UnhandledMSR(std::uint32_t vcpu_index_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) const -> void
+{
+	using utils::logger;
+	if (access_v.AccessInfo.IsWrite) {
+		logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) write at {:#06x}:{:#010x}, EDX:EAX={:010X}:{:010X}", vcpu_index_v, access_v.MsrNumber, context_v.Cs.Selector, context_v.Rip, access_v.Rdx, access_v.Rax);
+	}
+	else {
+		logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) read at {:#06x}:{:#010x}", vcpu_index_v, access_v.MsrNumber, context_v.Cs.Selector, context_v.Rip);
+	}
 }
 
 EventLog::EventLog(std::string_view name_v)

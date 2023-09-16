@@ -6,6 +6,7 @@
 #include <win32/whvprocessor.hpp>
 #include <win32/whvemulator.hpp>
 #include <core/accessflags.hpp>
+#include <core/eventlog.hpp>
 #include <utils/span.hpp>
 
 #include <shared_mutex>
@@ -89,5 +90,7 @@ namespace core
 		std::binary_semaphore m_Suspend;		
 		std::stop_source m_Stopper;
 		exit_future_type m_FutureExit;
+
+		static inline const EventLog s_log{ "Processor" };
 	};
 }

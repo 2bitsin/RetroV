@@ -1,0 +1,23 @@
+
+
+
+
+define HYPERCALL_DEBUG byte 0xff
+define HYPERCALL_DEBUG_TOGGLE_UNREAL_MODE word ((0xff*0x100) + 0x00)
+define HYPERCALL_DEBUG_WRITE_LOG_CHAR word ((0xff*0x100) + 0x01)
+define HYPERCALL_DEBUG_WRITE_LOG_STRING word ((0xff*0x100) + 0x02)
+define HYPERCALL_DEBUG_WRITE_LOG_NUMBER word ((0xff*0x100) + 0x03)
+define HYPERCALL_DEBUG_DEBUGGER_BREAK word ((0xff*0x100) + 0xff)
+
+define HYPERCALL_VIDEO byte 0x00
+define HYPERCALL_VIDEO_SET_MODE word ((0x00*0x100) + 0x00)
+define HYPERCALL_VIDEO_MEMORY_MAP word ((0x00*0x100) + 0x01)
+define HYPERCALL_VIDEO_MEMORY_UNMAP word ((0x00*0x100) + 0x02)
+define HYPERCALL_VIDEO_SET_VIEW word ((0x00*0x100) + 0x03)
+
+
+
+
+
+
+

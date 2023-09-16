@@ -2,6 +2,9 @@
 #include <core/machine.hpp>
 #include <core/processor.hpp>
 
+#include <bios/com/hypercall.hpp>
+
+#include <utils/algorithm.hpp>
 #include <utils/validate.hpp>
 #include <utils/literals.hpp>
 #include <utils/surface.hpp>
@@ -87,15 +90,32 @@ auto VideoDevice::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::ui
 	return ERROR_SUCCESS;
 }
 
+auto VideoDevice::Hypercall_SetMode(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t {
+	auto const& vpcontext_v = hypercall_v.VpContext;
+	auto const& hccontext_v = hypercall_v.Hypercall;
+
+	auto const [type_v, flags_v] = 
+		utils::integral_split<uint16_t>((uint32_t)hccontext_v.Rbx);
+	auto const [horizontal_v, vertical_v] =
+		utils::integral_split<uint16_t>((uint32_t)hccontext_v.Rcx);
+
+
+
+
+	return ERROR_SUCCESS;
+}
+
 auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t
 {
+	using namespace core::hypercall;
 	switch (hypercall_v.Minor)
 	{
-	case 0x00: //SetVideMode
-	case 0x01: //MapMemory
-	case 0x02: //SetBaseAdddress
-	case 0x03: 
-		break;
+	case HYPERCALL_VIDEO_SET_MODE:
+		return Hypercall_SetMode(vcpu_v, hypercall_v);
+	case HYPERCALL_VIDEO_MEMORY_MAP:
+	case HYPERCALL_VIDEO_MEMORY_UNMAP:
+	case HYPERCALL_VIDEO_SET_VIEW:
+		return ERROR_SUCCESS;
 	}
 	return ERROR_SUCCESS;
 }
