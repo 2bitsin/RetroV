@@ -99,7 +99,27 @@ auto VideoDevice::Hypercall_SetMode(Processor const& vcpu_v, HypercallContext co
 	auto const [horizontal_v, vertical_v] =
 		utils::integral_split<uint16_t>((uint32_t)hccontext_v.Rcx);
 
+	return ERROR_SUCCESS;
+}
 
+auto VideoDevice::Hypercall_MemoryMap(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t
+{
+	auto const& vpcontext_v = hypercall_v.VpContext;
+	auto const& hccontext_v = hypercall_v.Hypercall;
+
+	using namespace size_literals;
+	using region_type = utils::region64_type;
+
+	auto source_v = std::min(hccontext_v.Rsi&0xFFFFFFFFu, m_VideoMemory.size());
+	auto length_v = std::min(hccontext_v.Rcx&0xFFFFFFFFu, m_VideoMemory.size());
+	auto target_v = hccontext_v.Rdi&0xFFFFFFFFu;
+	auto flags_v = hccontext_v.Rbx&0xFFFFFFFFu;
+
+	if (flags_v&1u) m_MemoryMap.clear();
+	m_MemoryMap.emplace_back(m_Machine.GetPartition(), 
+		region_type{ target_v, length_v }, kAccessDevice,
+		m_VideoMemory.subspan(source_v, length_v)
+	);
 
 	return ERROR_SUCCESS;
 }
@@ -111,8 +131,7 @@ auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& hyp
 	{
 	case HYPERCALL_VIDEO_SET_MODE:
 		return Hypercall_SetMode(vcpu_v, hypercall_v);
-	case HYPERCALL_VIDEO_MEMORY_MAP:
-	case HYPERCALL_VIDEO_MEMORY_UNMAP:
+	case HYPERCALL_VIDEO_MEMORY_MAP:	
 	case HYPERCALL_VIDEO_SET_VIEW:
 		return ERROR_SUCCESS;
 	}

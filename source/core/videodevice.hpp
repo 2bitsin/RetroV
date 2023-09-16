@@ -56,8 +56,7 @@ namespace core
 		auto ConfigureMemory(core::Configuration const&) -> void;
 
 		auto Hypercall_SetMode(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
-		auto Hypercall_MemoryMap(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
-		auto Hypercall_MemoryUnmap(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
+		auto Hypercall_MemoryMap(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;		
 		auto Hypercall_SetView(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
 
 	private:	
