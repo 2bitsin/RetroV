@@ -101,7 +101,6 @@ auto VideoDevice::Hypercall_SetMode(Processor const& vcpu_v, HypercallContext co
 
 
 
-
 	return ERROR_SUCCESS;
 }
 
@@ -149,7 +148,7 @@ auto VideoDevice::IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> 
 
 auto VideoDevice::ConfigureROM(core::Configuration const& config_v) -> void
 {
-	auto const path_v = config_v.GetPropertyString("rom.path.video");
+	auto const path_v = config_v.GetPropertyString("video.rom.path");
 	auto const validate_v = RomImage::validate{
 		0x1000u, 0x01u, 0x10u };
 	auto const region_v = RomImage::region_type{
@@ -157,4 +156,12 @@ auto VideoDevice::ConfigureROM(core::Configuration const& config_v) -> void
 	auto const options_v = 0u;
 	m_BiosRom.emplace(m_Machine.GetPartition(),
 		validate_v, path_v, region_v, options_v);
+}
+
+auto VideoDevice::ConfigureMemory(core::Configuration const& config_v) -> void
+{
+	using namespace win32;
+	using namespace size_literals;
+	auto const size_bytes_v = config_v.GetPropertyUint64("video.memory.size.kilobytes")*1_KiB;
+	m_VideoMemory = VirtualAlloc_s(size_bytes_v, read_write, commit|reserve|write_watch, nullptr);
 }

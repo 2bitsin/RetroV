@@ -53,6 +53,7 @@ namespace core
 		auto IoPortWrite(Processor const& vcpu_v, std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t;
 		auto IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>;
 		auto ConfigureROM(core::Configuration const&) -> void;
+		auto ConfigureMemory(core::Configuration const&) -> void;
 
 		auto Hypercall_SetMode(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
 		auto Hypercall_MemoryMap(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
@@ -62,6 +63,8 @@ namespace core
 	private:	
 		Machine& m_Machine;		
 		std::optional<RomImage> m_BiosRom;
+		buffer_type m_VideoMemory;
+		std::list<MapGpaRange> m_MemoryMap;
 		RamDAC m_RamDAC;
 	};
 }

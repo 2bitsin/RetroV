@@ -24,6 +24,10 @@ namespace core::videodevice
 	struct BsCommon
 	{
 		BsCommon(core::Machine& machine_v, core::VideoDevice& device_v);
-		~BsCommon();
+		~BsCommon() = default;
+
+	private:
+		core::Machine& m_Machine;
+		core::VideoDevice& m_Device;
 	};
 }

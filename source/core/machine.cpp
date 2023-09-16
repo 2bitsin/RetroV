@@ -162,7 +162,7 @@ auto Machine::ConfigureMemory(Configuration const& config_v) -> void
 	WIN32_ERROR_ASSERT(m_Partition.Reset());	
 
 	m_MainMemory = win32::VirtualAlloc_s(
-		config_v.GetPropertyUint64("memory.size.megabytes") * 1_MiB, 
+		config_v.GetPropertyUint64("system.memory.size.megabytes") * 1_MiB, 
 		win32::execute_read_write);
 
 	auto& partition_v = GetPartition();
@@ -188,7 +188,7 @@ auto Machine::ConfigureMemory(Configuration const& config_v) -> void
 auto Machine::ConfigureBiosROM(Configuration const& config_v) -> void
 {
 	
-	auto const path_v = config_v.GetPropertyString("rom.path.system");	
+	auto const path_v = config_v.GetPropertyString("system.rom.path");	
 	static constexpr auto const region_lo = RomImage::region_type{ utils::size_invert, 1_MiB, 192_KiB };
 	static constexpr auto const check_lo = RomImage::validate{ 4_KiB, 1u, region_lo.size() / 4_KiB };
 	static constexpr auto const region_hi = RomImage::region_type{ utils::size_invert, 4_GiB, 16_MiB };
