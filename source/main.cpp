@@ -56,7 +56,7 @@ int main(int argc, char** argv) try
 
 	waitable_timer timer_v{};
 
-	timer_v.set(100ms, 1000ms);
+	timer_v.set(100ms);
 
 	while(true) {
 		if (timer_v.wait(2000ms)) {

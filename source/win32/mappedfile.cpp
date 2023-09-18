@@ -48,14 +48,14 @@ MappedFile::MappedFile(
 
 	round_regn_v.clamp(regn_v.end());
 
-	auto const [size_hi_v, size_lo_v] = utils::integral_split_msw_first<std::uint32_t>(round_regn_v.end());
+	auto const [size_hi_v, size_lo_v] = utils::integral_split_msw<std::uint32_t>(round_regn_v.end());
 
 	unique_handle mapp_handle_v{ ::CreateFileMappingW(file_handle_v.get(), nullptr, prot_v, size_hi_v, size_lo_v, nullptr) };
 
 	if (INVALID_HANDLE_VALUE == mapp_handle_v.get())
 		error::throw_last_error();
 
-	auto const [fileoff_hi_v, fileoff_lo_v] = utils::integral_split_msw_first<std::uint32_t>(round_regn_v.base());
+	auto const [fileoff_hi_v, fileoff_lo_v] = utils::integral_split_msw<std::uint32_t>(round_regn_v.base());
 
 	auto const mapoffset_v = regn_v.base() - round_regn_v.base();
 

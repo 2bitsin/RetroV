@@ -11,19 +11,18 @@ namespace core::videodevice
 	struct BsCharacter: BsCommon
 	{
 		BsCharacter(core::Machine& machine_v, core::VideoDevice& device_v, 
-			uint16_t horizontal_v, uint16_t vertical_v, uint16_t mode_v, uint16_t flags_v);
+			uint16_t hsize_v, uint16_t vsize_v, video_mode mode_v, uint16_t flags_v=0u);
 		~BsCharacter() = default;
 
-		auto Refresh(double time_v) -> void;
-
+		auto Refresh(duration_type time_v) -> void;
 
 	private:
 		using BsCommon::m_Machine;
 		using BsCommon::m_Device;
 
+		video_mode m_Mode;
 		uint16_t m_Cols;
 		uint16_t m_Rows;
-		uint16_t m_Mode;
 		bool m_IsColor;
 	};
 }

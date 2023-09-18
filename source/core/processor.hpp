@@ -8,6 +8,7 @@
 #include <core/accessflags.hpp>
 #include <core/eventlog.hpp>
 #include <utils/span.hpp>
+#include <utils/coqueue.hpp>
 
 #include <shared_mutex>
 #include <stop_token>
@@ -49,6 +50,7 @@ namespace core
 	{
 		using exit_result_type = std::tuple<std::int32_t, WHV_RUN_VP_EXIT_CONTEXT>;
 		using exit_future_type = std::shared_future<exit_result_type>;
+		using interjection_type = std::function<void(Processor const&)>;
 
 		Processor(Machine& machine_v, std::uint32_t vcpuindex_v);
 		~Processor();
@@ -63,8 +65,10 @@ namespace core
 		auto RunToExit(std::stop_token stoppee_v) -> exit_result_type;
 		auto Start() -> exit_future_type;
 		auto Stop() -> void;		
-		auto Suspend() -> void;
 		auto Resume() -> void;
+		auto Suspend() -> void;
+
+		auto Interject(interjection_type what_v) -> void;
 
 		auto GetRuntime() const -> std::tuple<std::int32_t, std::uint64_t>;
 
@@ -89,7 +93,7 @@ namespace core
 		std::binary_semaphore m_Suspend;		
 		std::stop_source m_Stopper;
 		exit_future_type m_FutureExit;
-
+		utils::coqueue<interjection_type> m_IjQueue;
 		static inline const EventLog s_log{ "Processor" };
 	};
 }

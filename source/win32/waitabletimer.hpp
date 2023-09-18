@@ -27,8 +27,10 @@ namespace win32
 		using milliseconds = std::chrono::duration<int32_t, std::milli>;
 		using unique_handle = std::unique_ptr<void, close_handle>;
 
-		waitable_timer();
+		static inline constexpr const auto manual_reset_flag = 1u;
+		static inline constexpr const auto high_resolution_flag = 2u;
 
+		waitable_timer(std::uint32_t flags_v = 0u);
 		~waitable_timer() = default;
 
 		waitable_timer(const waitable_timer&) = delete;
@@ -78,6 +80,8 @@ namespace win32
 		}
 
 		auto wait(milliseconds timeout_v, bool alertable_v=true) const -> bool;
+
+		auto reset() const -> void;
 
 	private:
 		auto set_raw(PTIMERAPCROUTINE callback_v, void* argument_v, duration duetime_v, milliseconds period_v = milliseconds::zero()) -> void;

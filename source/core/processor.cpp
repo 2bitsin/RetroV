@@ -135,7 +135,14 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 			return result_v;
 		case WHvRunVpExitReasonCanceled:
 			if (stoppee_v.stop_requested())
-				return result_v;
+				return result_v;			
+			if (auto const value_o = 
+				m_IjQueue.try_pop(); 
+				value_o.has_value()) 
+			{
+				(*value_o)(*this);		
+				continue;
+			}
 			m_Suspend.acquire();
 			continue;
 
@@ -184,6 +191,12 @@ auto Processor::Suspend() -> void
 {
 	std::unique_lock lock_v{ m_IsRunning, std::try_to_lock };
 	if (lock_v.owns_lock()) return;
+	WHvProcessor::Cancel();
+}
+
+auto Processor::Interject(interjection_type what_v) -> void
+{
+	m_IjQueue.emplace(what_v);
 	WHvProcessor::Cancel();
 }
 

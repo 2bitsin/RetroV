@@ -21,6 +21,8 @@ using core::VideoDevice;
 
 VideoDevice::VideoDevice(core::Machine& machine_v)
 	: m_Machine{ machine_v }
+	, m_VideoMode{ character_mode_type{ m_Machine, *this, 640u, 400u, 
+			videodevice::video_mode::character_color_8x16 } }
 {}
 
 VideoDevice::~VideoDevice()
@@ -89,14 +91,42 @@ auto VideoDevice::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::ui
 	return ERROR_SUCCESS;
 }
 
-auto VideoDevice::Hypercall_SetMode(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t {
+auto VideoDevice::Hypercall_SetMode(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t 
+{
+	using namespace utils;
+
 	auto const& vpcontext_v = hypercall_v.VpContext;
 	auto const& hccontext_v = hypercall_v.Hypercall;
 
-	auto const [flags_v, type_v] =
-		utils::integral_split_msw_first<uint16_t>((uint32_t)hccontext_v.Rbx);
-	auto const [vertical_v, horizontal_v] =
-		utils::integral_split_msw_first<uint16_t>((uint32_t)hccontext_v.Rcx);
+	auto const [flags_v, mode_v] = integral_split_msw<uint16_t>((uint32_t)hccontext_v.Rbx);
+	auto const [vert_v, horiz_v] = integral_split_msw<uint16_t>((uint32_t)hccontext_v.Rcx);
+
+	auto const mode_e = (videodevice::video_mode)mode_v;
+	switch (mode_v)
+	{
+	case hypercall::VIDEO_MODE_CHARACTER_COLOR_8X8:
+	case hypercall::VIDEO_MODE_CHARACTER_COLOR_8X14:
+	case hypercall::VIDEO_MODE_CHARACTER_COLOR_8X16:
+	case hypercall::VIDEO_MODE_CHARACTER_COLOR_9X8:
+	case hypercall::VIDEO_MODE_CHARACTER_COLOR_9X14:
+	case hypercall::VIDEO_MODE_CHARACTER_COLOR_9X16:
+	case hypercall::VIDEO_MODE_CHARACTER_MONO_8X8:
+	case hypercall::VIDEO_MODE_CHARACTER_MONO_8X14:
+	case hypercall::VIDEO_MODE_CHARACTER_MONO_8X16:
+	case hypercall::VIDEO_MODE_CHARACTER_MONO_9X8:
+	case hypercall::VIDEO_MODE_CHARACTER_MONO_9X14:
+	case hypercall::VIDEO_MODE_CHARACTER_MONO_9X16:
+		m_VideoMode.emplace<0u>(m_Machine, *this, horiz_v, vert_v, mode_e);
+		break;
+	case hypercall::VIDEO_MODE_GRAPHICAL_1BPP:
+	case hypercall::VIDEO_MODE_GRAPHICAL_2BPP:
+	case hypercall::VIDEO_MODE_GRAPHICAL_4BPP:
+	case hypercall::VIDEO_MODE_GRAPHICAL_8BPP:
+	case hypercall::VIDEO_MODE_GRAPHICAL_16BPP:
+	case hypercall::VIDEO_MODE_GRAPHICAL_24BPP:
+		m_VideoMode.emplace<1u>(m_Machine, *this, horiz_v, vert_v, mode_e);
+		break;
+	}
 
 	return ERROR_SUCCESS;
 }

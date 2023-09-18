@@ -34,7 +34,7 @@ namespace core
 
 	struct VideoDevice
 	{
-		using duration_100ns = videodevice::duration_100ns;
+		using duration_type = videodevice::duration_type;
 		using buffer_type = videodevice::buffer_type;
 		using region_type = utils::region64_type;
 
@@ -66,6 +66,11 @@ namespace core
 
 	private:	
 		Machine& m_Machine;		
+		using graphical_mode_type = videodevice::BsGraphical;
+		using character_mode_type = videodevice::BsCharacter;
+		using device_mode = std::variant<character_mode_type, graphical_mode_type>;
+		
+		device_mode m_VideoMode;
 		std::optional<RomImage> m_BiosRom;
 		std::list<MapGpaRange> m_MemoryMap;
 		buffer_type m_VideoMemory [2u];		
