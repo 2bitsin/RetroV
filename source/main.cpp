@@ -53,18 +53,19 @@ int main(int argc, char** argv) try
 	current_path(path(argv[0])
 		.parent_path()
 		.parent_path());
-	
-	WaitableTimer timer_v{};
 
-	timer_v.Wait([] (auto time0_v) {
-		auto dt = duration_cast<microseconds>(filetime_clock::now() - time0_v);
-		std::cout << dt << std::endl;
-	}, 100ms, 500ms);
+	waitable_timer timer_v{};
 
-	while(true) ::SleepEx(10000, TRUE);
+	timer_v.set(100ms, 1000ms);
 
+	while(true) {
+		if (timer_v.wait(2000ms)) {
+			std::cout << "tick\n";
+		}
+	}
 
 #if 0
+
 	using std::chrono::steady_clock;
 
 	using core::Machine;
@@ -78,7 +79,6 @@ int main(int argc, char** argv) try
 
 	Machine vmcore_v{ MakeConfiguration() };
 	vmcore_v.Start();
-
 
 	std::uint16_t IRQstate_v{ 0 };
 	std::uint16_t last_IRQstate_v{ 0 };

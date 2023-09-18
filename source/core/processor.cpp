@@ -3,6 +3,7 @@
 #include <win32/whvprocessor.hpp>
 #include <win32/whvpartition.hpp>
 #include <win32/scope_name.hpp>
+#include <win32/waitabletimer.hpp>
 
 #include <utils/capstone.hpp>
 
@@ -95,6 +96,12 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 	auto& emulator_v = Emulator();
 	while (!stoppee_v.stop_requested())
 	{		
+		win32::waitable_timer timer_v{ };
+		using namespace std::chrono_literals;
+		timer_v.set([](auto time_v) {
+			std::cout << "Hello!\n";
+			}, 10ms, 100ms);
+
 		auto const result_v = WHvProcessor::RunToExit();
 		auto [status_v, context_v] = result_v;
 		if (ERROR_SUCCESS != status_v) 

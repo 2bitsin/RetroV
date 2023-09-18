@@ -1,7 +1,7 @@
 #pragma once
 
 #include <win32/windows.hpp>
-#include <win32/filetime_clock.hpp>
+#include <win32/chrono.hpp>
 
 #include <type_traits>
 #include <functional>
@@ -25,7 +25,7 @@ namespace win32
 		auto MayRunLong() const -> bool;
 
 	private:
-		PTP_CALLBACK_INSTANCE m_Handle{ nullptr };
+		PTP_CALLBACK_INSTANCE m_handle{ nullptr };
 	};
 
 	/////////////////
@@ -52,7 +52,7 @@ namespace win32
 
 		auto Handle() const noexcept -> PTP_WORK;
 
-		auto Wait() const -> void;
+		auto set() const -> void;
 		auto Cancel () const -> void;
 
 		auto SubmitTo(WorkQueue& queue_v) -> void;
@@ -61,7 +61,7 @@ namespace win32
 
 	private:
 		std::function<void(WorkInstance, WorkItem&)> m_Cbkfun;
-		PTP_WORK m_Handle{ nullptr };
+		PTP_WORK m_handle{ nullptr };
 	};
 
 
@@ -69,7 +69,7 @@ namespace win32
 		requires (std::is_invocable_v<Callback, WorkInstance, WorkItem&>)
 	inline WorkItem::WorkItem(Callback&& callback_v)
 		: m_Cbkfun(std::forward<Callback>(callback_v))
-		, m_Handle(nullptr)
+		, m_handle(nullptr)
 	{}
 
 	/////////////////
@@ -113,14 +113,14 @@ namespace win32
 		static auto NTAPI EntryPoint(PTP_CALLBACK_INSTANCE instance_v, void* context_v, PTP_TIMER timer_v) -> void;
 	private:
 		std::function<void(WorkInstance, WorkTimer&)> m_Cbkfun;
-		PTP_TIMER m_Handle{ nullptr };
+		PTP_TIMER m_handle{ nullptr };
 	};
 
 	template<typename Callback>
 	requires (std::is_invocable_v<Callback, WorkInstance, WorkTimer&>)
 	inline WorkTimer::WorkTimer(Callback&& callback_v)
 		: m_Cbkfun(std::forward<Callback>(callback_v))
-		, m_Handle(nullptr)
+		, m_handle(nullptr)
 	{}
 
 	/////////////////
@@ -156,7 +156,7 @@ namespace win32
 		auto Cbkenv() const noexcept -> TP_CALLBACK_ENVIRON const&;
 
 	private:
-		PTP_POOL m_Handle{ nullptr };
+		PTP_POOL m_handle{ nullptr };
 		TP_CALLBACK_ENVIRON m_Cbkenv;
 	};
 

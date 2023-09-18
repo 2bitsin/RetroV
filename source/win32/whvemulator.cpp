@@ -8,14 +8,14 @@ using std::exchange;
 using win32::WHvEmulator;
 
 WHvEmulator::WHvEmulator(WHV_EMULATOR_HANDLE handle_v) noexcept
-	: m_Handle{ handle_v }
+	: m_handle{ handle_v }
 {}
 
 auto win32::WHvEmulator::TryIoEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) const noexcept 
 	-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>
 {
 	WHV_EMULATOR_STATUS status_v;
-  auto result_v = WHvEmulatorTryIoEmulation(m_Handle, context_v, &vpctx_v, &ioctx_v, &status_v);
+  auto result_v = WHvEmulatorTryIoEmulation(m_handle, context_v, &vpctx_v, &ioctx_v, &status_v);
 	return{ result_v, status_v };
 }
 
@@ -23,7 +23,7 @@ auto win32::WHvEmulator::TryMmioEmulation(void* context_v, WHV_VP_EXIT_CONTEXT c
 	-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>
 {
   WHV_EMULATOR_STATUS status_v;
-	auto result_v = WHvEmulatorTryMmioEmulation(m_Handle, context_v, &vpctx_v, &mmctx_v, &status_v);
+	auto result_v = WHvEmulatorTryMmioEmulation(m_handle, context_v, &vpctx_v, &mmctx_v, &status_v);
 	return{ result_v, status_v };
 }
 
@@ -32,13 +32,13 @@ WHvEmulator::WHvEmulator()
 {}
 
 WHvEmulator::~WHvEmulator() noexcept(false) {
-	if (nullptr != m_Handle) {
-		WIN32_ERROR_ASSERT(::WHvEmulatorDestroyEmulator(m_Handle));
+	if (nullptr != m_handle) {
+		WIN32_ERROR_ASSERT(::WHvEmulatorDestroyEmulator(m_handle));
 	}
 }
 
 WHvEmulator::WHvEmulator(WHvEmulator&& other_v) noexcept
-	: m_Handle{ exchange(other_v.m_Handle, nullptr) }
+	: m_handle{ exchange(other_v.m_handle, nullptr) }
 {}
 
 auto WHvEmulator::operator=(WHvEmulator&& other_v) noexcept -> WHvEmulator& {
@@ -50,7 +50,7 @@ auto WHvEmulator::operator=(WHvEmulator&& other_v) noexcept -> WHvEmulator& {
 }
 
 auto WHvEmulator::swap(WHvEmulator& other_v) noexcept -> void {
-	std::swap(m_Handle, other_v.m_Handle);
+	std::swap(m_handle, other_v.m_handle);
 }
 
 auto win32::WHvEmulator::Create() -> WHV_EMULATOR_HANDLE {
@@ -65,13 +65,13 @@ auto win32::WHvEmulator::Create() -> WHV_EMULATOR_HANDLE {
 }
 
 auto WHvEmulator::GetHandle() const noexcept -> WHV_EMULATOR_HANDLE {
-	return m_Handle;
+	return m_handle;
 }
 
 auto WHvEmulator::SetHandle(WHV_EMULATOR_HANDLE handle_v) noexcept -> void
 {
 	WHvEmulator::~WHvEmulator();
-	m_Handle = handle_v;
+	m_handle = handle_v;
 }
 
 auto WHvEmulator::Create(WHV_EMULATOR_CALLBACKS const& callbacks_v) -> WHV_EMULATOR_HANDLE {

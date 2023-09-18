@@ -12,15 +12,15 @@ using std::exchange;
 using win32::WHvPartition;
 
 WHvPartition::WHvPartition(WHV_PARTITION_HANDLE handle_v) noexcept
-	: m_Handle{ handle_v }
+	: m_handle{ handle_v }
 {}
 
 WHvPartition::~WHvPartition()
 {
 	using utils::logger;
-	if (nullptr != m_Handle)
+	if (nullptr != m_handle)
 	{		
-		auto [result_v, vcpucount_v] = GetProcessorCount(m_Handle);
+		auto [result_v, vcpucount_v] = GetProcessorCount(m_handle);
 		WIN32_ERROR_NOTIFY(result_v);
 		if (result_v == S_OK)
 		{
@@ -28,20 +28,20 @@ WHvPartition::~WHvPartition()
 				vcpuindex_v < vcpucount_v;
 				vcpuindex_v += 1u)			
 			{
-				WIN32_ERROR_NOTIFY(::WHvDeleteVirtualProcessor(m_Handle, vcpuindex_v));
+				WIN32_ERROR_NOTIFY(::WHvDeleteVirtualProcessor(m_handle, vcpuindex_v));
 			}			
 		}
-		WIN32_ERROR_NOTIFY(::WHvDeletePartition(m_Handle));
+		WIN32_ERROR_NOTIFY(::WHvDeletePartition(m_handle));
 		
 	}
 }
 
 auto WHvPartition::swap(WHvPartition& with_v) noexcept -> void {
-	std::swap(m_Handle, with_v.m_Handle);
+	std::swap(m_handle, with_v.m_handle);
 }
 
 WHvPartition::WHvPartition(WHvPartition&& from_v) noexcept 
-	: m_Handle{ exchange(from_v.m_Handle, nullptr) }
+	: m_handle{ exchange(from_v.m_handle, nullptr) }
 {}
 
 auto WHvPartition::operator=(WHvPartition&& from_v) noexcept -> WHvPartition& {	
@@ -109,12 +109,12 @@ auto WHvPartition::Create(std::uint32_t vcpucount_v, std::span<property_pair con
 
 auto WHvPartition::GetHandle() const -> WHV_PARTITION_HANDLE
 {
-	return m_Handle;
+	return m_handle;
 }
 
 auto WHvPartition::Reset() const -> std::int32_t
 {
-	return ::WHvResetPartition(m_Handle);
+	return ::WHvResetPartition(m_handle);
 }
 
 auto WHvPartition::MapGpaRange(void* src_addr_v, std::uint64_t dst_addr_v, std::uint64_t size_v, core::Access access_v) const -> std::int32_t
@@ -131,7 +131,7 @@ auto WHvPartition::MapGpaRange(void* src_addr_v, std::uint64_t dst_addr_v, std::
 	if (dst_addr_v + size_v < dst_addr_v) {
 		size_v = 0xFFFFFFFFFFFFFFFFull - dst_addr_v;
 	}		
-	return ::WHvMapGpaRange(m_Handle, src_addr_v, dst_addr_v, size_v, flags_v);
+	return ::WHvMapGpaRange(m_handle, src_addr_v, dst_addr_v, size_v, flags_v);
 }
 
 auto WHvPartition::MapGpaRange(void const* src_addr_v, std::uint64_t dst_addr_v, std::uint64_t size_v, core::Access access_v) const->std::int32_t {
@@ -141,19 +141,19 @@ auto WHvPartition::MapGpaRange(void const* src_addr_v, std::uint64_t dst_addr_v,
 
 auto WHvPartition::UnmapGpaRange(std::uint64_t dst_addr_v, std::uint64_t size_v) const -> std::int32_t
 {
-	return ::WHvUnmapGpaRange(m_Handle, dst_addr_v, size_v);
+	return ::WHvUnmapGpaRange(m_handle, dst_addr_v, size_v);
 }
 
 auto WHvPartition::QueryGpaRangeDirtyBitmap(std::uint64_t address_v, std::uint64_t size_v, std::span<std::uint64_t> bitmap_v) const -> std::int32_t
 {
 	using namespace size_literals;
 	assert(bitmap_v.size() * sizeof(std::uint64_t) * 8u >= (size_v + 1_pages - 1u) / 1_pages);
-  return ::WHvQueryGpaRangeDirtyBitmap(m_Handle, address_v, size_v, bitmap_v.data(), bitmap_v.size() * sizeof(std::uint64_t));
+  return ::WHvQueryGpaRangeDirtyBitmap(m_handle, address_v, size_v, bitmap_v.data(), bitmap_v.size() * sizeof(std::uint64_t));
 }
 
 auto WHvPartition::ClearGpaRangeDirtyBitmap(std::uint64_t address_v, std::uint64_t size_v) const -> std::int32_t
 {
-	return ::WHvQueryGpaRangeDirtyBitmap(m_Handle, address_v, size_v, nullptr, 0u);
+	return ::WHvQueryGpaRangeDirtyBitmap(m_handle, address_v, size_v, nullptr, 0u);
 }
 
 auto WHvPartition::GetProcessorCount(WHV_PARTITION_HANDLE handle_v) -> std::tuple<std::int32_t, std::uint32_t> {

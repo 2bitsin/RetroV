@@ -196,7 +196,7 @@ namespace win32
 		static auto __stdcall TranslateGvaPage(void* context_v, WHV_GUEST_VIRTUAL_ADDRESS virtaddr_v, WHV_TRANSLATE_GVA_FLAGS falgs_v, WHV_TRANSLATE_GVA_RESULT_CODE* code_v, WHV_GUEST_PHYSICAL_ADDRESS* physaddr_v) -> HRESULT;
 
 	private:
-		WHV_EMULATOR_HANDLE m_Handle{ nullptr };			
+		WHV_EMULATOR_HANDLE m_handle{ nullptr };			
 	};
 
 }

@@ -24,6 +24,8 @@ Prologue:
 
     mov         si,     Strings.Hello
     call        Debug.PrintString   
+
+    jmp         $
     
 
   .L2:

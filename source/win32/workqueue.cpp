@@ -1,6 +1,6 @@
 #include <win32/error.hpp>
 #include <win32/workqueue.hpp>
-#include <win32/filetime_clock.hpp>
+#include <win32/chrono.hpp>
 
 #include <utility>
 using win32::WorkInstance;
@@ -18,12 +18,12 @@ using std::exchange;
 ////////////////////////////
 
 WorkInstance::WorkInstance(PTP_CALLBACK_INSTANCE instance_v) noexcept
-	: m_Handle(instance_v)
+	: m_handle(instance_v)
 {}
 
 auto WorkInstance::MayRunLong() const -> bool
 {
-	return ::CallbackMayRunLong(m_Handle) ? true : false;
+	return ::CallbackMayRunLong(m_handle) ? true : false;
 }
 
 ////////////////////////////
@@ -33,15 +33,15 @@ auto WorkInstance::MayRunLong() const -> bool
 ////////////////////////////
 
 WorkItem::~WorkItem() {
-	if (nullptr != m_Handle) {	
-		::WaitForThreadpoolWorkCallbacks(m_Handle, TRUE);
-		::CloseThreadpoolWork(m_Handle);
+	if (nullptr != m_handle) {	
+		::WaitForThreadpoolWorkCallbacks(m_handle, TRUE);
+		::CloseThreadpoolWork(m_handle);
 	}
 }
 
 WorkItem::WorkItem(WorkItem&& from_v) noexcept
 	: m_Cbkfun(exchange(from_v.m_Cbkfun, nullptr))
-	, m_Handle(exchange(from_v.m_Handle, nullptr))
+	, m_handle(exchange(from_v.m_handle, nullptr))
 {}
 
 auto WorkItem::operator=(WorkItem&& from_v) noexcept -> WorkItem& {
@@ -55,34 +55,34 @@ auto WorkItem::operator=(WorkItem&& from_v) noexcept -> WorkItem& {
 auto WorkItem::swap(WorkItem& with_v) noexcept -> void
 {
 	std::swap(m_Cbkfun, with_v.m_Cbkfun);
-	std::swap(m_Handle, with_v.m_Handle);
+	std::swap(m_handle, with_v.m_handle);
 }
 
 auto WorkItem::Handle() const noexcept -> PTP_WORK
 {
-	return m_Handle;
+	return m_handle;
 }
 
-auto WorkItem::Wait() const -> void
+auto WorkItem::set() const -> void
 {
-	::WaitForThreadpoolWorkCallbacks(m_Handle, FALSE);
+	::WaitForThreadpoolWorkCallbacks(m_handle, FALSE);
 }
 
 auto WorkItem::Cancel() const -> void
 {
-	::WaitForThreadpoolWorkCallbacks(m_Handle, TRUE);
+	::WaitForThreadpoolWorkCallbacks(m_handle, TRUE);
 }
 
 auto WorkItem::SubmitTo(WorkQueue& queue_v) -> void
 {
-	if (nullptr != m_Handle) { 
-		::CloseThreadpoolWork(m_Handle);
+	if (nullptr != m_handle) { 
+		::CloseThreadpoolWork(m_handle);
 	}
 
-	m_Handle = ::CreateThreadpoolWork(&EntryPoint, this, &queue_v.Cbkenv());
+	m_handle = ::CreateThreadpoolWork(&EntryPoint, this, &queue_v.Cbkenv());
 
-	if (nullptr != m_Handle) {
-		return ::SubmitThreadpoolWork(m_Handle);
+	if (nullptr != m_handle) {
+		return ::SubmitThreadpoolWork(m_handle);
 	}
 
 	throw error(error::last_error());	
@@ -106,7 +106,7 @@ WorkTimer::~WorkTimer() {
 
 WorkTimer::WorkTimer(WorkTimer&& from_v) noexcept
 	: m_Cbkfun(exchange(from_v.m_Cbkfun, {}))
-	, m_Handle(exchange(from_v.m_Handle, nullptr))
+	, m_handle(exchange(from_v.m_handle, nullptr))
 {}
 
 auto WorkTimer::operator=(WorkTimer&& from_v) noexcept -> WorkTimer& {
@@ -119,31 +119,31 @@ auto WorkTimer::operator=(WorkTimer&& from_v) noexcept -> WorkTimer& {
 
 auto WorkTimer::swap(WorkTimer& with_v) -> void {
 	std::swap(m_Cbkfun, with_v.m_Cbkfun);
-	std::swap(m_Handle, with_v.m_Handle);
+	std::swap(m_handle, with_v.m_handle);
 }
 
 auto WorkTimer::Handle() const noexcept -> PTP_TIMER {
-	return m_Handle;
+	return m_handle;
 }
 
 auto WorkTimer::Cancel() -> void {
-	if (nullptr != m_Handle) {
-		::WaitForThreadpoolTimerCallbacks(m_Handle, TRUE);
-		::CloseThreadpoolTimer(m_Handle);
-		m_Handle = nullptr;
+	if (nullptr != m_handle) {
+		::WaitForThreadpoolTimerCallbacks(m_handle, TRUE);
+		::CloseThreadpoolTimer(m_handle);
+		m_handle = nullptr;
 	}
 }
 
 auto WorkTimer::SubmitTo(WorkQueue& queue_v, FILETIME expire_v, std::uint32_t period_millisec_v) -> void
 {
-	if (nullptr != m_Handle) {
-		::CloseThreadpoolTimer(m_Handle);
+	if (nullptr != m_handle) {
+		::CloseThreadpoolTimer(m_handle);
 	}
 
-	m_Handle = ::CreateThreadpoolTimer(&EntryPoint, this, &queue_v.Cbkenv());
+	m_handle = ::CreateThreadpoolTimer(&EntryPoint, this, &queue_v.Cbkenv());
 
-	if (nullptr != m_Handle) {		
-		return ::SetThreadpoolTimer(m_Handle, &expire_v, period_millisec_v, 0);
+	if (nullptr != m_handle) {		
+		return ::SetThreadpoolTimer(m_handle, &expire_v, period_millisec_v, 0);
 	}
 
 	throw error(error::last_error());
@@ -184,27 +184,27 @@ auto WorkTimer::SubmitTo(WorkQueue& queue_v, duration_100ns expire_v, duration_1
 ////////////////////////////
 
 WorkQueue::WorkQueue() 
-	: m_Handle(::CreateThreadpool(nullptr))
+	: m_handle(::CreateThreadpool(nullptr))
 {
-	if(nullptr == m_Handle) { 
+	if(nullptr == m_handle) { 
 		throw error(error::last_error());
 	}
 	::InitializeThreadpoolEnvironment(&m_Cbkenv);
-	::SetThreadpoolCallbackPool(&m_Cbkenv, m_Handle);
-	::SetThreadpoolThreadMaximum(m_Handle, std::thread
+	::SetThreadpoolCallbackPool(&m_Cbkenv, m_handle);
+	::SetThreadpoolThreadMaximum(m_handle, std::thread
 		::hardware_concurrency()*2u);
-	if (!::SetThreadpoolThreadMinimum(m_Handle, 1u))
+	if (!::SetThreadpoolThreadMinimum(m_handle, 1u))
 		throw win32::error::last_error();
 }
 
 WorkQueue::~WorkQueue() {
-	if (nullptr != m_Handle) {
-		::CloseThreadpool(m_Handle);
+	if (nullptr != m_handle) {
+		::CloseThreadpool(m_handle);
 	}
 }
 
 WorkQueue::WorkQueue(WorkQueue&& from_v) noexcept
-	: m_Handle(exchange(from_v.m_Handle, nullptr))
+	: m_handle(exchange(from_v.m_handle, nullptr))
 	, m_Cbkenv(exchange(from_v.m_Cbkenv, TP_CALLBACK_ENVIRON{}))
 {}
 
@@ -218,12 +218,12 @@ auto WorkQueue::operator=(WorkQueue&& from_v) noexcept -> WorkQueue& {
 
 auto WorkQueue::Handle() const noexcept -> PTP_POOL
 {
-	return m_Handle;
+	return m_handle;
 }
 
 auto WorkQueue::swap(WorkQueue& from_v) -> void	
 {
-	std::swap(m_Handle, from_v.m_Handle);
+	std::swap(m_handle, from_v.m_handle);
 	std::swap(m_Cbkenv, from_v.m_Cbkenv);
 }
 
