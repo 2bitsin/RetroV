@@ -1,6 +1,6 @@
 #include <win32/error.hpp>
 #include <win32/workqueue.hpp>
-#include <win32/time.hpp>
+#include <win32/filetime_clock.hpp>
 
 #include <utility>
 using win32::WorkInstance;
@@ -158,7 +158,7 @@ auto WorkTimer::EntryPoint(PTP_CALLBACK_INSTANCE instance_v, void* context_v, PT
 auto WorkTimer::SubmitTo(WorkQueue& queue_v, time_point_type expire_v, duration_100ns period_v) -> void
 {
 	using namespace std::chrono;
-	auto const expire_filetime_v = TimePointToFileTime(expire_v);
+	auto const expire_filetime_v = filetime_clock::to_filetime(expire_v);
 	auto const period_millisec_v = duration_cast<milliseconds>(period_v).count();
 	if (period_millisec_v > 0xFFFFFFFFu) throw std::invalid_argument("period");
 	return SubmitTo(queue_v, expire_filetime_v, period_millisec_v & 0xFFFFFFFFu);

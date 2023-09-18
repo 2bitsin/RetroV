@@ -56,9 +56,10 @@ int main(int argc, char** argv) try
 	
 	WaitableTimer timer_v{};
 
-	timer_v.Wait([] () {
-		std::cout << "Hello!" << std::endl;
-	}, 100ms, 10ms);
+	timer_v.Wait([] (auto time0_v) {
+		auto dt = duration_cast<microseconds>(filetime_clock::now() - time0_v);
+		std::cout << dt << std::endl;
+	}, 100ms, 500ms);
 
 	while(true) ::SleepEx(10000, TRUE);
 

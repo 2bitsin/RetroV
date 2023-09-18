@@ -115,7 +115,7 @@ namespace utils
 	template <std::integral Target, std::integral Source,
 		std::size_t Ways = sizeof(Source) / sizeof(Target)>
 	requires (sizeof(Target) <= sizeof(Source))
-	static inline constexpr auto integral_split(Source value_v) -> 
+	static inline constexpr auto integral_split_msw_first(Source value_v) -> 
 		std::array<Target, Ways>
 	{		
 		if constexpr (Ways == 1u) {
@@ -126,30 +126,30 @@ namespace utils
 		} else if constexpr (Ways == 2u) {
 			return 
 			{
-				static_cast<Target>(value_v >> (sizeof(Target) * 0u)),
-				static_cast<Target>(value_v >> (sizeof(Target) * 8u)) 
+				static_cast<Target>(value_v >> (sizeof(Target) * 8u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 0u))
 			};
 		}
 		else if constexpr (Ways == 4u) 
 		{
 			return {
-				static_cast<Target>(value_v >> (sizeof(Target) * 0u)),
-				static_cast<Target>(value_v >> (sizeof(Target) * 8u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 24u)),
 				static_cast<Target>(value_v >> (sizeof(Target) * 16u)),
-				static_cast<Target>(value_v >> (sizeof(Target) * 24u))
+				static_cast<Target>(value_v >> (sizeof(Target) * 8u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 0u))
 			};
 		}
 		else if constexpr (Ways == 8u) 
 		{
 			return {
-				static_cast<Target>(value_v >> (sizeof(Target) * 0u)),
-				static_cast<Target>(value_v >> (sizeof(Target) * 8u)),
-				static_cast<Target>(value_v >> (sizeof(Target) * 16u)),
-				static_cast<Target>(value_v >> (sizeof(Target) * 24u)),
-				static_cast<Target>(value_v >> (sizeof(Target) * 32u)),
-				static_cast<Target>(value_v >> (sizeof(Target) * 40u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 56u)),
 				static_cast<Target>(value_v >> (sizeof(Target) * 48u)),
-				static_cast<Target>(value_v >> (sizeof(Target) * 56u))
+				static_cast<Target>(value_v >> (sizeof(Target) * 40u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 32u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 24u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 16u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 8u)),
+				static_cast<Target>(value_v >> (sizeof(Target) * 0u))
 			};
 		}
 		else 
@@ -161,7 +161,7 @@ namespace utils
 	
 	template<std::integral... Source, typename result_type = typename
 		detail::integer_by_size<(sizeof(Source) + ...), (std::is_signed_v<Source> || ...)>::type>
-	static inline constexpr auto integral_join(Source... value_v) -> result_type
+	static inline constexpr auto integral_join_msw_first(Source... value_v) -> result_type
 	{
 		result_type result_v{};
 		(((result_v <<= sizeof(Source) * 8u) |= value_v), ...);

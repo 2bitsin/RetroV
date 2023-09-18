@@ -93,10 +93,10 @@ auto VideoDevice::Hypercall_SetMode(Processor const& vcpu_v, HypercallContext co
 	auto const& vpcontext_v = hypercall_v.VpContext;
 	auto const& hccontext_v = hypercall_v.Hypercall;
 
-	auto const [type_v, flags_v] = 
-		utils::integral_split<uint16_t>((uint32_t)hccontext_v.Rbx);
-	auto const [horizontal_v, vertical_v] =
-		utils::integral_split<uint16_t>((uint32_t)hccontext_v.Rcx);
+	auto const [flags_v, type_v] =
+		utils::integral_split_msw_first<uint16_t>((uint32_t)hccontext_v.Rbx);
+	auto const [vertical_v, horizontal_v] =
+		utils::integral_split_msw_first<uint16_t>((uint32_t)hccontext_v.Rcx);
 
 	return ERROR_SUCCESS;
 }

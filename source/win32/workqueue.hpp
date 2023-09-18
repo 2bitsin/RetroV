@@ -1,6 +1,7 @@
 #pragma once
 
 #include <win32/windows.hpp>
+#include <win32/filetime_clock.hpp>
 
 #include <type_traits>
 #include <functional>
@@ -80,7 +81,7 @@ namespace win32
 	struct WorkTimer
 	{
 		using duration_100ns = std::chrono::milliseconds;
-		using time_point_type = std::chrono::system_clock::time_point;
+		using time_point_type = win32::filetime_clock::time_point;
 
 		template <typename Callback>
 		requires (std::is_invocable_v<Callback, WorkInstance, WorkTimer&>)
