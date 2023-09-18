@@ -18,16 +18,16 @@ namespace core
 
 namespace core::videodevice
 {
-	using duration_type = std::chrono::microseconds;
+	using duration_100ns = std::chrono::microseconds;
 	using buffer_type = win32::unique_span<std::byte>;
 
 	struct BsCommon
 	{
-		BsCommon(core::Machine& machine_v, core::VideoDevice& device_v);
+		BsCommon(Machine& machine_v, VideoDevice& device_v);
 		~BsCommon() = default;
 
-	private:
-		core::Machine& m_Machine;
-		core::VideoDevice& m_Device;
+	protected:
+		Machine& m_Machine;
+		VideoDevice& m_Device;
 	};
 }

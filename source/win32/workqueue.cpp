@@ -1,5 +1,6 @@
 #include <win32/error.hpp>
 #include <win32/workqueue.hpp>
+#include <win32/time.hpp>
 
 #include <utility>
 using win32::WorkInstance;
@@ -133,21 +134,6 @@ auto WorkTimer::Cancel() -> void {
 	}
 }
 
-auto WorkTimer::ToFileTime(std::chrono::system_clock::time_point time_v) -> FILETIME {
-	using namespace std::chrono;
-
-  auto time_tv = system_clock::to_time_t(time_v);
-
-	ULARGE_INTEGER time_value {
-		.QuadPart = (time_tv * 10000000ULL) + 116444736000000000ULL
-	};
-
-	return FILETIME {
-		.dwLowDateTime  = time_value.LowPart,
-		.dwHighDateTime = time_value.HighPart
-	};
-}
-
 auto WorkTimer::SubmitTo(WorkQueue& queue_v, FILETIME expire_v, std::uint32_t period_millisec_v) -> void
 {
 	if (nullptr != m_Handle) {
@@ -169,16 +155,16 @@ auto WorkTimer::EntryPoint(PTP_CALLBACK_INSTANCE instance_v, void* context_v, PT
 	timer_ptr->m_Cbkfun(WorkInstance(instance_v), *timer_ptr);
 }
 
-auto WorkTimer::SubmitTo(WorkQueue& queue_v, time_point_type expire_v, duration_type period_v) -> void
+auto WorkTimer::SubmitTo(WorkQueue& queue_v, time_point_type expire_v, duration_100ns period_v) -> void
 {
 	using namespace std::chrono;
-	auto const expire_filetime_v = ToFileTime(expire_v);
+	auto const expire_filetime_v = TimePointToFileTime(expire_v);
 	auto const period_millisec_v = duration_cast<milliseconds>(period_v).count();
 	if (period_millisec_v > 0xFFFFFFFFu) throw std::invalid_argument("period");
 	return SubmitTo(queue_v, expire_filetime_v, period_millisec_v & 0xFFFFFFFFu);
 }
 
-auto WorkTimer::SubmitTo(WorkQueue& queue_v, duration_type expire_v, duration_type period_v) -> void
+auto WorkTimer::SubmitTo(WorkQueue& queue_v, duration_100ns expire_v, duration_100ns period_v) -> void
 {
 	using namespace std::chrono;
 	auto const expire_100nanos_v = -duration_cast<duration<std::uint64_t, std::ratio<1, 10000000>>>(expire_v).count();

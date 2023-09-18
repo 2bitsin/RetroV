@@ -66,7 +66,7 @@ namespace core
 		auto Suspend() -> void;
 		auto Resume() -> void;
 
-		auto ReadTsc() const -> std::tuple<std::int32_t, std::uint64_t>;
+		auto GetRuntime() const -> std::tuple<std::int32_t, std::uint64_t>;
 
 		auto InterruptsEnabled() const -> bool;
 		auto PagingEnabled() const -> bool;
@@ -76,8 +76,7 @@ namespace core
 		using WHvProcessor::MemoryFetch;
 		using WHvProcessor::MemoryWrite;
 
-	protected:
-		auto UnhandledMsr(WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) const -> std::int32_t;
+	protected:		
 		auto AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& context_v) const -> std::int32_t;
 
 		auto HypercallDispatch(WHV_RUN_VP_EXIT_CONTEXT const& context_v) const -> std::int32_t;

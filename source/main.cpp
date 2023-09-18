@@ -7,6 +7,7 @@
 #include <win32/workqueue.hpp>
 #include <win32/memory.hpp>
 #include <win32/mappedfile.hpp>
+#include <win32/waitabletimer.hpp>
 
 #include <core/machine.hpp>
 
@@ -49,16 +50,25 @@ int main(int argc, char** argv) try
 
 	using namespace win32;
 
+	current_path(path(argv[0])
+		.parent_path()
+		.parent_path());
+	
+	WaitableTimer timer_v{};
+
+	timer_v.Wait([] () {
+		std::cout << "Hello!" << std::endl;
+	}, 100ms, 10ms);
+
+	while(true) ::SleepEx(10000, TRUE);
+
+
+#if 0
 	using std::chrono::steady_clock;
 
 	using core::Machine;
 	using core::Configuration;
 
-	current_path(path(argv[0])
-		.parent_path()
-		.parent_path());
-	
-#if 1
 	WHvCapabilities::InfoDump();
 
 	SDL_Init(SDL_INIT_EVERYTHING);

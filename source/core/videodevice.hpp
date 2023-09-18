@@ -34,8 +34,9 @@ namespace core
 
 	struct VideoDevice
 	{
-		using duration_type = videodevice::duration_type;
+		using duration_100ns = videodevice::duration_100ns;
 		using buffer_type = videodevice::buffer_type;
+		using region_type = utils::region64_type;
 
 		VideoDevice(Machine& machine_v);
 		~VideoDevice();
@@ -54,7 +55,11 @@ namespace core
 		auto IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>;
 		auto ConfigureROM(core::Configuration const&) -> void;
 		auto ConfigureMemory(core::Configuration const&) -> void;
-
+		
+		auto GetMemoryRegion(region_type const& region_v, uint32_t flags_v) const -> std::tuple<std::int32_t, std::size_t, std::span<std::byte>>;
+		auto MemorySize() const -> std::size_t;
+		
+	protected:
 		auto Hypercall_SetMode(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
 		auto Hypercall_MemoryMap(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;		
 		auto Hypercall_SetView(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
@@ -62,8 +67,8 @@ namespace core
 	private:	
 		Machine& m_Machine;		
 		std::optional<RomImage> m_BiosRom;
-		buffer_type m_VideoMemory;
 		std::list<MapGpaRange> m_MemoryMap;
+		buffer_type m_VideoMemory [2u];		
 		RamDAC m_RamDAC;
 	};
 }

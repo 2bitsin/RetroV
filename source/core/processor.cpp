@@ -185,10 +185,10 @@ auto Processor::Resume()  -> void
 	m_Suspend.release();
 }
 
-auto Processor::ReadTsc() const -> std::tuple<std::int32_t, std::uint64_t>
+auto Processor::GetRuntime() const -> std::tuple<std::int32_t, std::uint64_t>
 {
 	WHV_REGISTER_VALUE value_v{};
-	auto result_v = GetRegister(WHvRegisterReferenceTsc, value_v);
+	auto result_v = GetRegister(WHvRegisterVpRuntime, value_v);
 	return { result_v, value_v.Reg64 };
 }
 

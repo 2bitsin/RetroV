@@ -66,7 +66,6 @@ namespace core
 		auto ConfigurePartition(Configuration const&) -> void;
 
 	private:		
-    win32::WorkQueue m_WorkQueue;
 		win32::WHvPartition m_Partition;		
 		win32::unique_span<std::byte> m_MainMemory;
 		std::list<MapGpaRange> m_MappedRanges;

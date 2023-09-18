@@ -45,7 +45,6 @@ auto VideoDevice::Stop() -> void
 auto VideoDevice::Restart() -> void
 {}
 
-
 auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {	
 	if (data_v.size() > 1u)
@@ -110,18 +109,23 @@ auto VideoDevice::Hypercall_MemoryMap(Processor const& vcpu_v, HypercallContext 
 	using namespace size_literals;
 	using region_type = utils::region64_type;
 
-	auto source_v = std::min(hccontext_v.Rsi&0xFFFFFFFFu, m_VideoMemory.size());
-	auto length_v = std::min(hccontext_v.Rcx&0xFFFFFFFFu, m_VideoMemory.size());
+	auto source_v = std::min(hccontext_v.Rsi&0xFFFFFFFFu, m_VideoMemory[0].size());
+	auto length_v = std::min(hccontext_v.Rcx&0xFFFFFFFFu, m_VideoMemory[0].size());
 	auto target_v = hccontext_v.Rdi&0xFFFFFFFFu;
 	auto flags_v = hccontext_v.Rbx&0xFFFFFFFFu;
 
 	if (flags_v&1u) m_MemoryMap.clear();
 	m_MemoryMap.emplace_back(m_Machine.GetPartition(), 
 		region_type{ target_v, length_v }, kAccessDevice,
-		m_VideoMemory.subspan(source_v, length_v)
+		m_VideoMemory[0].subspan(source_v, length_v)
 	);
 
 	return ERROR_SUCCESS;
+}
+
+auto VideoDevice::Hypercall_SetView(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t
+{
+  return std::int32_t();
 }
 
 auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t
@@ -132,6 +136,7 @@ auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& hyp
 	case HYPERCALL_VIDEO_SET_MODE:
 		return Hypercall_SetMode(vcpu_v, hypercall_v);
 	case HYPERCALL_VIDEO_MEMORY_MAP:	
+		return Hypercall_MemoryMap(vcpu_v, hypercall_v);
 	case HYPERCALL_VIDEO_SET_VIEW:
 		return ERROR_SUCCESS;
 	}
@@ -182,5 +187,25 @@ auto VideoDevice::ConfigureMemory(core::Configuration const& config_v) -> void
 	using namespace win32;
 	using namespace size_literals;
 	auto const size_bytes_v = config_v.GetPropertyUint64("video.memory.size.kilobytes")*1_KiB;
-	m_VideoMemory = VirtualAlloc_s(size_bytes_v, read_write, commit|reserve|write_watch, nullptr);
+	m_VideoMemory[0u] = VirtualAlloc_s(size_bytes_v, read_write, commit|reserve|write_watch, nullptr);
+	m_VideoMemory[1u] = VirtualAlloc_s(size_bytes_v, read_write, commit|reserve, nullptr);
 }
+
+auto VideoDevice::GetMemoryRegion(region_type const& region_v, uint32_t flags_v) const
+	-> std::tuple<std::int32_t, std::size_t, std::span<std::byte>>
+{
+	using namespace win32;
+	assert(0u == (region_v.base() & 0xFFFu));
+	assert(0u == (region_v.size() & 0xFFFu));
+	auto source_s = m_VideoMemory[0].subspan(region_v.base(), region_v.size());
+	auto target_s = m_VideoMemory[1].subspan(region_v.base(), region_v.size());
+	auto [status_v, copied_v] =	CopyDirtyPages(target_s, source_s);
+	if (ERROR_SUCCESS!=status_v) return { status_v, 0, {} };
+	return { ERROR_SUCCESS, copied_v, target_s };
+}
+
+auto VideoDevice::MemorySize() const -> std::size_t
+{
+	return m_MemoryMap.size();
+}
+

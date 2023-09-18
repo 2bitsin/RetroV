@@ -79,7 +79,7 @@ namespace win32
 
 	struct WorkTimer
 	{
-		using duration_type = std::chrono::milliseconds;
+		using duration_100ns = std::chrono::milliseconds;
 		using time_point_type = std::chrono::system_clock::time_point;
 
 		template <typename Callback>
@@ -100,13 +100,13 @@ namespace win32
 		auto Cancel() -> void;
 		
 		auto SubmitTo(WorkQueue& queue_v, time_point_type expire_v,
-			duration_type period_v = duration_type::zero()) -> void;
+			duration_100ns period_v = duration_100ns::zero()) -> void;
 		
-		auto SubmitTo(WorkQueue& queue_v, duration_type expire_v,
-			duration_type period_v = duration_type::zero()) -> void;
+		auto SubmitTo(WorkQueue& queue_v, duration_100ns expire_v,
+			duration_100ns period_v = duration_100ns::zero()) -> void;
 
 	protected:
-		static auto ToFileTime(std::chrono::system_clock::time_point time_v) -> FILETIME;
+		
 		auto SubmitTo(WorkQueue& queue_v, FILETIME expire_v, std::uint32_t period_millisec_v) -> void;
 
 		static auto NTAPI EntryPoint(PTP_CALLBACK_INSTANCE instance_v, void* context_v, PTP_TIMER timer_v) -> void;
