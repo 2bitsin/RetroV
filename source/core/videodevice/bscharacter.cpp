@@ -1,4 +1,5 @@
 #include <core/videodevice/bscharacter.hpp>
+#include <core/videodevice.hpp>
 
 #include <array>
 
@@ -53,10 +54,11 @@ BsCharacter::BsCharacter(core::Machine& machine_v, core::VideoDevice& device_v,
 	, m_IsColor	{ is_color_mode(mode_v)}
 {}
 
-auto BsCharacter::Refresh(duration_type time_v) -> void
-{
+auto BsCharacter::Refresh(duration_type time_v) -> void {
 	using namespace std::chrono_literals;
 	using namespace std::chrono;
-
-
+	auto const window_size_v = utils::round_ceil(m_Cols * m_Rows * 2u, 0x1000u);
+	auto text_view_s = m_Device.GetMemoryRegion({ 0x0u, window_size_v });
+	auto font_view_s = m_Device.GetMemoryRegion({ 0x20000u, 0x2000u });
+	
 }

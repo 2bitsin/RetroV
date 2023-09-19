@@ -58,6 +58,7 @@ namespace core
 		auto AcquireSurface(std::uint16_t width_v, std::uint16_t height_v) -> surface_tmp;		
 		auto Present(surface_tmp surface_v) -> void;
 		auto FlushSurfaceCache() -> void;
+		auto WaitSync() -> void;
 
 	protected:
 		friend struct surface_releaser;

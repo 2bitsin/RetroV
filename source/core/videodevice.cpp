@@ -140,7 +140,7 @@ auto VideoDevice::Hypercall_MemoryMap(Processor const& vcpu_v, HypercallContext 
 	using region_type = utils::region64_type;
 
 	auto source_v = std::min(hccontext_v.Rsi&0xFFFFFFFFu, m_VideoMemory[0].size());
-	auto length_v = std::min(hccontext_v.Rcx&0xFFFFFFFFu, m_VideoMemory[0].size());
+	auto length_v = std::min(hccontext_v.Rcx&0xFFFFFFFFu, m_VideoMemory[0].size() - source_v);
 	auto target_v = hccontext_v.Rdi&0xFFFFFFFFu;
 	auto flags_v = hccontext_v.Rbx&0xFFFFFFFFu;
 
@@ -237,5 +237,14 @@ auto VideoDevice::GetMemoryRegion(region_type const& region_v, uint32_t flags_v)
 auto VideoDevice::MemorySize() const -> std::size_t
 {
 	return m_MemoryMap.size();
+}
+
+auto VideoDevice::Refresh(std::stop_token stopee_v) -> void
+{
+	auto& display_v = m_Machine.GetDisplay();
+	while(!stopee_v.stop_requested())
+	{
+		display_v.AcquireSurface();
+	}
 }
 

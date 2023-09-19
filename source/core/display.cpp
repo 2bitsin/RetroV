@@ -1,8 +1,12 @@
 #include <core/display.hpp>
+
 #include <win32/windows.hpp>
+#include <win32/error.hpp>
 
 #include <stdexcept>
 #include <chrono>
+
+#include <dwmapi.h>
 
 using core::Display;
 
@@ -83,4 +87,9 @@ auto Display::ReleaseSurface(SDL_Surface* ptr) -> void {
 		::SDL_FreeSurface(ptr);
 	}
 	m_SurfaceCache.emplace_front(ptr);
+}
+
+auto Display::WaitSync() -> void
+{
+	WIN32_ERROR_ASSERT(::DwmFlush());
 }
