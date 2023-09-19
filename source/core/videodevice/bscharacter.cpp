@@ -1,5 +1,7 @@
 #include <core/videodevice/bscharacter.hpp>
 #include <core/videodevice.hpp>
+#include <core/machine.hpp>
+#include <utils/surface.hpp>
 
 #include <array>
 
@@ -61,4 +63,18 @@ auto BsCharacter::Refresh(duration_type time_v) -> void {
 	auto text_view_s = m_Device.GetMemoryRegion({ 0x0u, window_size_v });
 	auto font_view_s = m_Device.GetMemoryRegion({ 0x20000u, 0x2000u });
 	
+	auto const hsize_v = glyph_size(m_Mode)[0] * m_Cols;
+	auto const vsize_v = glyph_size(m_Mode)[1] * m_Rows;
+
+	auto& display_v = m_Machine.GetDisplay();
+	auto surface_v = display_v.AcquireSurface(hsize_v, vsize_v);
+
+	{
+		utils::surface_view<std::uint32_t> surface_view_v{ surface_v };
+		for (auto&& what_v : surface_view_v) {
+			what_v = 0xFF'FF'00'00u;
+		}
+	}
+
+	display_v.Present(std::move(surface_v));
 }

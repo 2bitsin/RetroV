@@ -36,16 +36,30 @@ auto VideoDevice::Initialize(Configuration const& config_v) -> void
 	using namespace size_literals;
 
 	ConfigureROM(config_v);
+	ConfigureMemory(config_v);
 }
 
 auto VideoDevice::Start() -> void
-{}
+{
+	m_RefreshThread = std::jthread{ 
+		utils::lambda(this, &VideoDevice::Refresh)
+	};
+}
 
 auto VideoDevice::Stop() -> void
-{}
+{
+	if (m_RefreshThread.joinable()) 
+	{
+		m_RefreshThread.request_stop();
+		m_RefreshThread.join();
+	}
+}
 
 auto VideoDevice::Restart() -> void
-{}
+{
+	Stop();
+	Start();
+}
 
 auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {	
@@ -102,6 +116,7 @@ auto VideoDevice::Hypercall_SetMode(Processor const& vcpu_v, HypercallContext co
 	auto const [vert_v, horiz_v] = integral_split_msw<uint16_t>((uint32_t)hccontext_v.Rcx);
 
 	auto const mode_e = (videodevice::video_mode)mode_v;
+	std::unique_lock const lock_v{ x_VideoMode };
 	switch (mode_v)
 	{
 	case hypercall::VIDEO_MODE_CHARACTER_COLOR_8X8:
@@ -240,11 +255,22 @@ auto VideoDevice::MemorySize() const -> std::size_t
 }
 
 auto VideoDevice::Refresh(std::stop_token stopee_v) -> void
+try
 {
 	auto& display_v = m_Machine.GetDisplay();
+	auto time_zero = win32::filetime_clock::now();
 	while(!stopee_v.stop_requested())
 	{
-		display_v.AcquireSurface();
+		display_v.WaitSync();
+		auto const delta_v = win32::filetime_clock::now() - time_zero;
+		std::unique_lock const lock_v{ x_VideoMode };
+		std::visit([delta_v] (auto& mode_v) { 
+			mode_v.Refresh(delta_v); 
+		}, m_VideoMode);
 	}
+}
+catch (std::exception const& e_v)
+{
+	__debugbreak();
 }
 

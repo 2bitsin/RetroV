@@ -68,11 +68,11 @@ auto Display::Present(surface_tmp surface_v) -> void
 	}
 	auto status_v = ::SDL_UpperBlitScaled(surface_v.get(), nullptr, winsfc_p, nullptr);
 	if (status_v != 0) {
-		throw std::runtime_error{ __func__ };
+		throw std::runtime_error{ SDL_GetError() };
 	}
 	status_v = ::SDL_UpdateWindowSurface(m_Window.get());
 	if (status_v != 0) {
-		throw std::runtime_error{ __func__ };
+		throw std::runtime_error{ SDL_GetError() };
 	}
 }
 

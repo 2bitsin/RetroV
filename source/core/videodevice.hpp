@@ -50,17 +50,16 @@ namespace core
 		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t;
 		auto Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
 
+		auto GetMemoryRegion(region_type const& region_v, uint32_t flags_v = 0u) const->std::tuple<std::int32_t, std::size_t, std::span<std::byte>>;
+		auto MemorySize() const->std::size_t;
+
 	protected:
-		friend struct BsGraphical;
-		friend struct BsCharacter;
 
 		auto IoPortWrite(Processor const& vcpu_v, std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t;
 		auto IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>;
 		auto ConfigureROM(core::Configuration const&) -> void;
 		auto ConfigureMemory(core::Configuration const&) -> void;
 		
-		auto GetMemoryRegion(region_type const& region_v, uint32_t flags_v=0u) const -> std::tuple<std::int32_t, std::size_t, std::span<std::byte>>;
-		auto MemorySize() const -> std::size_t;
 		auto Refresh(std::stop_token stopee_v) -> void;
 		
 	protected:
@@ -90,8 +89,6 @@ namespace core
 		 ********************************/
 		auto Hypercall_MemoryMap(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;		
 
-
-
 		auto Hypercall_SetView(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
 
 	private:	
@@ -100,10 +97,15 @@ namespace core
 		using character_mode_type = videodevice::BsCharacter;
 		using device_mode = std::variant<character_mode_type, graphical_mode_type>;
 		
+		std::mutex x_VideoMode;
 		device_mode m_VideoMode;
+
 		std::optional<RomImage> m_BiosRom;
 		std::list<MapGpaRange> m_MemoryMap;
-		buffer_type m_VideoMemory [2u];		
+		buffer_type m_VideoMemory [2u];
+
+		std::jthread m_RefreshThread;
+
 		RamDAC m_RamDAC;
 	};
 }

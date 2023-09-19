@@ -11,6 +11,8 @@ namespace core::videodevice
 	{
 		BsGraphical(Machine& machine_v, VideoDevice& device_v, uint16_t hsize_v, uint16_t vsize_v, video_mode mode_v, uint16_t flags_v=0u);
 		~BsGraphical() = default;
+
+		auto Refresh(duration_type) -> void;
 	};
 
 }

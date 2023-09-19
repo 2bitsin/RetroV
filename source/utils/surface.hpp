@@ -14,6 +14,12 @@ namespace utils
 	template <typename T>
 	struct surface_view
 	{
+		template <typename T>
+		inline surface_view(T const& surface_holder_v) noexcept 
+			requires requires { { surface_holder_v.get() } -> std::same_as<SDL_Surface*>; }
+			: surface_view(surface_holder_v.get())
+		{}
+
 		inline surface_view(SDL_Surface* surface_v) noexcept			
 			: m_surface(surface_v)
 		{
@@ -59,6 +65,23 @@ namespace utils
 				throw std::out_of_range("surface_view::operator[]");
 			return ((*this)[yy])[xx];
 		}
+
+		auto cbegin() const noexcept -> T const* {
+			return (T const*)m_surface->pixels;
+		}
+
+		auto cend() const noexcept -> T const* {
+			return (T const*)m_surface->pixels + m_surface->h * m_surface->pitch / sizeof(T);
+		}
+
+		auto begin() const noexcept -> T* {
+			return (T*)m_surface->pixels;
+		}
+
+		auto end() const noexcept -> T* {
+			return (T *)m_surface->pixels + m_surface->h * m_surface->pitch / sizeof(T);
+		}
+
 	private:
 		SDL_Surface* m_surface { nullptr };
 	};

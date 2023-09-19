@@ -54,18 +54,7 @@ int main(int argc, char** argv) try
 		.parent_path()
 		.parent_path());
 
-	waitable_timer timer_v{};
-
-	timer_v.set(100ms);
-
-	while(true) {
-		if (timer_v.wait(2000ms)) {
-			std::cout << "tick\n";
-		}
-	}
-
-#if 0
-
+#if 1
 	using std::chrono::steady_clock;
 
 	using core::Machine;

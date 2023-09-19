@@ -20,7 +20,7 @@ namespace core
 namespace core::videodevice
 {
 	using duration_type = win32::filetime_clock::duration;
-	using buffer_type = win32::unique_span<std::byte>;	
+	using buffer_type = win32::unique_span<std::byte>;
 
 	enum video_mode : uint32_t
 	{
