@@ -269,8 +269,6 @@ try
 		}, m_VideoMode);
 	}
 }
-catch (std::exception const& e_v)
-{
-	__debugbreak();
-}
+catch (std::exception const& ex)
+{}
 

@@ -13,6 +13,9 @@ namespace core::videodevice
 		~BsGraphical() = default;
 
 		auto Refresh(duration_type) -> void;
+	private:
+		std::uint16_t m_HSize;
+		std::uint16_t m_VSize;
 	};
 
 }
