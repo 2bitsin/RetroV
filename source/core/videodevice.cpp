@@ -2,8 +2,6 @@
 #include <core/machine.hpp>
 #include <core/processor.hpp>
 
-#include <bios/com/hypercall.hpp>
-
 #include <utils/algorithm.hpp>
 #include <utils/validate.hpp>
 #include <utils/literals.hpp>
@@ -12,6 +10,7 @@
 #include <utils/paths.hpp>
 
 #include <win32/whvcapabilities.hpp>
+#include <win32/waitabletimer.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -20,9 +19,7 @@
 using core::VideoDevice;
 
 VideoDevice::VideoDevice(core::Machine& machine_v)
-	: m_Machine{ machine_v }
-	, m_VideoMode{ character_mode_type{ m_Machine, *this, 640u, 400u, 
-			videodevice::video_mode::character_color_8x16 } }
+	: m_Machine{ machine_v }	
 {}
 
 VideoDevice::~VideoDevice()
@@ -114,34 +111,6 @@ auto VideoDevice::Hypercall_SetMode(Processor const& vcpu_v, HypercallContext co
 
 	auto const [flags_v, mode_v] = integral_split_msw<uint16_t>((uint32_t)hccontext_v.Rbx);
 	auto const [vert_v, horiz_v] = integral_split_msw<uint16_t>((uint32_t)hccontext_v.Rcx);
-
-	auto const mode_e = (videodevice::video_mode)mode_v;
-	std::unique_lock const lock_v{ x_VideoMode };
-	switch (mode_v)
-	{
-	case hypercall::VIDEO_MODE_CHARACTER_COLOR_8X8:
-	case hypercall::VIDEO_MODE_CHARACTER_COLOR_8X14:
-	case hypercall::VIDEO_MODE_CHARACTER_COLOR_8X16:
-	case hypercall::VIDEO_MODE_CHARACTER_COLOR_9X8:
-	case hypercall::VIDEO_MODE_CHARACTER_COLOR_9X14:
-	case hypercall::VIDEO_MODE_CHARACTER_COLOR_9X16:
-	case hypercall::VIDEO_MODE_CHARACTER_MONO_8X8:
-	case hypercall::VIDEO_MODE_CHARACTER_MONO_8X14:
-	case hypercall::VIDEO_MODE_CHARACTER_MONO_8X16:
-	case hypercall::VIDEO_MODE_CHARACTER_MONO_9X8:
-	case hypercall::VIDEO_MODE_CHARACTER_MONO_9X14:
-	case hypercall::VIDEO_MODE_CHARACTER_MONO_9X16:
-		m_VideoMode.emplace<0u>(m_Machine, *this, horiz_v, vert_v, mode_e);
-		break;
-	case hypercall::VIDEO_MODE_GRAPHICAL_1BPP:
-	case hypercall::VIDEO_MODE_GRAPHICAL_2BPP:
-	case hypercall::VIDEO_MODE_GRAPHICAL_4BPP:
-	case hypercall::VIDEO_MODE_GRAPHICAL_8BPP:
-	case hypercall::VIDEO_MODE_GRAPHICAL_16BPP:
-	case hypercall::VIDEO_MODE_GRAPHICAL_24BPP:
-		m_VideoMode.emplace<1u>(m_Machine, *this, horiz_v, vert_v, mode_e);
-		break;
-	}
 
 	return ERROR_SUCCESS;
 }
@@ -257,16 +226,24 @@ auto VideoDevice::MemorySize() const -> std::size_t
 auto VideoDevice::Refresh(std::stop_token stopee_v) -> void
 try
 {
+	using namespace win32;
+	using namespace std::chrono;
+	using namespace std::chrono_literals;
+
 	auto& display_v = m_Machine.GetDisplay();
-	auto time_zero = win32::filetime_clock::now();
+	
+	auto const interval_v = duration_cast<duration_type>(
+		duration_cast<nanoseconds>(1s) / 60u);
+	auto next_frame_v = filetime_clock::now();
+
+	waitable_timer timer_v;	
 	while(!stopee_v.stop_requested())
 	{
-		display_v.WaitSync();
-		auto const delta_v = win32::filetime_clock::now() - time_zero;
-		std::unique_lock const lock_v{ x_VideoMode };
-		std::visit([delta_v] (auto& mode_v) { 
-			mode_v.Refresh(delta_v); 
-		}, m_VideoMode);
+		next_frame_v += interval_v;
+		timer_v.set(next_frame_v);
+
+
+		timer_v.wait();		
 	}
 }
 catch (std::exception const& ex)

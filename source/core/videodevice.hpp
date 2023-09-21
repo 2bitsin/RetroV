@@ -7,10 +7,9 @@
 #include <future>
 #include <list>
 
-#include <core/videodevice/bscharacter.hpp>
-#include <core/videodevice/bsgraphical.hpp>
-#include <core/videodevice/bscommon.hpp>
+#include <core/videodevice/common.hpp>
 #include <core/videodevice/ramdac.hpp>
+#include <core/videodevice/chargen.hpp>
 
 #include <core/configuration.hpp>
 #include <core/mapgparange.hpp>
@@ -37,6 +36,9 @@ namespace core
 		using duration_type = videodevice::duration_type;
 		using buffer_type = videodevice::buffer_type;
 		using region_type = utils::region64_type;
+;
+	;	using RamDAC = videodevice::RamDAC;
+		using CharGen = videodevice::CharGen;
 
 		VideoDevice(Machine& machine_v);
 		~VideoDevice();
@@ -93,12 +95,7 @@ namespace core
 
 	private:	
 		Machine& m_Machine;		
-		using graphical_mode_type = videodevice::BsGraphical;
-		using character_mode_type = videodevice::BsCharacter;
-		using device_mode = std::variant<character_mode_type, graphical_mode_type>;
 		
-		std::mutex x_VideoMode;
-		device_mode m_VideoMode;
 
 		std::optional<RomImage> m_BiosRom;
 		std::list<MapGpaRange> m_MemoryMap;
@@ -107,5 +104,6 @@ namespace core
 		std::jthread m_RefreshThread;
 
 		RamDAC m_RamDAC;
+		CharGen m_CharGen;
 	};
 }

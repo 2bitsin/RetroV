@@ -80,7 +80,8 @@ namespace win32
 		}
 
 		auto wait(milliseconds timeout_v, bool alertable_v=true) const -> bool;
-
+		auto wait(bool alertable_v=true) const -> bool;
+		auto abort() const -> void;
 		auto reset() const -> void;
 
 	private:

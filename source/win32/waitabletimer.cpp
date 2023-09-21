@@ -34,7 +34,18 @@ auto win32::waitable_timer::wait(milliseconds timeout_v, bool alertable_v) const
 	}
 }
 
-auto win32::waitable_timer::reset() const -> void
+auto waitable_timer::wait(bool alertable_v) const -> bool
+{
+	return wait(milliseconds(INFINITE), alertable_v);
+}
+
+auto waitable_timer::abort() const -> void
+{
+	if(!::CancelWaitableTimer(m_handle.get()))
+		error::throw_last_error();
+}
+
+auto waitable_timer::reset() const -> void
 {
 	if(!::ResetEvent(m_handle.get()))
 		error::throw_last_error();

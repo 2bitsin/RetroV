@@ -6,10 +6,12 @@
 #include <utils/limited_span.hpp>
 #include <utils/span.hpp>
 
-namespace core
+namespace core::videodevice
 {
 	struct RamDAC
 	{
+		using output_type = std::uint32_t;
+
 	protected:
 		static inline constexpr const std::int32_t kSuccess = 0L;
 		static inline constexpr const std::int32_t kAccessDenied = 5L;
@@ -21,16 +23,18 @@ namespace core
 		uint8_t m_Color[256][3];
 	public:
 
-		inline constexpr auto operator [] (std::uint8_t index_v) const -> std::uint32_t 
+		inline constexpr auto operator [] (std::uint8_t index_v) const -> output_type 
 		{
 			index_v &= m_Mask;
-			constexpr auto Q = [](auto value_v) constexpr { 
-				return std::min((uint32_t)(value_v * 4.0476190477f), 0xFFu); 
+			constexpr auto Q = [](auto multiplier_v, auto value_v) constexpr {
+				return std::min(static_cast<output_type>(value_v * 4.0476190477f), 0xFFu) 
+					   * multiplier_v;
 			};
-			return ((0x010000u * Q(m_Color[index_v][0]))
-			       +(0x000100u * Q(m_Color[index_v][1]))
-			       +(0x000001u * Q(m_Color[index_v][2])))
-						 +0xFF000000u;
+			auto const& rgb = m_Color[index_v];
+			return ((Q(0x00010000u, rgb[0]))
+			       +(Q(0x00000100u, rgb[1]))
+			       +(Q(0x00000001u, rgb[2]))
+				     +(Q(0x01000000u, 0x3Fu)));						 
 		}
 		
 		inline constexpr auto IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) noexcept -> std::int32_t 
