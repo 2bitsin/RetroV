@@ -54,14 +54,24 @@ auto CharGen::Reset() -> void
 	m_ColIdx     = 0u;  // ColIdx = 0
 }
 
-auto CharGen::NextRow() -> std::int32_t
+auto CharGen::NextLine() -> std::int32_t
 {
 	m_ColIdx     = 0u;  // Begin at first column
-	m_CharX	     = 0u;	// Begin at first dot
-	m_CharY	     = m_CharRows!=m_CharY?m_CharY+1u:0u;
+	m_CharX      = 0u;	// Begin at first dot
+	m_CharY      = m_CharY != m_CharRows
+		           ? m_CharY + 1u : 0u;
+
+	return ERROR_SUCCESS;
 }
 
-auto CharGen::DrawDot() -> output_type
+auto CharGen::NextFrame() -> std::int32_t
 {
-	
+	m_BlinkPhase = 
+	return ERROR_SUCCESS;
+}
+
+
+auto CharGen::NextDot() -> output_type
+{
+	return { 0 };
 }
