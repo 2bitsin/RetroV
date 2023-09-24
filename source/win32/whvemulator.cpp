@@ -86,6 +86,54 @@ auto WHvEmulator::MemoryAccess(void* context_v, WHV_EMULATOR_MEMORY_ACCESS_INFO*
 	return context_r.MemoryAccess(context_r.ObjectPointer, info_v);
 }
 
+auto WHvEmulator::TryWorkarounds(InvocationContext& callbacks_v, std::span<std::uint8_t const> instruction_v) const noexcept -> std::int32_t
+{
+	if (instruction_v.size() < 1u) 
+		return ERROR_INVALID_PARAMETER;
+	switch (instruction_v[0])
+	{
+	case 0xCDu: 
+		if (instruction_v.size() < 2u) 
+			return ERROR_INVALID_PARAMETER;
+		return TryEmulateINTn(callbacks_v, instruction_v[1u]);
+	case 0xCCu:
+		//return TryEmulateINTn(callbacks_v, 3u);
+	case 0xF1u:
+		//return TryEmulateINTn(callbacks_v, 1u);
+	case 0xCEu:
+		//if (IsOverflow())
+		//  return TryEmulateINTn(callbacks_v, 4u);
+	default:
+		break;
+	}	
+	return ERROR_CALL_NOT_IMPLEMENTED;
+}
+
+auto WHvEmulator::TryEmulateINTn(InvocationContext& callbacks_v, std::uint8_t number_v) const noexcept -> std::int32_t
+{
+	static constexpr WHV_REGISTER_NAME const names_v[]{
+		WHvX64RegisterCr0,
+		WHvX64RegisterCs,
+		WHvX64RegisterSs,
+		WHvX64RegisterRip, 
+		WHvX64RegisterRflags, 
+		WHvX64RegisterRsp,
+	};
+
+	WHV_REGISTER_VALUE values_v[std::size(names_v)];
+	auto status_v = callbacks_v.GetRegisters(callbacks_v.ObjectPointer, 
+		names_v, std::size(names_v), values_v);
+	if (ERROR_SUCCESS != status_v) 
+		return status_v;
+	if (values_v[0u].Reg32 & 1u) {
+		return ERROR_CALL_NOT_IMPLEMENTED;
+	}
+
+
+
+	return std::int32_t();
+}
+
 auto WHvEmulator::IoPortAccess(void* context_v, WHV_EMULATOR_IO_ACCESS_INFO* info_v) -> HRESULT {
 	auto const& context_r = *(InvocationContext*)context_v;
 	assert (nullptr != context_r.IoPortAccess);

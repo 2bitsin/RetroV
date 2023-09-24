@@ -25,11 +25,6 @@ Prologue:
     mov         si,     Strings.Hello
     call        Debug.PrintString   
 
-    mov         ecx,    640 + 480*0x10000
-    mov         ebx,    10
-    push        HYPERCALL_VIDEO_SET_MODE
-    hypercall
-
     jmp         $
     
 

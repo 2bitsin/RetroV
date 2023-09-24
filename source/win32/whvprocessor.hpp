@@ -65,7 +65,6 @@ namespace win32
 		auto GetState(WHV_VIRTUAL_PROCESSOR_STATE_TYPE type_v, std::vector<std::byte>& buffer_v) const -> std::int32_t;
 		auto SetState(WHV_VIRTUAL_PROCESSOR_STATE_TYPE type_v, std::span<std::byte const> buffer_v) const -> std::int32_t;
 
-
 	private:
 		win32::WHvPartition& m_Partition;
 		std::uint32_t m_VcpuIndex;

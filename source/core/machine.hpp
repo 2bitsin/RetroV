@@ -78,6 +78,8 @@ namespace core
 		core::Debugger m_Debugger;
 		core::Display m_Display;
 
+		std::bitset<4096u> m_PageZeroStatus;
+
 		static inline const EventLog s_log{ "Machine" };
 	};
 

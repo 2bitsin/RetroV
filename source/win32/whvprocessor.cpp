@@ -103,3 +103,4 @@ auto WHvProcessor::SetState(WHV_VIRTUAL_PROCESSOR_STATE_TYPE type_v, std::span<s
 {
 	return ::WHvSetVirtualProcessorState(m_Partition.GetHandle(), m_VcpuIndex, type_v, buffer_v.data(), buffer_v.size());
 }
+

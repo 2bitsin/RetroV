@@ -38,9 +38,11 @@ auto Processor::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limit
 auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) const -> std::int32_t
 {	
 	std::int32_t result_v{ ERROR_SUCCESS };
-	result_v = WHvProcessor::MemoryAccess(is_write_v, physaddr_v, data_v);
-	if (ERROR_SUCCESS==result_v)
-		return result_v;
+	if (m_Machine.GetPartition().IsMapped(physaddr_v)) {
+		result_v = WHvProcessor::MemoryAccess(is_write_v, physaddr_v, data_v);
+		if (ERROR_SUCCESS==result_v)
+			return result_v;
+	}
 	result_v = m_Machine.MemoryAccess(*this, is_write_v, physaddr_v, data_v);		
 	if (ERROR_SUCCESS==result_v)
 		return result_v;
@@ -105,7 +107,7 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 		case WHvRunVpExitReasonX64IoPortAccess:
 			emulator_v.TryIoEmulation(*this, context_v.VpContext, context_v.IoPortAccess);
 			continue;
-		case WHvRunVpExitReasonMemoryAccess:
+		case WHvRunVpExitReasonMemoryAccess:		
 			emulator_v.TryMmioEmulation(*this, context_v.VpContext, context_v.MemoryAccess);
 			continue;		
 		case WHvRunVpExitReasonHypercall:

@@ -19,7 +19,8 @@
 using core::VideoDevice;
 
 VideoDevice::VideoDevice(core::Machine& machine_v)
-	: m_Machine{ machine_v }	
+	: m_Machine{ machine_v }
+	, m_CharGen{ *this }
 {}
 
 VideoDevice::~VideoDevice()
@@ -229,7 +230,7 @@ try
 	using namespace win32;
 	using namespace std::chrono;
 	using namespace std::chrono_literals;
-
+	
 	auto& display_v = m_Machine.GetDisplay();
 	
 	auto const interval_v = duration_cast<duration_type>(

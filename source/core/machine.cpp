@@ -111,7 +111,8 @@ auto Machine::ConfigurePartition(Configuration const&) -> void
 			.ExceptionExitBitmap 
 			= (1u << WHvX64ExceptionTypeDoubleFaultAbort)
 			| (1u << WHvX64ExceptionTypeInvalidOpcodeFault)			
- 		} },
+			| (1u << WHvX64ExceptionTypeGeneralProtectionFault)
+			} },
 		{ WHvPartitionPropertyCodeX64MsrExitBitmap, {.X64MsrExitBitmap = {.UnhandledMsrs = 1 } } },
 		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .X64MsrExit = 1u, .ExceptionExit = 1u, .HypercallExit = 1u } } },
 		{ WHvPartitionPropertyCodeProcessorCount, { .ProcessorCount = 1u } },		
@@ -157,7 +158,7 @@ auto Machine::ConfigureMemory(Configuration const& config_v) -> void
 		{ utils::from_range, 0x000A0000u, 0x00100000u }
 	};
 
-	static constexpr auto default_page_s = utils::make_filled_array<std::uint8_t, kPageSize>(0xFFu);
+	static constexpr alignas(kPageSize) auto default_page_s = utils::make_filled_array<std::uint8_t, kPageSize>(0xFFu);
 
 	WIN32_ERROR_ASSERT(m_Partition.Reset());	
 
@@ -179,10 +180,14 @@ auto Machine::ConfigureMemory(Configuration const& config_v) -> void
 		curr_page_v < region_v.end(); 
 		curr_page_v += default_page_s.size()) 
 	{
-		partition_v.MapGpaRange(default_page_s.data(), curr_page_v, 
-			default_page_s.size(), kAccessReadOnly);
+		if (curr_page_v >= 0xA0000u && curr_page_v < 0xC0000u) continue;
+		WIN32_ERROR_ASSERT(partition_v.MapGpaRange(default_page_s.data(), curr_page_v,
+			default_page_s.size(), kAccessReadOnly));
 	}
 
+	// Uninitialized memory read trap
+	// So we can catch unimplemented BDA/interrupt access
+	WIN32_ERROR_ASSERT(partition_v.UnmapGpaRange(0, 0x1000u));
 }
 
 auto Machine::ConfigureBiosROM(Configuration const& config_v) -> void
@@ -230,6 +235,39 @@ auto Machine::Hypercall(Processor const& vcpu_v, HypercallContext const& hyperca
 auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t
 {	
 	using std::ranges::fill;
+	/*************************************************************************
+	 *
+	 *  SIMPLE MECHANISM TO CATCH READS OF UNINITIALIZED MEMORY WITHIN PAGE 0
+	 *  (BIOS DATA AREA, INTERRUPT VECTOR TABLE, ETC)
+	 * 
+	 *************************************************************************/
+
+	if (physaddr_v < 0x1000u)
+	{
+		assert(physaddr_v + data_v.size() < 0x1000u);
+		if (is_write_v) 
+		{
+			std::memcpy(m_MainMemory.data(), data_v.data(), data_v.size());
+			for(auto address_v = physaddr_v; address_v < physaddr_v + data_v.size(); address_v+=1u) 		
+				m_PageZeroStatus.set(address_v, true);			
+			return ERROR_SUCCESS;
+		}
+
+		for (auto address_v = physaddr_v; address_v < physaddr_v + data_v.size(); address_v += 1u)	
+			if (!m_PageZeroStatus.test(address_v)) {
+				using utils::logger;
+				logger::debug(logger::deflog, "Reading uninitialized memory at 0x{:08x}", address_v);
+				__debugbreak();
+			}
+		std::memcpy(data_v.data(), m_MainMemory.data(), data_v.size());
+		return ERROR_SUCCESS;
+	}
+
+	/**************************
+	 * 
+	 *  END OF PAGE 0 READ TRAP
+	 * 
+	 **************************/
 
 	if (physaddr_v >= 0xA0000u && physaddr_v <= 0xBFFFFu) {
 		return m_VideoDevice.MemoryAccess(vcpu_v, is_write_v, physaddr_v, data_v);

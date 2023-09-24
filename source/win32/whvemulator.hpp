@@ -87,6 +87,10 @@ namespace win32
 		{
 			InvocationContext callbacks_v;
 			MakeInvocationContext(object_v, callbacks_v);
+			std::span<std::uint8_t const> instruction_v{ mmctx_v.InstructionBytes, mmctx_v.InstructionByteCount };
+			auto const result_v = TryWorkarounds(callbacks_v, instruction_v);
+			if (result_v == ERROR_SUCCESS)
+				return result_v;			
 			return TryMmioEmulation(std::addressof(callbacks_v), vpctx_v, mmctx_v);
 		}
 		
@@ -96,7 +100,6 @@ namespace win32
 			-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>;
 		auto TryMmioEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_MEMORY_ACCESS_CONTEXT const& mmctx_v) const noexcept 
 			-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>;
-
 		struct InvocationContext
 		{
 			void* ObjectPointer;
@@ -187,6 +190,9 @@ namespace win32
 				};
 			}			
 		}
+
+		auto TryWorkarounds(InvocationContext& callbacks_v, std::span<std::uint8_t const> instruction_v) const noexcept -> std::int32_t;
+		auto TryEmulateINTn(InvocationContext& callbacks_v, std::uint8_t number_v) const noexcept -> std::int32_t;
 
 
 		static auto __stdcall IoPortAccess(void* context_v, WHV_EMULATOR_IO_ACCESS_INFO* access_v) -> HRESULT;

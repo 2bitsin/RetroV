@@ -38,10 +38,12 @@ WHvPartition::~WHvPartition()
 
 auto WHvPartition::swap(WHvPartition& with_v) noexcept -> void {
 	std::swap(m_handle, with_v.m_handle);
+	std::swap(m_IsMapped, with_v.m_IsMapped);
 }
 
 WHvPartition::WHvPartition(WHvPartition&& from_v) noexcept 
 	: m_handle{ exchange(from_v.m_handle, nullptr) }
+	, m_IsMapped{ std::move(from_v.m_IsMapped) }
 {}
 
 auto WHvPartition::operator=(WHvPartition&& from_v) noexcept -> WHvPartition& {	
@@ -74,6 +76,27 @@ auto WHvPartition::SetProperties(WHV_PARTITION_HANDLE handle_v, std::span<proper
 			result_v = status_v;		
 	}
 	return result_v;
+}
+
+auto WHvPartition::Mark(std::uint64_t base_v, std::uint64_t size_v, bool is_mapped_v) const -> void
+{
+	auto last_v{ base_v + size_v };
+	base_v = (base_v >> 12u);
+	last_v = (last_v + 0xFFF) >> 12u;
+	if (m_IsMapped.size() < last_v)
+		m_IsMapped.resize(last_v, false);
+	std::fill(
+		std::next(m_IsMapped.begin(), base_v),
+		std::next(m_IsMapped.begin(), last_v), 
+		is_mapped_v);
+}
+
+auto WHvPartition::IsMapped(std::uint64_t base_v) const -> bool
+{
+	base_v = (base_v >> 12u);
+	if (base_v >= m_IsMapped.size())
+		return false;
+	return m_IsMapped[base_v];
 }
 
 auto WHvPartition::Create(std::uint32_t vcpucount_v, std::span<property_pair const> properties_v) -> WHV_PARTITION_HANDLE
@@ -131,16 +154,18 @@ auto WHvPartition::MapGpaRange(void* src_addr_v, std::uint64_t dst_addr_v, std::
 	if (dst_addr_v + size_v < dst_addr_v) {
 		size_v = 0xFFFFFFFFFFFFFFFFull - dst_addr_v;
 	}		
+	Mark(dst_addr_v, size_v, true);
 	return ::WHvMapGpaRange(m_handle, src_addr_v, dst_addr_v, size_v, flags_v);
 }
 
 auto WHvPartition::MapGpaRange(void const* src_addr_v, std::uint64_t dst_addr_v, std::uint64_t size_v, core::Access access_v) const->std::int32_t {
 	using enum core::Access;
-	return MapGpaRange(const_cast<void*>(src_addr_v), dst_addr_v, size_v, access_v & ~kAccessFetch);
+	return MapGpaRange(const_cast<void*>(src_addr_v), dst_addr_v, size_v, access_v & ~kAccessWrite);
 }
 
 auto WHvPartition::UnmapGpaRange(std::uint64_t dst_addr_v, std::uint64_t size_v) const -> std::int32_t
 {
+	Mark(dst_addr_v, size_v, false);
 	return ::WHvUnmapGpaRange(m_handle, dst_addr_v, size_v);
 }
 

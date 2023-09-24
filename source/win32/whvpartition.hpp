@@ -86,9 +86,14 @@ namespace win32
 			return value;
 		}
 
+		auto IsMapped(std::uint64_t base_v) const -> bool;
+
+	protected:
+		auto Mark(std::uint64_t base_v, std::uint64_t size_v, bool is_mapped_v = false) const -> void;
 
 	private:
 		WHV_PARTITION_HANDLE m_handle;
+		mutable std::vector<bool> m_IsMapped;
 	};
 
 }
