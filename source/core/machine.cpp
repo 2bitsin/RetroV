@@ -235,6 +235,14 @@ auto Machine::Hypercall(Processor const& vcpu_v, HypercallContext const& hyperca
 auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t
 {	
 	using std::ranges::fill;
+	if (((~0xFFFull) & (physaddr_v + data_v.size())) != ((~0xFFFull)&physaddr_v))
+	{
+		std::uint64_t offset_v{ 0x1000ull - (physaddr_v&0xFFFull) };
+		std::int32_t status_v{ ERROR_SUCCESS };
+		status_v = MemoryAccess(vcpu_v, is_write_v, physaddr_v, data_v.first(offset_v));
+		if (status_v != ERROR_SUCCESS) return status_v;
+		return MemoryAccess(vcpu_v, is_write_v, physaddr_v+offset_v, data_v.subspan(offset_v));
+	}
 	/*************************************************************************
 	 *
 	 *  SIMPLE MECHANISM TO CATCH READS OF UNINITIALIZED MEMORY WITHIN PAGE 0

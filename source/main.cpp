@@ -10,6 +10,7 @@
 #include <win32/waitabletimer.hpp>
 
 #include <core/machine.hpp>
+#include <core/registers.hpp>
 
 #include <utils/smart_span.hpp>
 #include <utils/literals.hpp>
@@ -40,6 +41,20 @@ static inline auto MakeConfiguration() -> core::Configuration
 	return config_v;
 }
 
+struct DummyProcessor {
+
+	inline auto GetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE> values_v) const -> std::int32_t
+	{
+		return 0;	
+	}
+
+	inline auto SetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE const> values_v) const -> std::int32_t
+	{
+		return 0;
+	}	
+
+};
+
 
 #undef main
 int main(int argc, char** argv) try
@@ -48,6 +63,8 @@ int main(int argc, char** argv) try
 	using namespace std::chrono_literals;
 	using namespace std::chrono;
 	using namespace std::filesystem;
+	using namespace core;
+	using namespace core::regs;
 
 	using namespace win32;
 
@@ -55,7 +72,27 @@ int main(int argc, char** argv) try
 		.parent_path()
 		.parent_path());
 
-#if 1
+	DummyProcessor p;
+	
+	Registers<
+		Rax, Rbx, Rcx, Rdx, Rbp, Rsp, Rdi, Rsi,
+		R8,  R9,  R10, R11, R12, R13, R14, R15,
+		Cs,  Ds,  Es,  Fs,  Gs,  Ss,
+		Gdtr, Ldtr, Idtr, Rflags, Rip,
+	> regs;
+
+	regs.rax = 0x1234567890ABCDEFull;
+	regs.rbx = 0xFEDCBA0987654321ull;
+	regs.rcx = 0xDEADBEEFBADCAFE0ull;
+	regs.rdx = 0x0BADF00D0CAFE0FFull;
+	regs.load(p);
+
+
+
+	regs.save(p);
+
+	__debugbreak();
+#if 0
 	using std::chrono::steady_clock;
 
 	using core::Machine;

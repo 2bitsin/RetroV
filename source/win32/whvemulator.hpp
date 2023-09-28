@@ -5,6 +5,7 @@
 #include <win32/error.hpp>
 
 #include <utils/span.hpp>
+#include <utils/limited_span.hpp>
 
 #include <type_traits>
 #include <concepts>
@@ -88,9 +89,9 @@ namespace win32
 			InvocationContext callbacks_v;
 			MakeInvocationContext(object_v, callbacks_v);
 			std::span<std::uint8_t const> instruction_v{ mmctx_v.InstructionBytes, mmctx_v.InstructionByteCount };
-			auto const result_v = TryWorkarounds(callbacks_v, instruction_v);
-			if (result_v == ERROR_SUCCESS)
-				return result_v;			
+			auto const [status_v, emstat_v] = TryWorkarounds(callbacks_v, instruction_v);
+			if (status_v == ERROR_SUCCESS)
+				return { status_v, emstat_v };
 			return TryMmioEmulation(std::addressof(callbacks_v), vpctx_v, mmctx_v);
 		}
 		
@@ -191,8 +192,17 @@ namespace win32
 			}			
 		}
 
-		auto TryWorkarounds(InvocationContext& callbacks_v, std::span<std::uint8_t const> instruction_v) const noexcept -> std::int32_t;
-		auto TryEmulateINTn(InvocationContext& callbacks_v, std::uint8_t number_v) const noexcept -> std::int32_t;
+		auto TryWorkarounds(InvocationContext& callbacks_v, std::span<std::uint8_t const> instruction_v) const noexcept 
+			-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>;
+		auto TryEmulateINTn(InvocationContext& callbacks_v, std::uint8_t number_v, std::uint8_t nesting_level_v=0u) const noexcept 
+			-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>;
+		auto DispatchFault(InvocationContext& callbacks_v, std::uint8_t number_v, std::uint8_t nesting_level_v) const noexcept 
+			-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>;
+		auto TryMemoryAccess(InvocationContext& callbacks_v, bool is_write_v, std::uint64_t address_v, utils::limited_span<std::byte, 16u> data_v, bool translate_v=true) const noexcept
+			-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS, std::uint64_t>;
+
+
+
 
 
 		static auto __stdcall IoPortAccess(void* context_v, WHV_EMULATOR_IO_ACCESS_INFO* access_v) -> HRESULT;

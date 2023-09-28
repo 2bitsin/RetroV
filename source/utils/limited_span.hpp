@@ -62,7 +62,7 @@ namespace utils
 			return { m_data, std::min(size_v, m_size) };
 		}
 
-		constexpr inline auto subspan(size_type offset_v, size_type size_v) const noexcept
+		constexpr inline auto subspan(size_type offset_v, size_type size_v=std::numeric_limits<size_t>::max()) const noexcept
 			-> limited_span<value_type, limit>
 		{
 			if (offset_v >= m_size) return { };
