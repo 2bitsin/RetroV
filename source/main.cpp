@@ -79,6 +79,10 @@ int main(int argc, char** argv) try
 		R8,  R9,  R10, R11, R12, R13, R14, R15,
 		Cs,  Ds,  Es,  Fs,  Gs,  Ss,
 		Gdtr, Ldtr, Idtr, Rflags, Rip,
+		Cr0, Cr2, Cr3, Cr4, Cr8, XCr0, 
+		VirtualCr0, VirtualCr3, 
+		VirtualCr4, VirtualCr8,
+		Dr0, Dr1, Dr2, Dr3, Dr6, Dr7
 	> regs;
 
 	regs.rax = 0x1234567890ABCDEFull;

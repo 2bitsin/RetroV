@@ -40,22 +40,31 @@ namespace core::detail
 		WHvX64RegisterTr,   // OK ?
 		WHvX64RegisterIdtr, // OK
 		WHvX64RegisterGdtr,	// OK
-		WHvX64RegisterCr0,
-		WHvX64RegisterCr2,
-		WHvX64RegisterCr3,
-		WHvX64RegisterCr4,
-		WHvX64RegisterCr8,
-		WHvX64RegisterDr0,
-		WHvX64RegisterDr1,
-		WHvX64RegisterDr2,
-		WHvX64RegisterDr3,
-		WHvX64RegisterDr6,
-		WHvX64RegisterDr7,
-		WHvX64RegisterXCr0,
-		WHvX64RegisterVirtualCr0,
-		WHvX64RegisterVirtualCr3,
-		WHvX64RegisterVirtualCr4,
-		WHvX64RegisterVirtualCr8,
+		WHvX64RegisterCr0,  // OK
+		WHvX64RegisterCr2,	// OK
+		WHvX64RegisterCr3,	// OK
+		WHvX64RegisterCr4,	// OK
+		WHvX64RegisterCr8,	// OK
+		WHvX64RegisterDr0,	// OK
+		WHvX64RegisterDr1,	// OK
+		WHvX64RegisterDr2,	// OK
+		WHvX64RegisterDr3,	// OK
+		WHvX64RegisterDr6,	// OK
+		WHvX64RegisterDr7,	// OK
+		WHvX64RegisterXCr0,	// OK
+		WHvX64RegisterVirtualCr0, // OK
+		WHvX64RegisterVirtualCr3,	// OK
+		WHvX64RegisterVirtualCr4,	// OK
+		WHvX64RegisterVirtualCr8,	// OK
+		WHvX64RegisterFpMmx0, // OK
+		WHvX64RegisterFpMmx1,	// OK
+		WHvX64RegisterFpMmx2,	// OK
+		WHvX64RegisterFpMmx3,	// OK
+		WHvX64RegisterFpMmx4,	// OK
+		WHvX64RegisterFpMmx5,	// OK
+		WHvX64RegisterFpMmx6,	// OK
+		WHvX64RegisterFpMmx7,	// OK
+		WHvX64RegisterFpControlStatus,
 		WHvX64RegisterXmm0,
 		WHvX64RegisterXmm1,
 		WHvX64RegisterXmm2,
@@ -72,15 +81,6 @@ namespace core::detail
 		WHvX64RegisterXmm13,
 		WHvX64RegisterXmm14,
 		WHvX64RegisterXmm15,
-		WHvX64RegisterFpMmx0,
-		WHvX64RegisterFpMmx1,
-		WHvX64RegisterFpMmx2,
-		WHvX64RegisterFpMmx3,
-		WHvX64RegisterFpMmx4,
-		WHvX64RegisterFpMmx5,
-		WHvX64RegisterFpMmx6,
-		WHvX64RegisterFpMmx7,
-		WHvX64RegisterFpControlStatus,
 		WHvX64RegisterXmmControlStatus,
 	};
 }
@@ -111,7 +111,8 @@ namespace core::regs
 				uint8_t L##h;	\
 			}; \
 		}; \
-	} 
+	}; \
+	static_assert(sizeof(R##L##x) == sizeof(WHV_REGISTER_VALUE))
 
 	MAKE_REGISTER(a);
 	MAKE_REGISTER(b);
@@ -130,7 +131,8 @@ namespace core::regs
 			uint16_t L; \
 			uint8_t L##l; \
 		}; \
-	} 
+	}; \
+	static_assert(sizeof(R##L) == sizeof(WHV_REGISTER_VALUE))
 
 	MAKE_REGISTER(bp);
 	MAKE_REGISTER(sp);
@@ -152,8 +154,9 @@ namespace core::regs
 			uint16_t r##L##w; \
 			uint8_t  r##L##b; \
 		}; \
-	}
-	
+	};	\
+	static_assert(sizeof(R##L) == sizeof(WHV_REGISTER_VALUE))
+
 	MAKE_REGISTER(8);
 	MAKE_REGISTER(9);
 	MAKE_REGISTER(10);
@@ -193,7 +196,8 @@ namespace core::regs
 				}; \
 			} l; \
 		}; \
-	};
+	}; \
+	static_assert(sizeof(L) == sizeof(WHV_REGISTER_VALUE))
 
 	MAKE_REGISTER(Cs, cs);
 	MAKE_REGISTER(Ds, ds);
@@ -217,7 +221,8 @@ namespace core::regs
 				uint64_t base; \
 			} l##dtr; \
 		}; \
-	};
+	}; \
+	static_assert(sizeof(L##dtr) == sizeof(WHV_REGISTER_VALUE))
 
 	//MAKE_REGISTER(L, l);
 	MAKE_REGISTER(G, g);
@@ -225,8 +230,99 @@ namespace core::regs
 	
 #undef MAKE_REGISTER
 
-	struct Tr: public regiser_base<WHvX64RegisterTr>{ uint16_t tr; };
-//	struct Ldtr: public regiser_base<WHvX64RegisterTr> { uint16_t ldtr; };
+#define MAKE_REGISTER(L, l, y) \
+	struct L: public regiser_base<WHvX64Register##L>{ \
+		union \
+		{ \
+			WHV_REGISTER_VALUE value; \
+			uint##y##_t l; \
+		}; \
+	}; \
+	static_assert(sizeof(L) == sizeof(WHV_REGISTER_VALUE))
+	MAKE_REGISTER(Tr, tr, 16);
+
+#undef MAKE_REGISTER
+
+#define MAKE_REGISTER(L, l) \
+	struct L: public regiser_base<WHvX64Register##L> { \
+		union \
+		{ \
+			WHV_REGISTER_VALUE value; \
+			union \
+			{ \
+				uint64_t q; \
+				uint32_t d; \
+				uint16_t w; \
+				uint8_t  b; \
+			} l; \
+		}; \
+	};
+
+	MAKE_REGISTER(Cr0, cr0);
+	MAKE_REGISTER(Cr2, cr2);
+	MAKE_REGISTER(Cr3, cr3);
+	MAKE_REGISTER(Cr4, cr4);
+	MAKE_REGISTER(Cr8, cr8);
+	MAKE_REGISTER(Dr0, dr0);
+	MAKE_REGISTER(Dr1, dr1);
+	MAKE_REGISTER(Dr2, dr2);
+	MAKE_REGISTER(Dr3, dr3);
+	MAKE_REGISTER(Dr6, dr6);
+	MAKE_REGISTER(Dr7, dr7);
+	MAKE_REGISTER(XCr0, xcr0);
+	MAKE_REGISTER(VirtualCr0, vcr0);
+	MAKE_REGISTER(VirtualCr3, vcr3);
+	MAKE_REGISTER(VirtualCr4, vcr4);
+	MAKE_REGISTER(VirtualCr8, vcr8);
+
+#undef MAKE_REGISTER
+
+#define MAKE_REGISTER(L, l) \
+	struct L: public regiser_base<WHvX64Register##L##l> { \
+		union \
+		{ \
+			WHV_REGISTER_VALUE value; \
+			uint64_t st##l; \
+			uint64_t xmm##l; \
+		}; \
+	}; \
+	static_assert(sizeof(L) == sizeof(WHV_REGISTER_VALUE))
+
+	MAKE_REGISTER(FpMmx, 0);
+	MAKE_REGISTER(FpMmx, 1);
+	MAKE_REGISTER(FpMmx, 2);
+	MAKE_REGISTER(FpMmx, 3);
+	MAKE_REGISTER(FpMmx, 4);
+	MAKE_REGISTER(FpMmx, 5);
+	MAKE_REGISTER(FpMmx, 6);
+	MAKE_REGISTER(FpMmx, 7);
+
+#undef MAKE_REGISTER
+
+	struct Fpu: public regiser_base<WHvX64RegisterFpControlStatus>
+	{
+		struct
+		{
+			uint16_t control;
+			uint16_t status;
+			uint8_t  tag;
+			uint8_t  reserved1;
+			uint16_t last_op;
+			union
+			{
+				// Long Mode
+				uint64_t last_rip;
+				// 32 Bit Mode
+				struct
+				{
+					uint32_t last_eip;
+					uint16_t last_cs;
+					uint16_t reserved2;
+				};
+			};
+		} fpu;
+		WHV_REGISTER_VALUE value;
+	};
 
 #pragma pack(pop)
 }
@@ -259,7 +355,6 @@ namespace core
 			auto const* const state_ptr = (WHV_REGISTER_VALUE const*)std::addressof(*this);
 			return vcpu_v.SetRegisters(s_names, { state_ptr, state_ptr + std::size(s_names) });
 		}
-	};
-	
+	};	
 #pragma pack(pop)
 }
