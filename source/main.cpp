@@ -14,6 +14,7 @@
 
 #include <utils/smart_span.hpp>
 #include <utils/literals.hpp>
+#include <utils/metaprog.hpp>
 #include <utils/logger.hpp>
 #include <utils/paths.hpp>
 
@@ -73,17 +74,8 @@ int main(int argc, char** argv) try
 		.parent_path());
 
 	DummyProcessor p;
-	
-	Registers<
-		Rax, Rbx, Rcx, Rdx, Rbp, Rsp, Rdi, Rsi,
-		R8,  R9,  R10, R11, R12, R13, R14, R15,
-		Cs,  Ds,  Es,  Fs,  Gs,  Ss,
-		Gdtr, Ldtr, Idtr, Rflags, Rip,
-		Cr0, Cr2, Cr3, Cr4, Cr8, XCr0, 
-		VirtualCr0, VirtualCr3, 
-		VirtualCr4, VirtualCr8,
-		Dr0, Dr1, Dr2, Dr3, Dr6, Dr7
-	> regs;
+
+	Registers<GeneralPurpose, ControlAndDebug, FloatingPoint> regs;
 
 	regs.rax = 0x1234567890ABCDEFull;
 	regs.rbx = 0xFEDCBA0987654321ull;

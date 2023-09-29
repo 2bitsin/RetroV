@@ -4,85 +4,86 @@
 #include <win32/winhvpx.hpp>
 #include <win32/error.hpp>
 
+#include <utils/metaprog.hpp>
+
 #include <type_traits>
 #include <cstdint>
 #include <cstddef>
 
 namespace core::detail
 {
-	static inline constexpr WHV_REGISTER_NAME const G_RegisterNames[] =
-	{
-		WHvX64RegisterRax,  // OK
- 		WHvX64RegisterRcx,	// OK
-		WHvX64RegisterRdx,	// OK
-		WHvX64RegisterRbx,	// OK
-		WHvX64RegisterRsp,	// OK
-		WHvX64RegisterRbp,	// OK
-		WHvX64RegisterRsi,	// OK
-		WHvX64RegisterRdi,	// OK
-		WHvX64RegisterR8,		// OK
-		WHvX64RegisterR9,		// OK
-		WHvX64RegisterR10,	// OK
-		WHvX64RegisterR11,	// OK
-		WHvX64RegisterR12,	// OK
-		WHvX64RegisterR13,	// OK
-		WHvX64RegisterR14,	// OK
-		WHvX64RegisterR15,	// OK
-		WHvX64RegisterRip,	// OK
-		WHvX64RegisterRflags, // OK
-		WHvX64RegisterEs,   // OK
-		WHvX64RegisterCs,   // OK
-		WHvX64RegisterSs,   // OK
-		WHvX64RegisterDs,   // OK
-		WHvX64RegisterFs,   // OK
-		WHvX64RegisterGs,   // OK
-		WHvX64RegisterLdtr, // OK ?
-		WHvX64RegisterTr,   // OK ?
-		WHvX64RegisterIdtr, // OK
-		WHvX64RegisterGdtr,	// OK
-		WHvX64RegisterCr0,  // OK
-		WHvX64RegisterCr2,	// OK
-		WHvX64RegisterCr3,	// OK
-		WHvX64RegisterCr4,	// OK
-		WHvX64RegisterCr8,	// OK
-		WHvX64RegisterDr0,	// OK
-		WHvX64RegisterDr1,	// OK
-		WHvX64RegisterDr2,	// OK
-		WHvX64RegisterDr3,	// OK
-		WHvX64RegisterDr6,	// OK
-		WHvX64RegisterDr7,	// OK
-		WHvX64RegisterXCr0,	// OK
-		WHvX64RegisterVirtualCr0, // OK
-		WHvX64RegisterVirtualCr3,	// OK
-		WHvX64RegisterVirtualCr4,	// OK
-		WHvX64RegisterVirtualCr8,	// OK
-		WHvX64RegisterFpMmx0, // OK
-		WHvX64RegisterFpMmx1,	// OK
-		WHvX64RegisterFpMmx2,	// OK
-		WHvX64RegisterFpMmx3,	// OK
-		WHvX64RegisterFpMmx4,	// OK
-		WHvX64RegisterFpMmx5,	// OK
-		WHvX64RegisterFpMmx6,	// OK
-		WHvX64RegisterFpMmx7,	// OK
-		WHvX64RegisterFpControlStatus,
-		WHvX64RegisterXmm0,
-		WHvX64RegisterXmm1,
-		WHvX64RegisterXmm2,
-		WHvX64RegisterXmm3,
-		WHvX64RegisterXmm4,
-		WHvX64RegisterXmm5,
-		WHvX64RegisterXmm6,
-		WHvX64RegisterXmm7,
-		WHvX64RegisterXmm8,
-		WHvX64RegisterXmm9,
-		WHvX64RegisterXmm10,
-		WHvX64RegisterXmm11,
-		WHvX64RegisterXmm12,
-		WHvX64RegisterXmm13,
-		WHvX64RegisterXmm14,
-		WHvX64RegisterXmm15,
-		WHvX64RegisterXmmControlStatus,
-	};
+	/*		
+		WHvX64RegisterRax = 0x00000000,
+		WHvX64RegisterRcx = 0x00000001,
+		WHvX64RegisterRdx = 0x00000002,
+		WHvX64RegisterRbx = 0x00000003,
+		WHvX64RegisterRsp = 0x00000004,
+		WHvX64RegisterRbp = 0x00000005,
+		WHvX64RegisterRsi = 0x00000006,
+		WHvX64RegisterRdi = 0x00000007,
+		WHvX64RegisterR8 = 0x00000008,
+		WHvX64RegisterR9 = 0x00000009,
+		WHvX64RegisterR10 = 0x0000000A,
+		WHvX64RegisterR11 = 0x0000000B,
+		WHvX64RegisterR12 = 0x0000000C,
+		WHvX64RegisterR13 = 0x0000000D,
+		WHvX64RegisterR14 = 0x0000000E,
+		WHvX64RegisterR15 = 0x0000000F,
+		WHvX64RegisterRip = 0x00000010,
+		WHvX64RegisterRflags = 0x00000011,
+		WHvX64RegisterEs = 0x00000012,
+		WHvX64RegisterCs = 0x00000013,
+		WHvX64RegisterSs = 0x00000014,
+		WHvX64RegisterDs = 0x00000015,
+		WHvX64RegisterFs = 0x00000016,
+		WHvX64RegisterGs = 0x00000017,
+		WHvX64RegisterLdtr = 0x00000018,
+		WHvX64RegisterTr = 0x00000019,
+		WHvX64RegisterIdtr = 0x0000001A,
+		WHvX64RegisterGdtr = 0x0000001B,
+		WHvX64RegisterCr0 = 0x0000001C,
+		WHvX64RegisterCr2 = 0x0000001D,
+		WHvX64RegisterCr3 = 0x0000001E,
+		WHvX64RegisterCr4 = 0x0000001F,
+		WHvX64RegisterCr8 = 0x00000020,
+		WHvX64RegisterDr0 = 0x00000021,
+		WHvX64RegisterDr1 = 0x00000022,
+		WHvX64RegisterDr2 = 0x00000023,
+		WHvX64RegisterDr3 = 0x00000024,
+		WHvX64RegisterDr6 = 0x00000025,
+		WHvX64RegisterDr7 = 0x00000026,
+		WHvX64RegisterXCr0 = 0x00000027,
+		WHvX64RegisterVirtualCr0 = 0x00000028,
+		WHvX64RegisterVirtualCr3 = 0x00000029,
+		WHvX64RegisterVirtualCr4 = 0x0000002A,
+		WHvX64RegisterVirtualCr8 = 0x0000002B,
+		WHvX64RegisterXmm0 = 0x00001000,
+		WHvX64RegisterXmm1 = 0x00001001,
+		WHvX64RegisterXmm2 = 0x00001002,
+		WHvX64RegisterXmm3 = 0x00001003,
+		WHvX64RegisterXmm4 = 0x00001004,
+		WHvX64RegisterXmm5 = 0x00001005,
+		WHvX64RegisterXmm6 = 0x00001006,
+		WHvX64RegisterXmm7 = 0x00001007,
+		WHvX64RegisterXmm8 = 0x00001008,
+		WHvX64RegisterXmm9 = 0x00001009,
+		WHvX64RegisterXmm10 = 0x0000100A,
+		WHvX64RegisterXmm11 = 0x0000100B,
+		WHvX64RegisterXmm12 = 0x0000100C,
+		WHvX64RegisterXmm13 = 0x0000100D,
+		WHvX64RegisterXmm14 = 0x0000100E,
+		WHvX64RegisterXmm15 = 0x0000100F,
+		WHvX64RegisterFpMmx0 = 0x00001010,
+		WHvX64RegisterFpMmx1 = 0x00001011,
+		WHvX64RegisterFpMmx2 = 0x00001012,
+		WHvX64RegisterFpMmx3 = 0x00001013,
+		WHvX64RegisterFpMmx4 = 0x00001014,
+		WHvX64RegisterFpMmx5 = 0x00001015,
+		WHvX64RegisterFpMmx6 = 0x00001016,
+		WHvX64RegisterFpMmx7 = 0x00001017,
+		WHvX64RegisterFpControlStatus = 0x00001018,
+		WHvX64RegisterXmmControlStatus = 0x00001019,
+	*/
 }
 
 namespace core::regs
@@ -91,14 +92,14 @@ namespace core::regs
 	{};
 
 	template<WHV_REGISTER_NAME Name>
-	struct regiser_base: register_component {
+	struct register_base: register_component {
 		static inline constexpr auto const name = Name;
 	};
 
 #pragma pack(push, 1)
 
 #define MAKE_REGISTER(L) \
-	struct R##L##x: public regiser_base<WHvX64RegisterR##L##x> \
+	struct R##L##x: public register_base<WHvX64RegisterR##L##x> \
 	{	\
 		union \
 		{ \
@@ -121,7 +122,7 @@ namespace core::regs
 #undef MAKE_REGISTER
 
 #define MAKE_REGISTER(L) \
-	struct R##L: public regiser_base<WHvX64RegisterR##L> \
+	struct R##L: public register_base<WHvX64RegisterR##L> \
 	{	\
 		union \
 		{ \
@@ -144,7 +145,7 @@ namespace core::regs
 #undef MAKE_REGISTER
 
 #define MAKE_REGISTER(L) \
-  struct R##L: public regiser_base<WHvX64RegisterR##L> \
+  struct R##L: public register_base<WHvX64RegisterR##L> \
 	{ \
 		union \
 		{ \
@@ -169,7 +170,7 @@ namespace core::regs
 #undef MAKE_REGISTER
 
 #define MAKE_REGISTER(L, l) \
-	struct L: public regiser_base<WHvX64Register##L> { \
+	struct L: public register_base<WHvX64Register##L> { \
 		union \
 		{ \
 			WHV_REGISTER_VALUE value; \
@@ -210,7 +211,7 @@ namespace core::regs
 #undef MAKE_REGISTER
 
 #define MAKE_REGISTER(L, l) \
-	struct L##dtr: public regiser_base<WHvX64Register##L##dtr> { \
+	struct L##dtr: public register_base<WHvX64Register##L##dtr> { \
 		union \
 		{ \
 			WHV_REGISTER_VALUE value; \
@@ -231,7 +232,7 @@ namespace core::regs
 #undef MAKE_REGISTER
 
 #define MAKE_REGISTER(L, l, y) \
-	struct L: public regiser_base<WHvX64Register##L>{ \
+	struct L: public register_base<WHvX64Register##L>{ \
 		union \
 		{ \
 			WHV_REGISTER_VALUE value; \
@@ -239,12 +240,13 @@ namespace core::regs
 		}; \
 	}; \
 	static_assert(sizeof(L) == sizeof(WHV_REGISTER_VALUE))
+
 	MAKE_REGISTER(Tr, tr, 16);
 
 #undef MAKE_REGISTER
 
 #define MAKE_REGISTER(L, l) \
-	struct L: public regiser_base<WHvX64Register##L> { \
+	struct L: public register_base<WHvX64Register##L> { \
 		union \
 		{ \
 			WHV_REGISTER_VALUE value; \
@@ -256,7 +258,8 @@ namespace core::regs
 				uint8_t  b; \
 			} l; \
 		}; \
-	};
+	}; \
+	static_assert(sizeof(L) == sizeof(WHV_REGISTER_VALUE))
 
 	MAKE_REGISTER(Cr0, cr0);
 	MAKE_REGISTER(Cr2, cr2);
@@ -278,15 +281,29 @@ namespace core::regs
 #undef MAKE_REGISTER
 
 #define MAKE_REGISTER(L, l) \
-	struct L: public regiser_base<WHvX64Register##L##l> { \
+	struct L##l: public register_base<WHvX64Register##L##l> { \
 		union \
 		{ \
 			WHV_REGISTER_VALUE value; \
-			uint64_t st##l; \
-			uint64_t xmm##l; \
+			struct \
+			{ \
+        uint64_t mantissa; \
+				uint64_t exponent : 15; \
+				uint64_t sign : 1; \
+				uint64_t _: 48; \
+			} st##l; \
+	    union \
+			{ \
+				uint64_t q; \
+			  uint32_t d[2]; \
+				uint16_t w[4]; \
+				uint8_t  b[8]; \
+			  double   f8; \
+				float    f4[2]; \
+			} mmx##l; \
 		}; \
 	}; \
-	static_assert(sizeof(L) == sizeof(WHV_REGISTER_VALUE))
+	static_assert(sizeof(L##l) == sizeof(WHV_REGISTER_VALUE))
 
 	MAKE_REGISTER(FpMmx, 0);
 	MAKE_REGISTER(FpMmx, 1);
@@ -299,14 +316,49 @@ namespace core::regs
 
 #undef MAKE_REGISTER
 
-	struct Fpu: public regiser_base<WHvX64RegisterFpControlStatus>
+#define MAKE_REGISTER(L, l) \
+	struct L##l : public register_base<WHvX64Register##L##l>{ \
+		union { \
+			WHV_REGISTER_VALUE value; \
+			union { \
+				uint64_t q[2]; \
+				uint32_t d[4]; \
+				uint16_t w[8]; \
+				uint8_t  b[16]; \
+				double   f8[2]; \
+				float    f4[4]; \
+			} xmm##l; \
+		}; \
+	}; \
+	static_assert(sizeof(L##l) == sizeof(WHV_REGISTER_VALUE))
+
+	MAKE_REGISTER(Xmm, 0);
+	MAKE_REGISTER(Xmm, 1);
+	MAKE_REGISTER(Xmm, 2);
+	MAKE_REGISTER(Xmm, 3);
+	MAKE_REGISTER(Xmm, 4);
+	MAKE_REGISTER(Xmm, 5);
+	MAKE_REGISTER(Xmm, 6);
+	MAKE_REGISTER(Xmm, 7);
+	MAKE_REGISTER(Xmm, 8);
+	MAKE_REGISTER(Xmm, 9);
+	MAKE_REGISTER(Xmm, 10);
+	MAKE_REGISTER(Xmm, 11);
+	MAKE_REGISTER(Xmm, 12);
+	MAKE_REGISTER(Xmm, 13);
+	MAKE_REGISTER(Xmm, 14);
+	MAKE_REGISTER(Xmm, 15);
+
+#undef MAKE_REGISTER
+
+	struct FpuControlStatus: public register_base<WHvX64RegisterFpControlStatus>
 	{
 		struct
 		{
 			uint16_t control;
 			uint16_t status;
 			uint8_t  tag;
-			uint8_t  reserved1;
+			uint8_t  _1;
 			uint16_t last_op;
 			union
 			{
@@ -317,12 +369,38 @@ namespace core::regs
 				{
 					uint32_t last_eip;
 					uint16_t last_cs;
-					uint16_t reserved2;
+					uint16_t _2;
 				};
 			};
 		} fpu;
 		WHV_REGISTER_VALUE value;
 	};
+
+	struct XmmControlStatus : public register_base<WHvX64RegisterXmmControlStatus>
+	{
+		struct
+		{
+			union
+			{
+				// Long Mode
+				uint64_t last_rdp;
+				// 32 Bit Mode
+				struct
+				{
+					uint32_t last_dp;
+					uint16_t last_ds;
+					uint16_t _1;
+				};
+			};
+			uint32_t status_control;
+			uint32_t status_control_mask;
+		} xmm;
+		WHV_REGISTER_VALUE value;
+	};
+
+	using GeneralPurpose = ump::type_list<Rax, Rcx, Rdx, Rbx, Rsp, Rbp, Rsi, Rdi, R8, R9, R10, R11, R12, R13, R14, R15, Rip, Rflags, Es, Cs, Ss, Ds, Fs, Gs>;
+	using ControlAndDebug = ump::type_list<Ldtr, Tr, Idtr, Gdtr, Cr0, Cr2, Cr3, Cr4, Cr8, Dr0, Dr1, Dr2, Dr3, Dr6, Dr7, XCr0, VirtualCr0, VirtualCr3, VirtualCr4, VirtualCr8>;
+	using FloatingPoint = ump::type_list<Xmm0, Xmm1, Xmm2, Xmm3, Xmm4, Xmm5, Xmm6, Xmm7, Xmm8, Xmm9, Xmm10, Xmm11, Xmm12, Xmm13, Xmm14, Xmm15, FpMmx0, FpMmx1, FpMmx2, FpMmx3, FpMmx4, FpMmx5, FpMmx6, FpMmx7, FpuControlStatus, XmmControlStatus>;
 
 #pragma pack(pop)
 }
@@ -331,9 +409,13 @@ namespace core
 {
 
 #pragma pack(push, 1)
-	template <typename... Register_base>
+
+	template <typename...T>
+	struct Registers;
+
+	template <typename... Register_base>	
 	requires (std::derived_from<Register_base, regs::register_component> && ...)
-	struct Registers: public std::type_identity<Register_base>::type... 
+	struct Registers<Register_base...>: public Register_base... 
 	{
 		template <typename Processor>
 		Registers(Processor const& vcpu_v) {
@@ -356,5 +438,16 @@ namespace core
 			return vcpu_v.SetRegisters(s_names, { state_ptr, state_ptr + std::size(s_names) });
 		}
 	};	
+
+
+	template <typename... R>
+	requires (std::derived_from<R, regs::register_component> && ...)
+	struct Registers<ump::type_list<R...>> : public Registers<R...> {};
+
+	template <typename... List>
+	requires (ump::concepts::type_list<List> && ...)
+	struct Registers<List...>: public Registers<ump::concat_t<List...>> {};
+
+
 #pragma pack(pop)
 }
