@@ -73,22 +73,7 @@ int main(int argc, char** argv) try
 		.parent_path()
 		.parent_path());
 
-	DummyProcessor p;
-
-	Registers<GeneralPurpose, ControlAndDebug, FloatingPoint> regs;
-
-	regs.rax = 0x1234567890ABCDEFull;
-	regs.rbx = 0xFEDCBA0987654321ull;
-	regs.rcx = 0xDEADBEEFBADCAFE0ull;
-	regs.rdx = 0x0BADF00D0CAFE0FFull;
-	regs.load(p);
-
-
-
-	regs.save(p);
-
-	__debugbreak();
-#if 0
+#if 1
 	using std::chrono::steady_clock;
 
 	using core::Machine;

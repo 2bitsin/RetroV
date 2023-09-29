@@ -7,6 +7,7 @@
 #include <utils/metaprog.hpp>
 
 #include <type_traits>
+#include <exception>
 #include <cstdint>
 #include <cstddef>
 
@@ -417,28 +418,22 @@ namespace core
 	requires (std::derived_from<Register_base, regs::register_component> && ...)
 	struct Registers<Register_base...>: public Register_base... 
 	{
-		template <typename Processor>
-		Registers(Processor const& vcpu_v) {
-			WIN32_ERROR_ASSERT(Load(vcpu_v));
-		}
-
 		Registers() = default;
 
 		template <typename Processor>
-		auto load(Processor const& vcpu_v) -> std::int32_t {
+		auto Load(Processor const& vcpu_v) -> std::int32_t {
 			static constexpr WHV_REGISTER_NAME const s_names[] = { Register_base::name... };
-			auto* const state_ptr = (WHV_REGISTER_VALUE*)std::addressof(*this);
+			auto* const state_ptr = (WHV_REGISTER_VALUE*)this;
 			return vcpu_v.GetRegisters(s_names, { state_ptr, state_ptr + std::size(s_names) });
 		}
 
 		template <typename Processor>
-		auto save(Processor const& vcpu_v) const -> std::int32_t {
+		auto Save(Processor const& vcpu_v) const -> std::int32_t {
 			static constexpr WHV_REGISTER_NAME const s_names[] = { Register_base::name... };
-			auto const* const state_ptr = (WHV_REGISTER_VALUE const*)std::addressof(*this);
+			auto const* const state_ptr = (WHV_REGISTER_VALUE const*)this;
 			return vcpu_v.SetRegisters(s_names, { state_ptr, state_ptr + std::size(s_names) });
 		}
 	};	
-
 
 	template <typename... R>
 	requires (std::derived_from<R, regs::register_component> && ...)
@@ -448,6 +443,33 @@ namespace core
 	requires (ump::concepts::type_list<List> && ...)
 	struct Registers<List...>: public Registers<ump::concat_t<List...>> {};
 
+	static_assert(std::is_trivial_v<Registers<regs::GeneralPurpose, regs::ControlAndDebug, regs::FloatingPoint>>	            
+							&&std::is_trivially_constructible_v<Registers<regs::GeneralPurpose, regs::ControlAndDebug, regs::FloatingPoint>>
+							&&std::is_trivially_copyable_v<Registers<regs::GeneralPurpose, regs::ControlAndDebug, regs::FloatingPoint>>
+				   		&&std::is_trivially_destructible_v<Registers<regs::GeneralPurpose, regs::ControlAndDebug, regs::FloatingPoint>>);
+
+	template <typename Processor, typename... T>
+	struct ScopedRegisters: public Registers<T...> {
+		
+		ScopedRegisters(Processor& vcpu_v): m_Vcpu(&vcpu_v) {
+			if (nullptr != m_Vcpu) {
+				WIN32_ERROR_ASSERT(Registers<T...>::Load(*m_Vcpu));
+			}
+		}
+
+		inline ~ScopedRegisters() noexcept(false) {
+			if (nullptr != m_Vcpu) {
+				auto status_v = Registers<T...>::Save(*m_Vcpu);
+				if (ERROR_SUCCESS != status_v
+					&& std::uncaught_exceptions()<1)
+				{
+					WIN32_ERROR_ASSERT(status_v);
+				}
+			} 
+		}
+	private:
+		Processor* m_Vcpu;
+	};
 
 #pragma pack(pop)
 }
