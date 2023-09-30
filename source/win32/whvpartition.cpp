@@ -5,6 +5,7 @@
 #include <win32/whvprocessor.hpp>
 
 #include <utils/logger.hpp>
+#include <utils/literals.hpp>
 
 #include <utility>
 using std::exchange;

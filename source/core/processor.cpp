@@ -1,12 +1,13 @@
 #include <core/processor.hpp>
+#include <core/constants.hpp>
 #include <core/machine.hpp>
+
 #include <win32/whvprocessor.hpp>
 #include <win32/whvpartition.hpp>
 #include <win32/scope_name.hpp>
 #include <win32/waitabletimer.hpp>
 
 #include <utils/capstone.hpp>
-
 #include <utils/literals.hpp>
 #include <utils/lambda.hpp>
 #include <utils/logger.hpp>
@@ -48,16 +49,6 @@ auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::l
 		return result_v;
 	__debugbreak();
 	return ERROR_ACCESS_DENIED;
-}
-
-auto Processor::GetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE> values_v) const -> std::int32_t
-{
-	return WHvProcessor::GetRegisters(names_v, values_v);
-}
-
-auto Processor::SetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE const> values_v) const -> std::int32_t
-{
-	return WHvProcessor::SetRegisters(names_v, values_v);
 }
 
 auto Processor::TranslateAddress(std::uint64_t vaddress_v, core::Access access_v) const -> std::tuple<std::int32_t, std::uint64_t>
@@ -102,6 +93,9 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 		auto [status_v, context_v] = result_v;
 		if (ERROR_SUCCESS != status_v) 
 			return result_v;	
+
+		auto regs_v = RegistersScoped<win32::regs::GeneralPurpose>();
+
 		switch (context_v.ExitReason)
 		{
 		case WHvRunVpExitReasonX64IoPortAccess:

@@ -3,7 +3,6 @@
 #include <win32/windows.hpp>
 #include <win32/winhvpx.hpp>
 #include <win32/error.hpp>
-#include <win32/whvprocessor.hpp>
 
 #include <utils/algorithm.hpp>
 #include <utils/metaprog.hpp>
@@ -14,6 +13,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <tuple>
+#include <span>
 
 namespace win32::regs
 {
@@ -349,19 +349,19 @@ namespace win32
 	{
 		WHvRegisters() = default;
 
-		template <typename Processor>
-		auto Load(Processor const& vcpu_v) -> std::int32_t {
+		static inline auto Names() noexcept -> std::span<WHV_REGISTER_NAME const> {
 			static constexpr WHV_REGISTER_NAME const s_names[] = { Register_base::name... };
-			auto* const state_ptr = (WHV_REGISTER_VALUE*)this;
-			return vcpu_v.GetRegisters(s_names, { state_ptr, state_ptr + std::size(s_names) });
+			return { s_names, std::size(s_names) };
+		};
+
+		auto Values() noexcept -> std::span<WHV_REGISTER_VALUE> {
+			return { (WHV_REGISTER_VALUE*)this, sizeof...(Register_base) };
 		}
 
-		template <typename Processor>
-		auto Save(Processor const& vcpu_v) const -> std::int32_t {
-			static constexpr WHV_REGISTER_NAME const s_names[] = { Register_base::name... };
-			auto const* const state_ptr = (WHV_REGISTER_VALUE const*)this;
-			return vcpu_v.SetRegisters(s_names, { state_ptr, state_ptr + std::size(s_names) });
+		auto Values() const noexcept -> std::span<WHV_REGISTER_VALUE const> {
+			return { (WHV_REGISTER_VALUE*)this, sizeof...(Register_base) };
 		}
+
 	};	
 
 	template <typename... R>
@@ -378,17 +378,18 @@ namespace win32
 				   		&&std::is_trivially_destructible_v<WHvRegisters<regs::GeneralPurpose, regs::ControlAndDebug, regs::FloatingPoint>>);
 
 	template <typename Processor, typename... T>
-	struct WHvScopedRegisters: public WHvRegisters<T...> {
+	struct WHvRegistersScoped: public WHvRegisters<T...>
+	{
 		
-		WHvScopedRegisters(Processor& vcpu_v): m_Vcpu(&vcpu_v) {
+		WHvRegistersScoped(Processor& vcpu_v): m_Vcpu(&vcpu_v) {
 			if (nullptr != m_Vcpu) {
-				WIN32_ERROR_ASSERT(WHvRegisters<T...>::Load(*m_Vcpu));
+				WIN32_ERROR_ASSERT(m_Vcpu->GetRegisters(*this));
 			}
 		}
 
-		inline ~WHvScopedRegisters() noexcept(false) {
+		inline ~WHvRegistersScoped() noexcept(false) {
 			if (nullptr != m_Vcpu) {
-				auto status_v = WHvRegisters<T...>::Save(*m_Vcpu);
+				auto status_v = m_Vcpu->SetRegisters(*this);
 				if (ERROR_SUCCESS != status_v
 					&& std::uncaught_exceptions()<1)
 				{
@@ -471,7 +472,8 @@ namespace win32
 			return m_Value[offset_v];
 		}
 
-		inline auto ApplyTo(win32::WHvProcessor const& processor_v) const -> std::int32_t {
+		template <typename Processor>
+		inline auto ApplyTo(Processor& processor_v) const -> std::int32_t {
 			return processor_v.SetRegisters({ m_Names, m_Size }, { m_Value, m_Size });
 		}
 

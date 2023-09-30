@@ -58,8 +58,6 @@ namespace core
 		auto IoPortAccess(bool is_write_v, std::uint16_t addr_v, utils::limited_span<std::byte, 4u> data_v) const -> std::int32_t;
 		auto MemoryAccess(bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) const -> std::int32_t;
 
-		auto GetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE> values_v) const -> std::int32_t;
-		auto SetRegisters(std::span<WHV_REGISTER_NAME const> names_v, std::span<WHV_REGISTER_VALUE const> values_v) const -> std::int32_t;		
 		auto TranslateAddress(std::uint64_t vaddress_v, core::Access access_v) const -> std::tuple<std::int32_t, std::uint64_t>;
 
 		auto RunToExit(std::stop_token stoppee_v) -> exit_result_type;

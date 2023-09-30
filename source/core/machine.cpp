@@ -5,8 +5,10 @@
 
 
 #include <win32/whvcapabilities.hpp>
+#include <win32/whvregisters.hpp>
 
 #include <core/machine.hpp>
+#include <core/constants.hpp>
 
 #include <utils/region.hpp>
 #include <utils/algorithm.hpp>
@@ -74,6 +76,9 @@ auto Machine::RunMain() -> void
 {
 	using utils::logger;
 	using namespace std::chrono_literals;	
+	using namespace win32;
+	using namespace win32::regs;
+	
 	if (!m_ProcessorExit.valid() || std::future_status::ready != m_ProcessorExit.wait_for(0s))
 		return;
 	auto const [status_v, context_v] = m_ProcessorExit.get();
