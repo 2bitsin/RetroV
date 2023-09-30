@@ -10,7 +10,6 @@
 #include <win32/waitabletimer.hpp>
 
 #include <core/machine.hpp>
-#include <core/registers.hpp>
 
 #include <utils/smart_span.hpp>
 #include <utils/literals.hpp>
@@ -65,7 +64,6 @@ int main(int argc, char** argv) try
 	using namespace std::chrono;
 	using namespace std::filesystem;
 	using namespace core;
-	using namespace core::regs;
 
 	using namespace win32;
 
