@@ -78,6 +78,7 @@ auto Processor::HypercallDispatch(WHV_RUN_VP_EXIT_CONTEXT const& context_v) cons
 
 auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 {
+	using std::tie;
 	win32::scope_name _tdesc{ "Processor::RunToExit" };
 	using utils::logger;
 	std::stop_callback stopcbk_v{ stoppee_v, [this] { 
@@ -87,21 +88,33 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 	
 	std::unique_lock lock_v{ m_IsRunning };
 	auto& emulator_v = Emulator();
+	WHV_EMULATOR_STATUS emulator_status_v{ };
 	while (!stoppee_v.stop_requested())
 	{		
 		auto const result_v = WHvProcessor::RunToExit();
 		auto [status_v, context_v] = result_v;
 		if (ERROR_SUCCESS != status_v) 
 			return result_v;	
-
 		switch (context_v.ExitReason)
 		{
 		case WHvRunVpExitReasonX64IoPortAccess:
-			emulator_v.TryIoEmulation(*this, context_v.VpContext, context_v.IoPortAccess);
+			tie(status_v, emulator_status_v) = emulator_v.TryIoEmulation(*this, context_v.VpContext, context_v.IoPortAccess);
+			if (!emulator_status_v.EmulationSuccessful) {
+				s_log.EmulatorFailed(context_v, status_v, emulator_status_v);
+				return { ERROR_INTERNAL_ERROR, context_v }; }
+			if (ERROR_SUCCESS != status_v) 
+				return { status_v, context_v };			
 			continue;
+
 		case WHvRunVpExitReasonMemoryAccess:		
-			emulator_v.TryMmioEmulation(*this, context_v.VpContext, context_v.MemoryAccess);
+			tie(status_v, emulator_status_v) = emulator_v.TryMmioEmulation(*this, context_v.VpContext, context_v.MemoryAccess);
+			if (!emulator_status_v.EmulationSuccessful) {
+				s_log.EmulatorFailed(context_v, status_v, emulator_status_v);
+				return { ERROR_INTERNAL_ERROR, context_v }; }
+			if (ERROR_SUCCESS != status_v)
+				return { status_v, context_v };
 			continue;		
+
 		case WHvRunVpExitReasonHypercall:
 			HypercallDispatch(context_v);
 			status_v = AdvanceInstruction(context_v.VpContext);
@@ -112,6 +125,7 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 		case WHvRunVpExitReasonSynicSintDeliverable:
 			__debugbreak();
 			continue;			
+
 		case WHvRunVpExitReasonX64InterruptWindow:
 			__debugbreak();
 			continue;

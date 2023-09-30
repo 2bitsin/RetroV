@@ -37,6 +37,7 @@ namespace core
 		auto UnhandledException(std::uint32_t vcpu_index_v, const WHV_VP_EXCEPTION_CONTEXT& exception_v, const WHV_VP_EXIT_CONTEXT& context_v) const -> void;
 		auto UnhandledMSR(std::uint32_t vcpu_index_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) const -> void;
 
+		auto EmulatorFailed(WHV_RUN_VP_EXIT_CONTEXT const& context_v, std::int32_t status_v, WHV_EMULATOR_STATUS emulator_status_v) const -> void;
 		
 		EventLog(std::string_view module_v);
 

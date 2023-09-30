@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <concepts>
 #include <iterator>
+#include <vector>
 #include <string>
 #include <array>
 
@@ -167,5 +168,16 @@ namespace utils
 		(((result_v <<= sizeof(Source) * 8u) |= value_v), ...);
 		return result_v;
 	}
+
+	template <template <typename...> typename Container, typename T>
+	auto join(Container<T> const& strings_v, T const& glue_v) -> std::string {
+		std::string result_v;
+		for (auto const& string_v : strings_v) {
+			if (!result_v.empty())
+				result_v += std::string(glue_v);
+			result_v += std::string(string_v);
+		}
+		return result_v;
+	}	
 
 }

@@ -1,9 +1,11 @@
 #include <cassert>
 
-#include <core/eventlog.hpp>
-#include <utils/logger.hpp>
-#include <utils/algorithm.hpp>
 #include <win32/winhvpx.hpp>
+
+#include <utils/algorithm.hpp>
+#include <utils/logger.hpp>
+
+#include <core/eventlog.hpp>
 
 using core::EventLog;
 
@@ -128,6 +130,60 @@ auto EventLog::UnhandledMSR(std::uint32_t vcpu_index_v, WHV_VP_EXIT_CONTEXT cons
 	else {
 		logger::error(logger::deflog, "CPU[{}] Unhandled MSR({:#010x}) read at {:#06x}:{:#010x}", vcpu_index_v, access_v.MsrNumber, context_v.Cs.Selector, context_v.Rip);
 	}
+}
+
+auto EventLog::EmulatorFailed(WHV_RUN_VP_EXIT_CONTEXT const& context_v, std::int32_t status_v, WHV_EMULATOR_STATUS emulator_status_v) const -> void
+{
+	using namespace std::literals;
+	std::vector<std::string_view> failed_v;
+
+	if (emulator_status_v.EmulationSuccessful) 
+		failed_v.emplace_back("EmulationSuccessful"sv);
+	if (emulator_status_v.InternalEmulationFailure) 
+		failed_v.emplace_back("InternalEmulationFailure"sv);
+	if (emulator_status_v.IoPortCallbackFailed) 
+		failed_v.emplace_back("IoPortCallbackFailed"sv);
+	if (emulator_status_v.MemoryCallbackFailed) 
+		failed_v.emplace_back("MemoryCallbackFailed"sv);
+	if (emulator_status_v.TranslateGvaPageCallbackFailed) 
+		failed_v.emplace_back("TranslateGvaPageCallbackFailed"sv);
+	if (emulator_status_v.TranslateGvaPageCallbackGpaIsNotAligned) 
+		failed_v.emplace_back("TranslateGvaPageCallbackGpaIsNotAligned"sv);
+	if (emulator_status_v.GetVirtualProcessorRegistersCallbackFailed) 
+		failed_v.emplace_back("GetVirtualProcessorRegistersCallbackFailed"sv);
+	if (emulator_status_v.SetVirtualProcessorRegistersCallbackFailed) 
+		failed_v.emplace_back("SetVirtualProcessorRegistersCallbackFailed"sv);
+	if (emulator_status_v.InterruptCausedIntercept) 
+		failed_v.emplace_back("InterruptCausedIntercept"sv);
+	if (emulator_status_v.GuestCannotBeFaulted) 
+		failed_v.emplace_back("GuestCannotBeFaulted"sv);
+
+
+	
+	std::span<std::uint8_t const> data_v { };
+	switch(context_v.ExitReason)
+	{
+	case WHvRunVpExitReasonMemoryAccess:
+		data_v = std::span{ context_v.MemoryAccess.InstructionBytes, 
+			context_v.MemoryAccess.InstructionByteCount };		
+		break;
+	case WHvRunVpExitReasonX64IoPortAccess:
+		data_v = std::span{ context_v.IoPortAccess.InstructionBytes,
+			context_v.IoPortAccess.InstructionByteCount };
+		break;
+	default:		
+		break;
+	}
+
+	std::string bytes_as_hex_v;
+	for (auto const byte_v : data_v) {
+		if (bytes_as_hex_v.size() > 0u)
+			bytes_as_hex_v += ","sv;
+		bytes_as_hex_v += std::format("{:#04x}", byte_v);
+	}
+	
+	logger::error(logger::deflog, "{:s} failed with STATUS={:#010x}, WHV_EMULATOR_STATUS={{{:s}}} InstructionBytes={{{:s}}}"sv, 
+		to_string(context_v.ExitReason), status_v, utils::join(failed_v, "|"sv), bytes_as_hex_v);
 }
 
 EventLog::EventLog(std::string_view name_v)
