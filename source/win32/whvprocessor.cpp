@@ -22,7 +22,71 @@ auto WHvProcessor::TranslateGva(std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAG
 
 auto WHvProcessor::Reset() const -> std::int32_t
 {
-	return GetInitialProcessorState().ApplyTo(*this);
+	static constexpr WHV_REGISTER_VALUE const values_s [] = {
+		{.Segment = {.Base = 0xF0000u, .Limit = 0xFFFFu, .Selector = 0xF000u, .Attributes = 0x009Eu } },
+		{.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0093u } },
+		{.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0093u } },
+		{.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0093u } },
+		{.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0093u } },
+		{.Segment = {.Base = 0x00000u, .Limit = 0xFFFFu, .Selector = 0x0000u, .Attributes = 0x0082u } },
+		{.Table = {.Limit = 0x03FFu, .Base = 0x00000000u  } },
+		{.Table = {.Limit = 0x0000u, .Base = 0x00000000u  } },
+		{.Reg64 = 0x0000'0000'0000'0002u },
+		{.Reg64 = 0x0000'0000'0000'FFF0u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'6000'0010u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u },
+		{.Reg64 = 0x0000'0000'0000'0000u }
+	};
+
+	static constexpr WHV_REGISTER_NAME const names_s[] = {
+		WHvX64RegisterCs,
+		WHvX64RegisterEs,
+		WHvX64RegisterDs,
+		WHvX64RegisterFs,
+		WHvX64RegisterGs,
+		WHvX64RegisterSs,
+		WHvX64RegisterIdtr,
+		WHvX64RegisterGdtr,
+		WHvX64RegisterRflags,
+		WHvX64RegisterRip,
+		WHvX64RegisterRbx,
+		WHvX64RegisterRcx,
+		WHvX64RegisterRdx,
+		WHvX64RegisterRsi,
+		WHvX64RegisterRdi,
+		WHvX64RegisterRbp,
+		WHvX64RegisterRsp,
+		WHvX64RegisterR8,
+		WHvX64RegisterR9,
+		WHvX64RegisterR10,
+		WHvX64RegisterR11,
+		WHvX64RegisterR12,
+		WHvX64RegisterR13,
+		WHvX64RegisterR14,
+		WHvX64RegisterR15,
+		WHvX64RegisterCr0,
+		WHvX64RegisterCr2,
+		WHvX64RegisterCr3,
+		WHvX64RegisterCr4
+	};
+
+	return SetRegisters(names_s, values_s);
 }
 
 auto WHvProcessor::RunToExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v) const -> std::int32_t

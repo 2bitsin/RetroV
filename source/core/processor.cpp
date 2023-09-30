@@ -94,8 +94,6 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 		if (ERROR_SUCCESS != status_v) 
 			return result_v;	
 
-		auto regs_v = RegistersScoped<win32::regs::GeneralPurpose>();
-
 		switch (context_v.ExitReason)
 		{
 		case WHvRunVpExitReasonX64IoPortAccess:
