@@ -6,7 +6,7 @@ ApiEntry:
   .Int6dHanlder:
     sti
     cld
-    push    bp es ds dx cx bx si di ax
+    push    es ds bp bx cx dx si di ax
     mov     al,     ah
     cbw
     shl     ax,     1
@@ -17,7 +17,7 @@ ApiEntry:
     mov     ds,     [cs:.NullSegment]
     jmp     word [cs:.DispatchTable + si] 
   .Done:
-    pop     di si bx cx dx ds es bp    
+    pop     di si dx cx bx bp ds es     
     iret    
      
   .NotImplemented:
@@ -28,7 +28,7 @@ ApiEntry:
     call    Debug.PrintString
     mov     cl,     8
     mov     ch,     16
-    mov     bx,     ax
+    mov     bl,     ah
     call    Debug.PrintNumber
     mov     si,     Strings.DotSpace
     call    Debug.PrintString

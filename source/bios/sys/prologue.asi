@@ -24,11 +24,13 @@ Prologue:
     
     call        OptionRom.Initialize
 
+    int         0x00
+    mov         ah,     0x05
+    int         0x6d
+    int         0x01
+
     mov         si,     Strings.Hello
     call        Debug.PrintString   
-
-    mov         ah,     0xA5
-    int         0x6d
 
     jmp         $
     

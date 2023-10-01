@@ -1,13 +1,10 @@
 Prologue:
     pusha
     push    ds es    
+    
     mov     si,         cs
     mov     ds,         si
-    
-;   mov     si,         Fonts.l16
-;   mov     cx,         0xFF10 ; cl = 16, ch = 255
-;   call    VideoMode.SetFont
-
+   
     mov     si,         BuildVars.TimeDate
     call    Debug.PrintString
     mov     si,         Strings.Hello
