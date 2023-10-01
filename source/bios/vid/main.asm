@@ -7,6 +7,7 @@ Header:
 include '../gen/hypercall.asi'
 include 'prologue.asi'
 include 'vidmode.asi'
+include 'apientry.asi'
 include '../com/debug.asi'
 include 'fontbins.asi'
 include 'strings.asi'

@@ -192,7 +192,7 @@ auto Machine::ConfigureMemory(Configuration const& config_v) -> void
 
 	// Uninitialized memory read trap
 	// So we can catch unimplemented BDA/interrupt access
-	WIN32_ERROR_ASSERT(partition_v.UnmapGpaRange(0, 0x1000u));
+	//WIN32_ERROR_ASSERT(partition_v.UnmapGpaRange(0, 0x1000u));
 }
 
 auto Machine::ConfigureBiosROM(Configuration const& config_v) -> void

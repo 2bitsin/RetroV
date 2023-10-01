@@ -2,14 +2,21 @@ Prologue:
     pusha
     push    ds es
     
-    mov     si,         cs
-    mov     ds,         si
-    mov     si,         Fonts.l16
-    mov     cx,         0xFF10 ; cl = 16, ch = 255
-    call    VideoMode.SetFont
+;   mov     si,         cs
+;   mov     ds,         si
+;   mov     si,         Fonts.l16
+;   mov     cx,         0xFF10 ; cl = 16, ch = 255
+;   call    VideoMode.SetFont
+
     mov     si,         Strings.Hello
     call    Debug.PrintString
-    ;call    Debug.Trap
+    
+    xor     si,         si
+    mov     ds,         si
+    mov     [0x10*4+0], word ApiEntry.Int10Handler
+    mov     [0x10*4+2], cs
+    mov     [0x6d*4+0], word ApiEntry.Int6dHanlder
+    mov     [0x6d*4+2], cs
 
     pop     es ds
     popa

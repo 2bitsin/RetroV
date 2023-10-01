@@ -1,8 +1,7 @@
 
 VideoMode:
 
-  .SetFont:
-		; ds:si - pointer to font
-		; cl    - glyph height
-		; ch    - glyphu count - 1
-		ret
+
+	.SetVideoMode:		
+		jmp ApiEntry.Done
+		

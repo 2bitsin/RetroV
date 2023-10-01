@@ -25,6 +25,9 @@ Prologue:
     mov         si,     Strings.Hello
     call        Debug.PrintString   
 
+    mov         ah,     0xA5
+    int         0x10
+
     jmp         $
     
 
