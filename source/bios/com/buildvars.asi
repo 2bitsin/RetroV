@@ -1,0 +1,4 @@
+
+BuildVars:
+  .TimeDate:
+    db "BUILD: 2023-10-01 16:19:45", 13, 10, 0

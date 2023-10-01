@@ -10,7 +10,7 @@ namespace core::hypercall
 
 	#define CONSTANT2_DEFINE(X, Y) static inline constexpr const uint16_t X = Y;
 	#define CONSTANT4_DEFINE(X, Y) static inline constexpr const uint32_t X = Y;
-  #include "hypercall.h"
+  #include "../gen/hypercall.h"
   #undef HYPERCALL_DEFINE_MAJOR
   #undef HYPERCALL_DEFINE
 	#undef CONSTANT2_DEFINE

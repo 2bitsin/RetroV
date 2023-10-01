@@ -17,4 +17,3 @@ Strings:
 
   .CrLf: 
 		db 13, 10, 0
-    

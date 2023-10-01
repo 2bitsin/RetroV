@@ -27,25 +27,26 @@ target_stack_size(RetroV "256MiB")
 
 string(TIMESTAMP TODAY "%Y-%m-%d")
 string(TIMESTAMP NOW "%H:%M:%S")
-preprocess_file(hypercall_ash source/bios/com/hypercall.ash source/bios/gen/hypercall.asi)
-# Use add_custom_command to compile bios/bios.asm to bios.bin using fasm
+preprocess_file(hypercall_ash source/bios/gen/hypercall.ash source/bios/com/hypercall.asi)
+configure_file(source/bios/gen/buildvars.asi.in ${CMAKE_SOURCE_DIR}/source/bios/com/buildvars.asi @ONLY)
+
 file(GLOB_RECURSE COM_BIOS_ASI source/bios/com/*.asi)
 file(GLOB_RECURSE SYS_BIOS_ASI source/bios/sys/*.asi)
 file(GLOB_RECURSE VID_BIOS_ASI source/bios/vid/*.asi)
-list(APPEND COM_BIOS_ASI source/bios/gen/hypercall.asi)
+list(APPEND COM_BIOS_ASI source/bios/com/hypercall.asi)
 
 message (STATUS "SYS_BIOS_ASI: ${SYS_BIOS_ASI}")
 message (STATUS "VID_BIOS_ASI: ${VID_BIOS_ASI}")
 
 add_fasm_target(BsSystem.AMD "source/bios/sys/main.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BsSystem.AMD -d hypercall=vmmcall -d date=${TODAY} -d time=${NOW})
+add_fasm_option(BsSystem.AMD -d hypercall=vmmcall)
 add_fasm_target(BsSystem.INT "source/bios/sys/main.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BsSystem.INT -d hypercall=vmcall -d date=${TODAY} -d time=${NOW})
+add_fasm_option(BsSystem.INT -d hypercall=vmcall)
 
 add_fasm_target(BsVideo.AMD "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BsVideo.AMD -d hypercall=vmmcall -d date=${TODAY} -d time=${NOW})
+add_fasm_option(BsVideo.AMD -d hypercall=vmmcall)
 add_fasm_target(BsVideo.INT "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BsVideo.INT -d hypercall=vmcall -d date=${TODAY} -d time=${NOW})
+add_fasm_option(BsVideo.INT -d hypercall=vmcall)
 
 install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
 install (TARGETS RetroV DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
