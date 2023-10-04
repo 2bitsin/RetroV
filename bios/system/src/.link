@@ -9,15 +9,20 @@ OUTPUT_FORMAT("binary")
 
 SECTIONS {
   .text : AT(0xF0000) {
+    FILL(0x90);
     _code_start = .;
     *(.text)
     *(.rodata)
     *(.data)
-    _code_end = .;
+    _code_end = .;    
+    . = 0x10000 - 0x10;
   } > ROM
 
   .text.reset_vec : AT(0xFFFF0) {    
-    *(.text.reset_vec)    
+    FILL(0x90);
+    *(.text.reset_vec)
+    . = 0xF;
+    BYTE(0x0)
   } > ROM
 
   .bss : {
