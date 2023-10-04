@@ -70,9 +70,47 @@ namespace win32::regs
 	MAKE_REGISTER(si);
 	MAKE_REGISTER(di);
 	MAKE_REGISTER(ip);
-	MAKE_REGISTER(flags);
+//MAKE_REGISTER(flags);
 
 #undef MAKE_REGISTER
+
+	struct Rflags: 
+		public register_base<WHvX64RegisterRflags> 
+	{
+		union
+		{
+			WHV_REGISTER_VALUE value;
+			struct
+			{
+				uint64_t carry : 1;                     // 0 
+				uint64_t always_one: 1;                 // 1
+				uint64_t parity : 1;                    // 2
+				uint64_t reserved_0 : 1;                // 3
+				uint64_t adjust : 1;                    // 4
+				uint64_t reserved_1 : 1;                // 5
+				uint64_t zero : 1;                      // 6
+				uint64_t sign : 1;                      // 7
+				uint64_t trap : 1;                      // 8
+				uint64_t interrupt : 1;                 // 9
+				uint64_t direction : 1;                 // 10
+				uint64_t overflow : 1;                  // 11
+				uint64_t iopl : 2;                      // 12-13
+				uint64_t nested_task : 1;               // 14
+				uint64_t reserved_2 : 1;                // 15
+				uint64_t resume : 1;                    // 16
+				uint64_t v8086_mode : 1;                // 17
+				uint64_t alignment_check : 1;           // 18
+				uint64_t virtual_interrupt : 1;         // 19
+				uint64_t virtual_interrupt_pending : 1; // 20
+				uint64_t id : 1;                        // 21
+				uint64_t reserved_3 : 42;               // 22-63
+			} flag;
+			uint8_t flagsl;
+			uint16_t flags;
+			uint32_t eflags;
+			uint64_t rflags;
+		};
+	};
 
 #define MAKE_REGISTER(L) \
   struct R##L: public register_base<WHvX64RegisterR##L> \

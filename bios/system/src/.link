@@ -1,0 +1,34 @@
+ENTRY(reset_vec)
+
+MEMORY {  
+  ROM  (rx) : ORIGIN = 0xF0000, LENGTH = 64K
+  EBDA (rw) : ORIGIN = 0x9FC00, LENGTH = 1K
+}
+
+OUTPUT_FORMAT("binary")
+
+SECTIONS {
+  .text : AT(0xF0000) {
+    _code_start = .;
+    *(.text)
+    *(.rodata)
+    *(.data)
+    _code_end = .;
+  } > ROM
+
+  .text.reset_vec : AT(0xFFFF0) {    
+    *(.text.reset_vec)    
+  } > ROM
+
+  .bss : {
+    _bss_start = .;
+    *(.bss)
+    _bss_end = .;
+    . = ALIGN(16);
+  } > EBDA
+
+  /DISCARD/ : {
+    *(.comment)
+    *(.debug*)
+  }
+}
