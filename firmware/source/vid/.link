@@ -1,0 +1,26 @@
+ENTRY(startup)
+
+MEMORY {  
+  ROM (rx) : ORIGIN = 0xC0000, LENGTH = 32K  
+}
+
+OUTPUT_FORMAT("binary")
+
+SECTIONS {
+  .text : AT(0xC0000) {
+    FILL(0x90);
+    _code_seg = . / 0x10;   
+    *(.text.prologue)
+    *(.text)
+    *(.rodata)
+    *(.data)
+    . = LENGTH(ROM);
+  } > ROM
+
+  /DISCARD/ : {
+    *(.comment)
+    *(.debug*)
+  }
+
+  _rom_len = SIZEOF(.text)/0x200;
+}

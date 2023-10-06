@@ -32,9 +32,9 @@ static inline auto MakeConfiguration() -> core::Configuration
 	auto config_v = core::Configuration();
 
 	config_v.SetProperty("video.memory.size.kilobytes", "1024");
-	config_v.SetProperty("video.rom.path", "@roms/@vendor/video.bin");
+	config_v.SetProperty("video.rom.path", "@roms/vid.bin");
 	config_v.SetProperty("system.memory.size.megabytes", "64");
-	config_v.SetProperty("system.rom.path", "@roms/@vendor/system.bin");
+	config_v.SetProperty("system.rom.path", "@roms/sys.bin");
 
 	return config_v;
 }

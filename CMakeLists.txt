@@ -25,33 +25,22 @@ target_link_libraries(RetroV PRIVATE ${LIB_WINHVPLATFORM} ${LIB_WINHVEMULATION} 
 set_target_properties(RetroV PROPERTIES LINK_FLAGS "/level='requireAdministrator' /uiAccess='false'")
 target_stack_size(RetroV "256MiB")
 
-string(TIMESTAMP TODAY "%Y-%m-%d")
-string(TIMESTAMP NOW "%H:%M:%S")
-preprocess_file(hypercall_ash source/bios/gen/hypercall.ash source/bios/com/hypercall.asi)
-configure_file(source/bios/gen/buildvars.asi.in ${CMAKE_SOURCE_DIR}/source/bios/com/buildvars.asi @ONLY)
 
-file(GLOB_RECURSE COM_BIOS_ASI source/bios/com/*.asi)
-file(GLOB_RECURSE SYS_BIOS_ASI source/bios/sys/*.asi)
-file(GLOB_RECURSE VID_BIOS_ASI source/bios/vid/*.asi)
-list(APPEND COM_BIOS_ASI source/bios/com/hypercall.asi)
+add_custom_command(
+  OUTPUT  ${CMAKE_BINARY_DIR}/firmware/sys.bin
+  OUTPUT  ${CMAKE_BINARY_DIR}/firmware/vid.bin
+  COMMAND docker run -v ${CMAKE_SOURCE_DIR}/firmware:/var/root -v ${CMAKE_SOURCE_DIR}/workspace/ROMs:/var/install firmware-build:latest /bin/bash -c "cd /var/root && ./scripts/build.sh"
+  COMMENT "Building ROM images ...")
 
-message (STATUS "SYS_BIOS_ASI: ${SYS_BIOS_ASI}")
-message (STATUS "VID_BIOS_ASI: ${VID_BIOS_ASI}")
+# Custom target to invoke the custom command above
+add_custom_target(
+  FirmwareROMs    
+  DEPENDS ${CMAKE_BINARY_DIR}/firmware/sys.bin 
+          ${CMAKE_BINARY_DIR}/firmware/vid.bin)
 
-add_fasm_target(BsSystem.AMD "source/bios/sys/main.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BsSystem.AMD -d hypercall=vmmcall)
-add_fasm_target(BsSystem.INT "source/bios/sys/main.asm" ${SYS_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BsSystem.INT -d hypercall=vmcall)
-
-add_fasm_target(BsVideo.AMD "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BsVideo.AMD -d hypercall=vmmcall)
-add_fasm_target(BsVideo.INT "source/bios/vid/main.asm" ${VID_BIOS_ASI} ${COM_BIOS_ASI})
-add_fasm_option(BsVideo.INT -d hypercall=vmcall)
+# Ensure that our main target depends on the other build
+add_dependencies(RetroV FirmwareROMs)
 
 install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
 install (TARGETS RetroV DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 install (DIRECTORY ${CMAKE_SOURCE_DIR}/extras/ROMS/ DESTINATION ${CMAKE_INSTALL_PREFIX}/ROMs/extras)
-install (FILES $<TARGET_PROPERTY:BsVideo.AMD,OUTPUT_FILE_PATH> DESTINATION ${CMAKE_INSTALL_PREFIX}/ROMS/AMD RENAME video.bin) 
-install (FILES $<TARGET_PROPERTY:BsVideo.INT,OUTPUT_FILE_PATH> DESTINATION ${CMAKE_INSTALL_PREFIX}/ROMS/Intel RENAME video.bin)
-install (FILES $<TARGET_PROPERTY:BsSystem.AMD,OUTPUT_FILE_PATH> DESTINATION ${CMAKE_INSTALL_PREFIX}/ROMS/AMD RENAME system.bin)
-install (FILES $<TARGET_PROPERTY:BsSystem.INT,OUTPUT_FILE_PATH> DESTINATION ${CMAKE_INSTALL_PREFIX}/ROMS/Intel RENAME system.bin)
