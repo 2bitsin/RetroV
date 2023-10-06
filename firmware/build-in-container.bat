@@ -1,3 +1,4 @@
 setlocal enabledelayedexpansion
 set WORKSPACE=%CD%\..\workspace\ROMs
+docker build -t firmware-build:latest .
 docker run -v .:/var/root -v %WORKSPACE%:/var/install firmware-build:latest /bin/bash -c "cd /var/root && ./scripts/build.sh"
