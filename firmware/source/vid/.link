@@ -13,6 +13,7 @@ SECTIONS {
     *(.text.prologue)
     *(.text)
     *(.rodata)
+		*(.rodata.*)
     *(.data)
     . = LENGTH(ROM);
   } > ROM

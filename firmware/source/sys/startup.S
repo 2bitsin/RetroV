@@ -7,7 +7,9 @@
 .global _stack_ptr
 
 startup:  
-    movw      _stack_seg,   %sp
+    movw      $_stack_seg,  %sp
     movw      %sp,          %ss
-    movw      _stack_ptr,   %sp
+    movw      $_stack_ptr,  %sp
+    pushw     %cs
+    popw      %ds
     jmp       prologue

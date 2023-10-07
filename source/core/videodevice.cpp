@@ -144,17 +144,16 @@ auto VideoDevice::Hypercall_SetView(Processor const& vcpu_v, HypercallContext co
 }
 
 auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t
-{
-	using namespace core::hypercall;
-	switch (hypercall_v.Minor)
-	{
-	case HYPERCALL_VIDEO_SET_MODE:
-		return Hypercall_SetMode(vcpu_v, hypercall_v);
-	case HYPERCALL_VIDEO_MEMORY_MAP:	
-		return Hypercall_MemoryMap(vcpu_v, hypercall_v);
-	case HYPERCALL_VIDEO_SET_VIEW:
-		return ERROR_SUCCESS;
-	}
+{	
+	//switch (hypercall_v.Minor)
+	//{
+	//case HYPERCALL_VIDEO_SET_MODE:
+	//	return Hypercall_SetMode(vcpu_v, hypercall_v);
+	//case HYPERCALL_VIDEO_MEMORY_MAP:	
+	//	return Hypercall_MemoryMap(vcpu_v, hypercall_v);
+	//case HYPERCALL_VIDEO_SET_VIEW:
+	//	return ERROR_SUCCESS;
+	//}
 	return ERROR_SUCCESS;
 }
 

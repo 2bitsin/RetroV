@@ -1,7 +1,0 @@
-
-VideoMode:
-
-
-	.SetVideoMode:		
-		jmp ApiEntry.Done
-		

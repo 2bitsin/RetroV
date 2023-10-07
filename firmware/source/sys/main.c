@@ -1,11 +1,15 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "com/vmcall.h"
+#include "com/inlasm.h"
+
+static char const hello_s[] = "RetroV BIOS version 0.1g.\n";
+
 void c_main() 
-{
-  uint16_t __far *q = (uint16_t __far *)0xb8000000ul;
-  uint16_t i;
-  for (i = 0; i < 80*25; i++) {
-    q[i] = 0x0700 | 'Q';
-  }
+{	
+	Debugger_WriteLogString(hello_s);
+	for (;;) {
+		inlasm_hlt();
+	}
 }

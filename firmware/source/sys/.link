@@ -3,32 +3,36 @@ ENTRY(startup)
 MEMORY {  
   ROM   (rx) : ORIGIN = 0xF0000, LENGTH = 64K
   EBDA  (rw) : ORIGIN = 0x9FC00, LENGTH = 1K
+
+	DATA	(rw) : ORIGIN = 0x00000, LENGTH = 64K
+	CODE  (rx) : ORIGIN = 0x00000, LENGTH = 64K
   STACK (rw) : ORIGIN = 0x00300, LENGTH = 256
 }
 
 OUTPUT_FORMAT("binary")
 
 SECTIONS {
-  .text : AT(0xF0000) {
+  .text : AT(0x0000) {
     _code_seg = . / 0x10;
     FILL(0x90);
     *(.text)
+		*(.rodata.*)
     *(.rodata)
     *(.data)
     . = 0x10000 - 0x10;
-  } > ROM
+  } > CODE
 
-  .text.startup : AT(0xFFFF0) {    
+  .text.startup : AT(0xFFF0) {    
     FILL(0x90);
     *(.text.startup)
     . = 0xF;
     BYTE(0x90);
-  } > ROM
+  } > CODE
 
   .bss : {
     *(.bss)
     . = ALIGN(16);
-  } > EBDA
+  } > DATA
 
   _ebda_seg  = ORIGIN(EBDA)/0x10;
   _ebda_len  = LENGTH(EBDA);

@@ -1,3 +1,3 @@
 pushd firmware
-call build-in-container.bat
+call scripts\build-in-container.bat
 popd

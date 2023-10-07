@@ -9,7 +9,6 @@
 
 #include <utils/smart_span.hpp>
 #include <utils/span.hpp>
-#include <bios/com/hypercall.hpp>
 
 namespace core::videodevice
 {

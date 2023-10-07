@@ -1,4 +1,0 @@
-
-BuildVars:
-  .TimeDate:
-    db "BUILD: @TODAY@ @NOW@", 13, 10, 0

@@ -2,7 +2,7 @@
 #include <core/machine.hpp>
 
 #include <utils/logger.hpp>
-#include <bios/com/hypercall.hpp>
+#include <com/hypercall.h>
 
 #include <charconv>
 #include <cassert>
@@ -201,8 +201,7 @@ auto Debugger::Hypercall(Processor const& vcpu_v, HypercallContext const& contex
 {
 	auto const& hypercall_v = context_v.Hypercall;
 	auto const& vpcontext_v = context_v.VpContext;	
-
-	using namespace core::hypercall;
+	
 	switch (context_v.Function) 
 	{
 	/****************************
