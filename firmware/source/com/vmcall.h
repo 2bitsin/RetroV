@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #include "com/macros.h"
+#include "com/types.h"
 
 #define svm_call(X) asm volatile("pushw %0\n" ".byte 0x0F,0x01,0xD9\n" "addw $2, %%sp\n" : : "i"(X));
 #define vtx_call(X) asm volatile("pushw %0\n" ".byte 0x0F,0x01,0xC1\n" "addw $2, %%sp\n" : : "i"(X));
@@ -14,8 +15,7 @@
   #define vm_call(X) svm_call(X)
 #endif
 
-__attribute__((regparmcall))
-void Debugger_ToggleUnrealMode(char enable_v);
-
-__attribute__((regparmcall))
+void Debugger_ToggleUnrealMode(bool enable_v);
 void Debugger_WriteLogString(char const* string_v);
+void Debugger_WriteLogChar(char value_v);
+

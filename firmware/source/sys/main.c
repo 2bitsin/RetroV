@@ -3,12 +3,19 @@
 
 #include "com/vmcall.h"
 #include "com/inlasm.h"
+#include "com/memmap.h"
 
-static char const hello_s[] = "RetroV BIOS version 0.1g.\n";
+__far void __attribute__((interrupt))
+Int10h_handler(void) 
+{
+	Debugger_WriteLogString("INT 0x10\n");
+}
 
 void c_main() 
 {	
-	Debugger_WriteLogString(hello_s);
+	Debugger_WriteLogString("RetroV BIOS version 0.1g.\n");
+	IVT[0x10] = Int10h_handler;
+	asm("int $0x10");
 	for (;;) {
 		inlasm_hlt();
 	}
