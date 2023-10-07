@@ -199,17 +199,26 @@ auto Debugger::WriteLogString(Processor const& vcpu_v, std::string_view message_
 
 auto Debugger::Hypercall(Processor const& vcpu_v, HypercallContext const& context_v) -> std::int32_t
 {
+	using namespace win32::regs;
+
 	auto const& hypercall_v = context_v.Hypercall;
 	auto const& vpcontext_v = context_v.VpContext;	
-	
+
+	if (vpcontext_v.ExecutionState.Cr0Pe || vpcontext_v.ExecutionState.Cpl != 0)
+		return ERROR_ACCESS_DENIED;
+
+	auto const seg_v = vcpu_v.GetRegisters<Cs, Ds, Es>();
+
+	if (seg_v.cs.default_32bit) {
+		return ERROR_ACCESS_DENIED;
+	}
+
 	switch (context_v.Function) 
 	{
 	/****************************
 	 *	Enable/Disable Unreal Mode
 	 ****************************/
 	case HYPERCALL_DEBUG_TOGGLE_UNREAL_MODE:
-		if (vpcontext_v.ExecutionState.Cr0Pe||vpcontext_v.ExecutionState.Cpl!=0)
-			return ERROR_ACCESS_DENIED;
 		return Hypercall_UnrealModeEnable(vcpu_v, !!(hypercall_v.Rbx&1u));
 
 
@@ -223,8 +232,10 @@ auto Debugger::Hypercall(Processor const& vcpu_v, HypercallContext const& contex
 	/****************************
 	 *	Write Log String
 	 ****************************/
-	case HYPERCALL_DEBUG_WRITE_LOG_STRING: 
-		return Hypercall_WriteLogString(vcpu_v, hypercall_v.Rsi, hypercall_v.Rcx);
+	case HYPERCALL_DEBUG_WRITE_LOG_STRING: 	
+		return Hypercall_WriteLogString(vcpu_v, 
+			seg_v.ds.base + (hypercall_v.Rsi&0xFFFFu),
+			hypercall_v.Rcx&0xFFFFu);
 
 
  /****************************
