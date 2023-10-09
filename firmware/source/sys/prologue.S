@@ -1,5 +1,5 @@
 .code16
-.section .text
+.section .text.prologue
 .global prologue
 .global c_main
 .global _ebda_seg

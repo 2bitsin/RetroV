@@ -1,6 +1,7 @@
 add_executable(sys 	
   startup.S
   prologue.S 
+	int10h.c
   main.c)
 
 target_link_libraries(sys PRIVATE com)

@@ -12,4 +12,6 @@ startup:
     movw      $_stack_ptr,  %sp
     pushw     %cs
     popw      %ds
+    pushw     %cs
+    popw      %es
     jmp       prologue

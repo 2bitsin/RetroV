@@ -4,21 +4,21 @@ MEMORY {
   ROM (rx) : ORIGIN = 0xC0000, LENGTH = 32K  
 }
 
-OUTPUT_FORMAT("binary")
-
 SECTIONS {
   .text : AT(0xC0000) {
-    FILL(0x90);
     _code_seg = . / 0x10;   
-    *(.text.prologue)
-    *(.text)
     *(.rodata)
 		*(.rodata.*)
     *(.data)
+    *(.text.prologue)
+    *(.text)
+    FILL(0x90);
     . = LENGTH(ROM);
   } > ROM
 
   /DISCARD/ : {
+    *(.msdos_mz_reloc)
+    *(.msdos_mz_reloc.*)
     *(.comment)
     *(.debug*)
   }
