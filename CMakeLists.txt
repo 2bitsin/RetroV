@@ -25,21 +25,12 @@ target_link_libraries(RetroV PRIVATE ${LIB_WINHVPLATFORM} ${LIB_WINHVEMULATION} 
 set_target_properties(RetroV PROPERTIES LINK_FLAGS "/level='requireAdministrator' /uiAccess='false'")
 target_stack_size(RetroV "256MiB")
 
+add_custom_command(TARGET RetroV
+                   POST_BUILD
+                   COMMAND ${CMAKE_SOURCE_DIR}/build-bios.bat
+                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                   COMMENT "Building BIOS ROMs ...")
 
-add_custom_command(
-  OUTPUT  ${CMAKE_BINARY_DIR}/firmware/sys.bin
-  OUTPUT  ${CMAKE_BINARY_DIR}/firmware/vid.bin
-  COMMAND 
-  COMMENT "Building ROM images ...")
-
-# Custom target to invoke the custom command above
-add_custom_target(
-  FirmwareROMs    
-  DEPENDS ${CMAKE_BINARY_DIR}/firmware/sys.bin 
-          ${CMAKE_BINARY_DIR}/firmware/vid.bin)
-
-# Ensure that our main target depends on the other build
-add_dependencies(RetroV FirmwareROMs)
 
 install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
 install (TARGETS RetroV DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

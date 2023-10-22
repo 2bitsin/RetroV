@@ -2,7 +2,7 @@
 #include <core/machine.hpp>
 
 #include <utils/logger.hpp>
-#include <com/hypercall.h>
+#include <bios/hypercall.h>
 
 #include <charconv>
 #include <cassert>
