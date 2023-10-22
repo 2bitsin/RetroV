@@ -1,17 +1,13 @@
-.code16
-.section .text.startup
-
-.global startup
-.global prologue
-.global _stack_seg
-.global _stack_ptr
-
-startup:  
-    movw      $_stack_seg,  %sp
-    movw      %sp,          %ss
-    movw      $_stack_ptr,  %sp
-    pushw     %cs
-    popw      %ds
-    pushw     %cs
-    popw      %es
-    jmp       prologue
+  .code16
+  .section .startup
+  .global CMain
+  .global startup
+startup:
+  movw      $0x030,     %sp
+  movw      %sp,        %ss
+  movw      $0x100,     %sp
+  pushw     %cs
+  popw      %ds
+  pushw     %cs
+  popw      %es
+  jmp       CMain

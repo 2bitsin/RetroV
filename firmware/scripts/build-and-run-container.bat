@@ -1,3 +1,3 @@
 @echo off
-call build-container.bat
-call run-container.bat
+call %~dp0\build-container.bat
+call %~dp0\run-container.bat

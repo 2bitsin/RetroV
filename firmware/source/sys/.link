@@ -1,51 +1,25 @@
 ENTRY(startup)
 
-MEMORY {  
-  ROM   (rx) : ORIGIN = 0x00000, LENGTH = 64K
-  BSS   (rw) : ORIGIN = 0x00000, LENGTH = 64K	
-
-  BIOS  (rx) : ORIGIN = 0xF0000, LENGTH = 64K
-  EBDA  (rw) : ORIGIN = 0x9FC00, LENGTH = 1K
-  STACK (rw) : ORIGIN = 0x00300, LENGTH = 256
-}
+OUTPUT_FORMAT("msdos")
 
 SECTIONS {
-
+  . = 0x0000;
   .text : {
-    *(.text.prologue)
+    *(.text)
+    *(.text.*)
     *(.rodata)
-		*(.rodata.*)
+    *(.rodata.*)
     *(.data)
     *(.data.*)
-    *(.text)    
     FILL(0x90);
-    . = 0x10000 - 0x10;
-  } > ROM
-
-  .text.startup : {    
-    *(.text.startup)
-    FILL(0x90);
-    . = 0xF;
-    BYTE(0x90);
-  } > ROM
+    . = 0xFFF0;
+    *(.startup)    
+  } 
 
   .msdos_mz_reloc : {
-    *(.msdos_mz_reloc)
     *(.msdos_mz_reloc.*)
+    *(.msdos_mz_reloc)
   }
-
-  .bss : {
-    *(.bss)
-    . = ALIGN(16);
-  } > BSS
-
-
-  _code_seg  = ORIGIN(ROM)/0x10;
-  _code_len  = LENGTH(ROM);
-  _ebda_seg  = ORIGIN(EBDA)/0x10;
-  _ebda_len  = LENGTH(EBDA);
-  _stack_seg = ORIGIN(STACK)/0x10;
-  _stack_ptr = LENGTH(STACK);
 
   /DISCARD/ : {
     *(.comment)
