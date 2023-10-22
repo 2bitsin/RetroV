@@ -16,7 +16,7 @@ find_package(capstone CONFIG REQUIRED)
 # Main RetroV executable target
 file(GLOB_RECURSE SOURCE_FILES source/*.cpp source/*.hpp)
 add_executable(RetroV ${SOURCE_FILES})
-target_include_directories(RetroV PRIVATE "source" "firmware/source")
+target_include_directories(RetroV PRIVATE "source" "include")
 target_compile_features(RetroV PRIVATE cxx_std_23)
 find_library(LIB_WINHVPLATFORM NAMES WinHvPlatform)
 find_library(LIB_WINHVEMULATION NAMES WinHvEmulation)
@@ -29,7 +29,7 @@ target_stack_size(RetroV "256MiB")
 add_custom_command(
   OUTPUT  ${CMAKE_BINARY_DIR}/firmware/sys.bin
   OUTPUT  ${CMAKE_BINARY_DIR}/firmware/vid.bin
-  COMMAND docker run -v ${CMAKE_SOURCE_DIR}/firmware:/var/root -v ${CMAKE_SOURCE_DIR}/workspace/ROMs:/var/install firmware-build:latest /bin/bash -c "cd /var/root && ./scripts/build.sh"
+  COMMAND 
   COMMENT "Building ROM images ...")
 
 # Custom target to invoke the custom command above
