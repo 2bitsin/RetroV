@@ -9,6 +9,15 @@
 				"kind": "build",
 				"isDefault": true
 			},					
+		},
+		{
+			"type": "shell",
+			"label": "Build project",
+			"command": "build.bat",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},					
 		}
 	]
 }
