@@ -4,8 +4,6 @@ project(ReVBios C ASM)
 
 set (CMAKE_EXE_LINKER_FLAGS "")
 
-set (LINK_LIBRARIES ${WATCOM_DIR}/lib286/dos/clibs.lib)
-
 set (SYS_IMAGE_NAME revbios_sys)
 set (SYS_IMAGE_PATH ${CMAKE_CURRENT_BINARY_DIR}/${SYS_IMAGE_NAME})
 set (SYS_SOURCE_PATH ${CMAKE_SOURCE_DIR}/source/sys)
@@ -19,7 +17,8 @@ set (VID_IMAGE_ADDR 0xC000)
 add_executable(revbios_sys 
   ${SYS_SOURCE_PATH}/entry.asm 
   ${SYS_SOURCE_PATH}/main.c)
-target_link_libraries(revbios_sys PRIVATE ${LINK_LIBRARIES})
+target_link_libraries(revbios_sys PRIVATE ${WATCOM_LIBRARIES})
+target_include_directories(revbios_sys PRIVATE ${CMAKE_SOURCE_DIR}/source)
 target_link_options(revbios_sys BEFORE PRIVATE @${SYS_SOURCE_PATH}/.link
   option map=${CMAKE_BINARY_DIR}/${SYS_IMAGE_NAME}.map)
 

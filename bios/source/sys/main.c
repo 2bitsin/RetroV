@@ -1,16 +1,19 @@
 #include <stdint.h>
 #include <stddef.h>
+#include <string.h>
 
+#include <com/vmcall.h>
 
-static const char string_s[] = "Hello World!\n";
+static const char _Hello [] = "Hello World!\n";
 
-int __cdecl __loadds Main() 
+__declspec(noreturn) 
+void __cdecl __loadds Main() 
 {
-  uint16_t __far *  target_v = (uint16_t __far *)0xB8000000;
-  uint16_t i=0, j=0;
-  for (;i < 80*25; ++i, ++j) {
-    if (string_s[j] == 0) j = 0;
-    target_v[i] = 0x0700u + string_s[j];   
-  }
-  return 0;
+  char buff[0x10];
+  strcpy (buff, _Hello);
+  write_log_string(buff);
+  __asm { sti }
+  for(;;) {
+    __asm { hlt }
+  }  
 }

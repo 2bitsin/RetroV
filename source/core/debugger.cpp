@@ -220,7 +220,7 @@ auto Debugger::Hypercall(Processor const& vcpu_v, HypercallContext const& contex
 			hypercall_v.Rbx&0xFFu);
 	case HYPERCALL_DEBUG_WRITE_LOG_STRING: 	
 		return Hypercall_WriteLogString(vcpu_v,
-			seg_v.ds.base + (hypercall_v.Rsi&0xFFFFu), 
+			seg_v.es.base + (hypercall_v.Rdi&0xFFFFu), 
 			hypercall_v.Rcx&0xFFFFu);
 	case HYPERCALL_DEBUG_WRITE_LOG_NUMBER:
 		return Hypercall_WriteLogNumber(vcpu_v, 

@@ -6,6 +6,9 @@ _TEXT segment use16 'CODE'
   extern _Main:near
 _TEXT ends
 
+_STACK segment use16 'STACK' AT 0x30
+_STACK ends
+
 _TEXT_FFFF0 segment use16 'FFF0'
   
     public FFFF0
