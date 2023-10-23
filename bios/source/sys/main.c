@@ -4,13 +4,10 @@
 
 #include <com/vmcall.h>
 
-static const char _Hello [] = "Hello World!\n";
-
 __declspec(noreturn) 
 void __cdecl __loadds Main() 
 {
-  char buff[0x10];
-  strcpy (buff, _Hello);
+  char buff[0x10] = "Hello World!\n";
   write_log_string(buff);
   __asm { sti }
   for(;;) {
