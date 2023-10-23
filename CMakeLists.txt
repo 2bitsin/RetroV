@@ -16,7 +16,7 @@ find_package(capstone CONFIG REQUIRED)
 # Main RetroV executable target
 file(GLOB_RECURSE SOURCE_FILES source/*.cpp source/*.hpp)
 add_executable(RetroV ${SOURCE_FILES})
-target_include_directories(RetroV PRIVATE "source" "include")
+target_include_directories(RetroV PRIVATE "source" "bios/include")
 target_compile_features(RetroV PRIVATE cxx_std_23)
 find_library(LIB_WINHVPLATFORM NAMES WinHvPlatform)
 find_library(LIB_WINHVEMULATION NAMES WinHvEmulation)
@@ -25,12 +25,12 @@ target_link_libraries(RetroV PRIVATE ${LIB_WINHVPLATFORM} ${LIB_WINHVEMULATION} 
 set_target_properties(RetroV PROPERTIES LINK_FLAGS "/level='requireAdministrator' /uiAccess='false'")
 target_stack_size(RetroV "256MiB")
 
-add_custom_command(TARGET RetroV
-                   POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build-bios.bat
-                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                   COMMENT "Building BIOS ROMs ...")
-
+add_custom_command(
+  OUTPUT ${CMAKE_INSTALL_PREFIX}/ROMs/sys.bin always_rebuild
+  COMMAND ${CMAKE_SOURCE_DIR}/build-bios.bat
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMENT "Building BIOS ROMs ...")
+add_custom_target(RevBIOS ALL DEPENDS ${CMAKE_INSTALL_PREFIX}/ROMs/sys.bin)
 
 install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
 install (TARGETS RetroV DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

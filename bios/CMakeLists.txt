@@ -18,7 +18,7 @@ add_executable(revbios_sys
   ${SYS_SOURCE_PATH}/entry.asm 
   ${SYS_SOURCE_PATH}/main.c)
 target_link_libraries(revbios_sys PRIVATE ${WATCOM_LIBRARIES})
-target_include_directories(revbios_sys PRIVATE ${CMAKE_SOURCE_DIR}/source)
+target_include_directories(revbios_sys PRIVATE ${CMAKE_SOURCE_DIR}/source ${CMAKE_SOURCE_DIR}/include)
 target_link_options(revbios_sys BEFORE PRIVATE @${SYS_SOURCE_PATH}/.link
   option map=${CMAKE_BINARY_DIR}/${SYS_IMAGE_NAME}.map)
 
