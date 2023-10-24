@@ -117,6 +117,7 @@ auto Machine::ConfigurePartition(Configuration const&) -> void
 			= (1u << WHvX64ExceptionTypeDoubleFaultAbort)
 			| (1u << WHvX64ExceptionTypeInvalidOpcodeFault)			
 			| (1u << WHvX64ExceptionTypeGeneralProtectionFault)
+			| (1u << WHvX64ExceptionTypeDebugTrapOrFault)  
 			} },
 		{ WHvPartitionPropertyCodeX64MsrExitBitmap, {.X64MsrExitBitmap = {.UnhandledMsrs = 1 } } },
 		{ WHvPartitionPropertyCodeExtendedVmExits, { .ExtendedVmExits = { .X64MsrExit = 1u, .ExceptionExit = 1u, .HypercallExit = 1u } } },

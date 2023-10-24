@@ -82,51 +82,6 @@ auto Debugger::Hypercall_DebuggerBreak(Processor const& vcpu_v, std::uint64_t li
   return ERROR_SUCCESS;
 }
 
-auto Debugger::Hypercall_WriteLogNumber(Processor const& vcpu_v, std::uint32_t valuehi_v, std::uint32_t valuelo_v, std::uint8_t size_v, std::int8_t base_v) -> std::int32_t
-{	
-	std::uint64_t value_v{ 0 };	
-	char buffer_v[128u];
-	std::fill(std::begin(buffer_v), 
-		std::begin(buffer_v)+64u, 
-		'0');
-	if (size_v > 32u) {
-		value_v |= (valuelo_v * 0x000000001ull);
-		value_v |= (valuehi_v * 0x100000000ull);
-	} else if (size_v > 16u) {
-		value_v |= ((valuelo_v&0xFFFFull) * 0x00001ull);
-		value_v |= ((valuehi_v&0xFFFFull) * 0x10000ull);		
-	} else {
-		value_v = valuelo_v;
-	}
-	value_v &= ((1ull << size_v) - 1ull);		
-	std::to_chars_result result_v{};
-	if (base_v < 0) {
-		base_v = -base_v;
-		result_v = std::to_chars(buffer_v + 64u, 
-			buffer_v + sizeof(buffer_v), 
-			(std::int64_t)value_v, 
-			base_v);
-	} else {
-		result_v = std::to_chars(buffer_v + 64u, 
-			buffer_v + sizeof(buffer_v), 
-			(std::uint64_t)value_v, 
-			base_v);
-	}
-	if (result_v.ec == std::errc{}) 
-	{
-		auto length_v = result_v.ptr - (buffer_v + 64u);		
-		if (std::has_single_bit((std::uint8_t)base_v)) {
-			auto const digit_width_v = std::bit_width((std::size_t)base_v - 1u);
-			size_v = (size_v + digit_width_v - 1u) / digit_width_v;
-			WriteLogString(vcpu_v, { buffer_v + 64u - (size_v - length_v), result_v.ptr });
-		} else {
-			WriteLogString(vcpu_v, { buffer_v + 64u, result_v.ptr });
-		}
-		return ERROR_SUCCESS;
-	}
-	return ERROR_ACCESS_DENIED;
-}
-
 auto Debugger::Hypercall_WriteLogChar(Processor const& vcpu_v, char value_v) -> std::int32_t
 {
 	WriteLogString(vcpu_v, { &value_v, 1u });
@@ -222,11 +177,6 @@ auto Debugger::Hypercall(Processor const& vcpu_v, HypercallContext const& contex
 		return Hypercall_WriteLogString(vcpu_v,
 			seg_v.ds.base + (hypercall_v.Rsi&0xFFFFu), 
 			hypercall_v.Rcx&0xFFFFu);
-	case HYPERCALL_DEBUG_WRITE_LOG_NUMBER:
-		return Hypercall_WriteLogNumber(vcpu_v, 
-			hypercall_v.Rdx, hypercall_v.Rbx, 
-			(hypercall_v.Rcx>>0u)&0xFFu, 
-			(hypercall_v.Rcx>>8u)&0xFFu);
 	case HYPERCALL_DEBUG_DEBUGGER_BREAK: 
 		return Hypercall_DebuggerBreak(vcpu_v, vpcontext_v.Cs.Base + vpcontext_v.Rip, 
 			vpcontext_v.Cs.Selector, vpcontext_v.Rip);

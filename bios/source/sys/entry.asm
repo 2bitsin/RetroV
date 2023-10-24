@@ -1,13 +1,4 @@
-
-_DATA segment use16 'DATA'
-_DATA ends
-
-_TEXT segment use16 'CODE'
   extern _Main:near
-_TEXT ends
-
-_STACK segment use16 'STACK' AT 0x30
-_STACK ends
 
 _TEXT_FFFF0 segment use16 'FFF0'
   

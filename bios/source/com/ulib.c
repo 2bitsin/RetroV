@@ -1,22 +1,22 @@
-#include <com/string.h>
+#include <com/ulib.h>
+#include <com/data.h>
+#include <bios/vmcall.h>
 
 #include <stdlib.h>
 #include <string.h>
 
-char* rev_sprnf(char* buffer, const char* format, ...)
-{
-	va_list args_va;
-	const char* next_src;
-	char* next_dst = buffer;
+char __far* vsprnf(char __far* buffer, char const __far* format, va_list args_va)
+{	
+	char const __far* next_src;
+	char __far* next_dst = buffer;
 	union {
 		int ival;
 		unsigned int uval;
 		long lval;
 		unsigned long ulval;
-		const char* sval;
+		char const* sval;
 		char cval;
-	} u;
-	va_start(args_va, format);
+	} u;	
 	for (next_src = format; *next_src; ++next_src)
 	{
 		if (*next_src != '%')
@@ -54,7 +54,7 @@ char* rev_sprnf(char* buffer, const char* format, ...)
 			}
 			break;
 		case 's':
-			u.sval = va_arg(args_va, const char*);
+			u.sval = va_arg(args_va, char const*);
 			strcpy(next_dst, u.sval);
 			next_dst += strlen(next_dst);
 			break;
@@ -70,6 +70,24 @@ char* rev_sprnf(char* buffer, const char* format, ...)
 		}
 	}
 	*next_dst = '\0';  /* Null-terminate the string */
+	return buffer;
+}
+
+char __far* sprnf(char __far* buffer, char const __far* format, ...)
+{
+	va_list args_va;
+	va_start(args_va, format);
+	buffer = vsprnf(buffer, format, args_va);
 	va_end(args_va);
 	return buffer;
 }
+
+void prnf(char const __far* format, ...)
+{
+	va_list args_va;
+	va_start(args_va, format);
+	vsprnf(&ebda.prnf_buf[0], format, args_va);
+	write_log_string(&ebda.prnf_buf[0]);
+	va_end(args_va);
+}
+

@@ -4,20 +4,32 @@
 #include <stdlib.h>
 
 #include <bios/vmcall.h>
-#include <com/string.h>
+#include <com/ulib.h>
+
+
+void set_debug_flag(void);
+
+#pragma aux set_debug_flag = \
+	"pushf"					\
+	"pop ax"				\
+	"or ax, 0x100"	\
+	"push ax"				\
+	"popf"					;
+
+	
+
 
 static char const world_s[] = "World";
 
 __declspec(noreturn) 
 void __cdecl __loadds Main() 
 {
-  int i = 0;
-  char buff[0x20];
-  memset(buff, 0, 0x20);
-	rev_sprnf(buff, "Hello %s Nr. %d!\n", world_s, i+=1u);
-	write_log_string(buff);
-	rev_sprnf(buff, "Hello %s Nr. %d!\n", world_s, i+=1u);
-	write_log_string(buff);
+	int i = 0;
+    
+	//set_debug_flag();
+
+	prnf("Hello %s Nr. %d!\n", world_s, i+=1u);
+	prnf("Hello %s Nr. %d!\n", world_s, i+=1u);
 
   __asm { sti }
   for(;;) {

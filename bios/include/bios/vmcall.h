@@ -36,14 +36,6 @@
     "add sp, 2";
 #endif
 
-#define HYPERCALL_DEBUG_WRITE_LOG_NUMBER    0xff03 
-#ifdef __WATCOMC__
-  void write_log_num1(uint8_t  value_v, uint8_t base_v);
-  void write_log_num2(uint16_t value_v, uint8_t base_v);
-  void write_log_num4(uint32_t value_v, uint8_t base_v);
-  void write_log_num8(uint64_t value_v, uint8_t base_v);
-#endif
-
 #define HYPERCALL_DEBUG_DEBUGGER_BREAK      0xffff 
 #ifdef __WATCOMC__
   void debugger_break();

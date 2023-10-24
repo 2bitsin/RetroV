@@ -14,7 +14,9 @@ set (CMAKE_EXE_LINKER_FLAGS "")
 
 set (COM_SOURCE_PATH ${CMAKE_SOURCE_DIR}/source/com)
 set (COM_SOURCE_FILES 
-  ${COM_SOURCE_PATH}/string.c)
+  ${COM_SOURCE_PATH}/ulib.c
+  ${COM_SOURCE_PATH}/data.c
+  ${COM_SOURCE_PATH}/segs.asm)
 
 ###############
 #

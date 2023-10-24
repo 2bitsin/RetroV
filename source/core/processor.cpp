@@ -156,6 +156,10 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 			continue;
 		case WHvRunVpExitReasonException:
 			s_log.UnhandledException(GetIndex(), context_v.VpException, context_v.VpContext);
+			if (context_v.VpException.ExceptionType == WHvX64ExceptionTypeDebugTrapOrFault) {
+				SetRegister(WHvX64RegisterRflags, { .Reg64 = GetRegister(WHvX64RegisterRflags).Reg64 | core::kTrapFlag });
+				continue;
+			}
 			[[fallthrough]];		
 		default:
 			return result_v;
