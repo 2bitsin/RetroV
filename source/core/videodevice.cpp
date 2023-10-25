@@ -103,57 +103,8 @@ auto VideoDevice::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::ui
 	return ERROR_SUCCESS;
 }
 
-auto VideoDevice::Hypercall_SetMode(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t 
-{
-	using namespace utils;
-
-	auto const& vpcontext_v = hypercall_v.VpContext;
-	auto const& hccontext_v = hypercall_v.Hypercall;
-
-	auto const [flags_v, mode_v] = integral_split_msw<uint16_t>((uint32_t)hccontext_v.Rbx);
-	auto const [vert_v, horiz_v] = integral_split_msw<uint16_t>((uint32_t)hccontext_v.Rcx);
-
-	return ERROR_SUCCESS;
-}
-
-auto VideoDevice::Hypercall_MemoryMap(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t
-{
-	auto const& vpcontext_v = hypercall_v.VpContext;
-	auto const& hccontext_v = hypercall_v.Hypercall;
-
-	using namespace size_literals;
-	using region_type = utils::region64_type;
-
-	auto source_v = std::min(hccontext_v.Rsi&0xFFFFFFFFu, m_VideoMemory[0].size());
-	auto length_v = std::min(hccontext_v.Rcx&0xFFFFFFFFu, m_VideoMemory[0].size() - source_v);
-	auto target_v = hccontext_v.Rdi&0xFFFFFFFFu;
-	auto flags_v = hccontext_v.Rbx&0xFFFFFFFFu;
-
-	if (flags_v&1u) m_MemoryMap.clear();
-	m_MemoryMap.emplace_back(m_Machine.GetPartition(), 
-		region_type{ target_v, length_v }, kAccessDevice,
-		m_VideoMemory[0].subspan(source_v, length_v)
-	);
-
-	return ERROR_SUCCESS;
-}
-
-auto VideoDevice::Hypercall_SetView(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t
-{
-  return std::int32_t();
-}
-
 auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t
 {	
-	//switch (hypercall_v.Minor)
-	//{
-	//case HYPERCALL_VIDEO_SET_MODE:
-	//	return Hypercall_SetMode(vcpu_v, hypercall_v);
-	//case HYPERCALL_VIDEO_MEMORY_MAP:	
-	//	return Hypercall_MemoryMap(vcpu_v, hypercall_v);
-	//case HYPERCALL_VIDEO_SET_VIEW:
-	//	return ERROR_SUCCESS;
-	//}
 	return ERROR_SUCCESS;
 }
 

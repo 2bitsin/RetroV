@@ -15,6 +15,7 @@
 #include <core/processor.hpp>
 #include <core/legacypic.hpp>
 #include <core/videodevice.hpp>
+#include <core/memory.hpp>
 #include <core/debugger.hpp>
 #include <core/display.hpp>
 
@@ -48,10 +49,10 @@ namespace core
 		auto GetProcessor(std::uint32_t vcpuindex_v) -> Processor& { (void)vcpuindex_v; return m_Processor; }
 		auto GetPartition() -> win32::WHvPartition& { return m_Partition; }
 		auto GetDisplay() -> Display& { return m_Display; }
+		auto GetMemory() -> Memory& { return m_Memory; }
 
 		auto SuspendAllProcessors() -> void;
-		auto ResumeAllProcessors() -> void;
-		
+		auto ResumeAllProcessors() -> void;		
 
 	protected:
 		friend Processor;
@@ -61,24 +62,19 @@ namespace core
 		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t;
 		auto Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
 	
-		auto ConfigureMemory(Configuration const&) -> void;
-		auto ConfigureBiosROM(Configuration const&) -> void;
 		auto ConfigurePartition(Configuration const&) -> void;
+		auto ConfigureMemory(Configuration const&) -> void;
 
 	private:		
 		win32::WHvPartition m_Partition;		
-		win32::unique_span<std::byte> m_MainMemory;
-		std::list<MapGpaRange> m_MappedRanges;
-		std::list<RomImage> m_MappedRoms;
 
 		core::Processor m_Processor;
 		core::Processor::exit_future_type m_ProcessorExit;
+		core::Memory m_Memory;
 		core::LegacyPic m_LegacyPic;
 		core::VideoDevice m_VideoDevice;
 		core::Debugger m_Debugger;
 		core::Display m_Display;
-
-		std::bitset<4096u> m_PageZeroStatus;
 
 		static inline const EventLog s_log{ "Machine" };
 	};

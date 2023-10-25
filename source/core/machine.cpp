@@ -29,6 +29,7 @@ using core::Machine;
 Machine::Machine(Configuration const& config_v)	
 	: m_Partition		{ nullptr }
 	, m_Processor		{ *this, 0u }
+	, m_Memory			{ *this }
 	, m_LegacyPic		{ *this, 0u }
 	, m_Debugger		{ *this }
 	, m_VideoDevice { *this }
@@ -36,10 +37,14 @@ Machine::Machine(Configuration const& config_v)
 {
 	ConfigurePartition(config_v);
 	ConfigureMemory(config_v);	
-	ConfigureBiosROM(config_v);
 	m_LegacyPic.Initialize();
 	m_Display.Initialize();
 	m_VideoDevice.Initialize(config_v);
+}
+
+void Machine::ConfigureMemory(Configuration const& config_v) {
+	m_Memory.ConfigureMemory(config_v);
+	m_Memory.ConfigureBiosROM(config_v);
 }
 
 Machine::~Machine() 
@@ -139,76 +144,6 @@ auto Machine::ResumeAllProcessors() -> void
 	m_Processor.Resume();
 }
 
-auto Machine::ConfigureMemory(Configuration const& config_v) -> void
-{
-	static constexpr utils::region64_type ram_map_s [] = 
-	{
-		{ utils::from_range, 0x00000000u, 0x000A0000u }, // Coventional memory
-	//{ utils::from_range, 0x000A0000u, 0x00100000u }, // ROM Area
-		{ utils::from_range, 0x00100000u, 0x00200000u }, // A20 memory mirror 
-		{ utils::from_range, 0x00200000u, 0x00F00000u }, // Extended memory under 15MiB
-	//{ utils::from_range, 0x00F00000u, 0x01000000u }, // ISA memory hole
-		{ utils::from_range, 0x01000000u, 0xC0000000u }, // Extended memory over 15MiB
-	//{ utils::from_range, 0xC0000000u, 0xFEE00000u }, // PCI memory hole
-	//{ utils::from_range, 0xFEE00000u, 0xFEE01000u }, // Local APIC
-	//{ utils::from_range, 0xFEE01000u, 0xFFE00000u }, // Unused ?
-	//{ utils::from_range, 0xFFE00000u, 0xFFEFFFFFu }, // High part of BIOS ROM
-
-		// Remaining
-	  { utils::from_range, 
-		  0x0000000100000000u, 
-		  0xFFFFFFFFFFFFFFFFu },
-	};
-
-	static constexpr utils::region64_type empty_regions_s [] = {
-		{ utils::from_range, 0x000A0000u, 0x00100000u }
-	};
-
-	static constexpr alignas(kPageSize) auto default_page_s = utils::make_filled_array<std::uint8_t, kPageSize>(0xFFu);
-
-	WIN32_ERROR_ASSERT(m_Partition.Reset());	
-
-	m_MainMemory = win32::VirtualAlloc_s(
-		config_v.GetPropertyUint64("system.memory.size.megabytes") * 1_MiB, 
-		win32::execute_read_write);
-
-	auto& partition_v = GetPartition();
-	auto memory_v = std::span(m_MainMemory);
-	for (auto&& window_v : ram_map_s) 
-	{
-		if (memory_v.empty()) break;		
-		auto slice_v = utils::take_slice(memory_v, window_v.size());
-		m_MappedRanges.emplace_back(partition_v, window_v, kAccessMemory, slice_v);
-	}
-	
-	for (auto&& region_v : empty_regions_s)
-	for (auto curr_page_v = region_v.begin(); 
-		curr_page_v < region_v.end(); 
-		curr_page_v += default_page_s.size()) 
-	{
-		if (curr_page_v >= 0xA0000u && curr_page_v < 0xC0000u) continue;
-		WIN32_ERROR_ASSERT(partition_v.MapGpaRange(default_page_s.data(), curr_page_v,
-			default_page_s.size(), kAccessReadOnly));
-	}
-
-	// Uninitialized memory read trap
-	// So we can catch unimplemented BDA/interrupt access
-	//WIN32_ERROR_ASSERT(partition_v.UnmapGpaRange(0, 0x1000u));
-}
-
-auto Machine::ConfigureBiosROM(Configuration const& config_v) -> void
-{
-	
-	auto const path_v = config_v.GetPropertyString("system.rom.path");	
-	static constexpr auto const region_lo = RomImage::region_type{ utils::size_invert, 1_MiB, 192_KiB };
-	static constexpr auto const check_lo = RomImage::validate{ 4_KiB, 1u, region_lo.size() / 4_KiB };
-	static constexpr auto const region_hi = RomImage::region_type{ utils::size_invert, 4_GiB, 16_MiB };
-	static constexpr auto const check_hi = RomImage::validate{ 4_KiB, 1u, region_hi.size() / 4_KiB };
-	static constexpr auto const align_v = RomImage::kTopAligned;
-	
-	m_MappedRoms.emplace_back(m_Partition, check_lo, path_v, region_lo, align_v);
-	m_MappedRoms.emplace_back(m_Partition, check_hi, path_v, region_hi, align_v);
-}
 
 auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
@@ -241,7 +176,8 @@ auto Machine::Hypercall(Processor const& vcpu_v, HypercallContext const& hyperca
 auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t
 {	
 	using std::ranges::fill;
-	if (((~0xFFFull) & (physaddr_v + data_v.size())) != ((~0xFFFull)&physaddr_v))
+
+	if (((~0xFFFull)&(physaddr_v + data_v.size())) != ((~0xFFFull)&physaddr_v))
 	{
 		std::uint64_t offset_v{ 0x1000ull - (physaddr_v&0xFFFull) };
 		std::int32_t status_v{ ERROR_SUCCESS };
@@ -249,39 +185,6 @@ auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64
 		if (status_v != ERROR_SUCCESS) return status_v;
 		return MemoryAccess(vcpu_v, is_write_v, physaddr_v+offset_v, data_v.subspan(offset_v));
 	}
-	/*************************************************************************
-	 *
-	 *  SIMPLE MECHANISM TO CATCH READS OF UNINITIALIZED MEMORY WITHIN PAGE 0
-	 *  (BIOS DATA AREA, INTERRUPT VECTOR TABLE, ETC)
-	 * 
-	 *************************************************************************/
-
-	if (physaddr_v < 0x1000u)
-	{
-		assert(physaddr_v + data_v.size() < 0x1000u);
-		if (is_write_v) 
-		{
-			std::memcpy(m_MainMemory.data(), data_v.data(), data_v.size());
-			for(auto address_v = physaddr_v; address_v < physaddr_v + data_v.size(); address_v+=1u) 		
-				m_PageZeroStatus.set(address_v, true);			
-			return ERROR_SUCCESS;
-		}
-
-		for (auto address_v = physaddr_v; address_v < physaddr_v + data_v.size(); address_v += 1u)	
-			if (!m_PageZeroStatus.test(address_v)) {
-				using utils::logger;
-				logger::debug(logger::deflog, "Reading uninitialized memory at 0x{:08x}", address_v);
-				__debugbreak();
-			}
-		std::memcpy(data_v.data(), m_MainMemory.data(), data_v.size());
-		return ERROR_SUCCESS;
-	}
-
-	/**************************
-	 * 
-	 *  END OF PAGE 0 READ TRAP
-	 * 
-	 **************************/
 
 	if (physaddr_v >= 0xA0000u && physaddr_v <= 0xBFFFFu) {
 		return m_VideoDevice.MemoryAccess(vcpu_v, is_write_v, physaddr_v, data_v);
@@ -292,5 +195,5 @@ auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64
 		return ERROR_SUCCESS;
 	}
 
-	return ERROR_ACCESS_DENIED;
+	return m_Memory.MemoryAccess(vcpu_v, is_write_v, physaddr_v, data_v);
 }

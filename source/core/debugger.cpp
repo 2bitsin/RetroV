@@ -67,7 +67,7 @@ auto Debugger::Hypercall_WriteLogString(Processor const& vcpu_v, std::uint64_t a
 {
 	using utils::logger;
 	std::vector<std::byte> output_v;
-	auto status_v = FetchMemory(vcpu_v, address_v, length_v, output_v);
+	auto status_v = m_Machine.GetMemory().FetchMemory(vcpu_v, address_v, length_v, output_v);
 	if (status_v != ERROR_SUCCESS)
 		return status_v;
 	WriteLogString(vcpu_v, { (char*)output_v.data(), output_v.size() });
@@ -85,57 +85,6 @@ auto Debugger::Hypercall_DebuggerBreak(Processor const& vcpu_v, std::uint64_t li
 auto Debugger::Hypercall_WriteLogChar(Processor const& vcpu_v, char value_v) -> std::int32_t
 {
 	WriteLogString(vcpu_v, { &value_v, 1u });
-	return ERROR_SUCCESS;
-}
-
-auto Debugger::FetchMemory(Processor const& vcpu_v, std::uint64_t address_v, std::uint64_t length_v, std::vector<std::byte>& output_v) -> std::int32_t
-{
-	using std::tie;
-
-	std::uint64_t page_v = address_v & ~0xFFFu;
-	std::uint64_t offs_v = address_v & 0xFFFu;
-	auto [status_v, xgpa_v] = vcpu_v.TranslateAddress(page_v, Access::kAccessFetch);
-	auto const zero_terminated_v = length_v == 0u;
-	// Force wrap around to max length
-	if (!zero_terminated_v) { 
-		output_v.reserve(output_v.size() + length_v);
-	} else {
-		length_v -= 1u; 
-	}
-
-	std::size_t max_bytes_v{ 0 };
-	std::byte tmpbuf_v[16u]{ std::byte(0) };	
-
-	while (true)
-	{
-		max_bytes_v = std::min(std::min(length_v, sizeof(tmpbuf_v)), 0x1000u - offs_v);
-		auto buffer_s = utils::as_static_mutable_bytes(tmpbuf_v).first(max_bytes_v);
-		status_v = vcpu_v.MemoryAccess(false, xgpa_v + offs_v, buffer_s);
-
-		if (status_v != ERROR_SUCCESS)
-			return status_v;
-
-		if (!zero_terminated_v)
-			output_v.insert(output_v.end(), tmpbuf_v,
-				tmpbuf_v + buffer_s.size());
-		else
-			for (auto byte_v : tmpbuf_v) {
-				if (byte_v == std::byte(0))
-					goto Done;
-				output_v.push_back(byte_v);
-			}
-
-		length_v -= buffer_s.size();
-		if (length_v < 1u) break;
-		offs_v += buffer_s.size();
-		if (offs_v >= 0x1000u) {
-			offs_v &= 0xFFFu; page_v += 0x1000u;
-			tie(status_v, xgpa_v) = vcpu_v.TranslateAddress(page_v, Access::kAccessFetch);
-			if (status_v != ERROR_SUCCESS)
-				return status_v;
-		}
-	}
-Done:
 	return ERROR_SUCCESS;
 }
 

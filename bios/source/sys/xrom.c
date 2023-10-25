@@ -9,16 +9,14 @@
 #define XROM_MAGIC_SIGN 0xAA55
 #define XROM_SECT_PARAS 0x0020
 
-#pragma pack(push, 1)
+typedef void (__watcall __far* call_fun) (void);
 
+#pragma pack(push, 1)
 typedef struct xrom_s {
   uint16_t magic;
   uint8_t  sects;
   uint8_t  entry[1];
 } xrom_type;
-
-typedef void (__watcall __far* call_fun) (void);
-
 #pragma pack(pop)
 
 void __watcall xrom_init(void) 

@@ -66,32 +66,6 @@ namespace core
 		
 	protected:
 
-		/********************************
-		 * 
-		 *  Set video mode
-		 * 
-		 *  ECX = bit[31:16] -> height in pixels
-		 *        bit[15:0] -> width in pixels
-		 * 
-		 *  EBX = bit[31:16] -> flags
-		 *        bit[15:0] -> mode
-		 * 
-		 ********************************/
-		auto Hypercall_SetMode(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
-
-		/********************************
-		 * 
-		 *  Map video memory to system address space
-		 * 
-		 *  ESI = video memory address
-		 *  EDI = system memory address
-		 *  ECX = size in bytes
-		 *  EBX = flags ([0] = 1 -> clear previous map, 0 -> don't clear)
-		 * 
-		 ********************************/
-		auto Hypercall_MemoryMap(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;		
-
-		auto Hypercall_SetView(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
 
 	private:	
 		Machine& m_Machine;		
