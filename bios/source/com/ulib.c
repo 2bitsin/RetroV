@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char __far* vsprnf(char __far* buffer, char const __far* format, va_list args_va)
+char __far* __watcall vsprnf(char __far* buffer, char const __far* format, va_list args_va)
 {	
 	char const __far* next_src;
 	char __far* next_dst = buffer;
@@ -37,20 +37,31 @@ char __far* vsprnf(char __far* buffer, char const __far* format, va_list args_va
 			utoa(u.uval, next_dst, 10);
 			next_dst += strlen(next_dst);
 			break;
+		case 'x':
+			u.uval = va_arg(args_va, unsigned int);
+			utoa(u.uval, next_dst, 16);
+			next_dst += strlen(next_dst);
+			break;
 		case 'l':
-			if (*(next_src + 1) == 'u')
+			switch (*(next_src + 1))
 			{
+			case 'u':
 				u.ulval = va_arg(args_va, unsigned long);
 				ultoa(u.ulval, next_dst, 10);
 				next_dst += strlen(next_dst);
 				next_src += 1u;
-				/* Skip the 'u' character */
-			}
-			else
-			{
+				break;
+			case 'x':
+				u.ulval = va_arg(args_va, unsigned long);
+				ultoa(u.ulval, next_dst, 16);
+				next_dst += strlen(next_dst);
+				next_src += 1u;
+				break;
+			default:
 				u.lval = va_arg(args_va, long);
 				ltoa(u.lval, next_dst, 10);
 				next_dst += strlen(next_dst);
+				break;
 			}
 			break;
 		case 's':
@@ -73,7 +84,7 @@ char __far* vsprnf(char __far* buffer, char const __far* format, va_list args_va
 	return buffer;
 }
 
-char __far* sprnf(char __far* buffer, char const __far* format, ...)
+char __far* __cdecl sprnf(char __far* buffer, char const __far* format, ...)
 {
 	va_list args_va;
 	va_start(args_va, format);
@@ -82,7 +93,7 @@ char __far* sprnf(char __far* buffer, char const __far* format, ...)
 	return buffer;
 }
 
-void prnf(char const __far* format, ...)
+void __cdecl prnf(char const __far* format, ...)
 {
 	va_list args_va;
 	va_start(args_va, format);

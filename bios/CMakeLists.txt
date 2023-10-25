@@ -32,6 +32,7 @@ set (SYS_IMAGE_ADDR 0xF000)
 add_executable(revbios_sys 
   ${SYS_SOURCE_PATH}/entry.asm 
   ${SYS_SOURCE_PATH}/main.c
+  ${SYS_SOURCE_PATH}/xrom.c
   ${COM_SOURCE_FILES})
 target_link_libraries(revbios_sys PRIVATE ${WATCOM_LIBRARIES})
 target_include_directories(revbios_sys PRIVATE ${CMAKE_SOURCE_DIR}/source ${CMAKE_SOURCE_DIR}/include)

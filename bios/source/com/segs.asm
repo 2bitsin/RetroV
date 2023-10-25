@@ -11,5 +11,8 @@ _STACK ends
 _BSS segment use16 'BSS' AT 0x9FC0
 _BSS ends
 
+_BDA segment use16 'BDA' AT 0x0040
+_BDA ends
+
   end
   
