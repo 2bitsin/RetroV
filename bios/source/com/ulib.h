@@ -8,6 +8,8 @@ char __far* __watcall vsprnf (char __far* buffer, char const __far* format, va_l
 char __far* __cdecl   sprnf  (char  __far* buffer, char const __far* format, ...);
 void	      __cdecl   prnf   (char const __far* format, ...);
 
+void __watcall ivt_install(uint8_t index_v, void __far* handler_v);
+
 inline void __far* __watcall make_fp(uint16_t seg, uint16_t off) 
 {
   return (void __far*)(seg*0x10000ul + off);
