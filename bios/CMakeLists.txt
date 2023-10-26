@@ -67,6 +67,7 @@ add_executable(revbios_vid
   ${VID_SOURCE_PATH}/entry.asm 
   ${VID_SOURCE_PATH}/fonts.asm 
   ${VID_SOURCE_PATH}/main.c
+  ${VID_SOURCE_PATH}/int10h.c
   ${COM_SOURCE_FILES})
 target_link_libraries(revbios_vid PRIVATE ${WATCOM_LIBRARIES})
 target_include_directories(revbios_vid PRIVATE ${CMAKE_SOURCE_DIR}/source ${CMAKE_SOURCE_DIR}/include)
