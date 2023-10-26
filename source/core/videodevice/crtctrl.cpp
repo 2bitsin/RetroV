@@ -1,13 +1,13 @@
-#include <core/videodevice/crtcontroller.hpp>
+#include <core/videodevice/crtctrl.hpp>
 #include <win32/windows.hpp>
 
 #include <iterator>
 
-using core::videodevice::CrtController;
+using core::videodevice::CrtCtrl;
 
-CrtController::CrtController() { Reset(); }
+CrtCtrl::CrtCtrl() { Reset(); }
 
-auto CrtController::IoPortWrite(uint16_t port, uint8_t value) -> int32_t
+auto CrtCtrl::IoPortWrite(uint16_t port, uint8_t value) -> int32_t
 {
 	if (port == 0) { 
 		m_Index = value & 0x1F; 
@@ -22,7 +22,7 @@ auto CrtController::IoPortWrite(uint16_t port, uint8_t value) -> int32_t
 	return ERROR_ACCESS_DENIED;
 }
 
-auto CrtController::IoPortFetch(uint16_t port) 
+auto CrtCtrl::IoPortFetch(uint16_t port) 
 	-> std::tuple<int32_t, uint8_t> 
 {
 	if (port == 0) {
@@ -36,7 +36,7 @@ auto CrtController::IoPortFetch(uint16_t port)
 	return { ERROR_ACCESS_DENIED, 0 };
 }
 
-auto CrtController::Reset() -> void
+auto CrtCtrl::Reset() -> void
 {
 	m_HorzontalTotal = 0;
 	m_EndHorzontalDisplay = 0;

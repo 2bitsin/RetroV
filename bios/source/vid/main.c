@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <vid/int10h.h>
 #include <vid/fonts.h>
 #include <com/ulib.h>
 #include <bios/vmcall.h>

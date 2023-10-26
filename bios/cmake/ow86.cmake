@@ -17,12 +17,12 @@ set(CMAKE_ASM_COMPILER ${WATCOM_DIR}/binl64/wasm)
 set(CMAKE_ASM_COMPILER_ID OpenWatcom)
 set(CMAKE_ASM_COMPILER_WORKS 1)
 
-set (WATCOM_LIBRARIES ${WATCOM_DIR}/lib286/dos/clibh.lib)
+set (WATCOM_LIBRARIES ${WATCOM_DIR}/lib286/dos/clibc.lib)
 set (EXE2BIN_CMD ${WATCOM_DIR}/binl/exe2bin)
 
-set(CMAKE_C_FLAGS_INIT   "-3 -fp3 -mh -s -zu")
-set(CMAKE_CXX_FLAGS_INIT "-3 -fp3 -mh -s -zu")
-set(CMAKE_ASM_FLAGS_INIT "-2 -fp3 -mh")
+set(CMAKE_C_FLAGS_INIT   "-3 -fp3 -mc -s -zu")
+set(CMAKE_CXX_FLAGS_INIT "-3 -fp3 -mc -s -zu")
+set(CMAKE_ASM_FLAGS_INIT "-2 -fp3 -mc")
 set(CMAKE_ASM_COMPILE_OBJECT "<CMAKE_ASM_COMPILER> <DEFINES> <INCLUDES> <FLAGS> -fo=<OBJECT> <SOURCE>")
 
 set(CMAKE_FIND_ROOT_PATH ${WATCOM_DIR}/lib286;${WATCOM_DIR}/lh;${WATCOM_DIR}/h;${WATCOM_DIR}/binl)

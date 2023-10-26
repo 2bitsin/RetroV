@@ -102,10 +102,16 @@ void __cdecl prnf(char const __far* format, ...)
 	va_end(args_va);
 }
 
-typedef void __far* void_p;
-
-void __watcall ivt_install(uint8_t index_v, void __far* handler_v) {
+void __watcall ivt_set(uint8_t index_v, void __far* handler_v) {
 	__segment seg=0;	
-	void_p __based(seg) *ivt_s=0;
+	ivt_entry_t __based(seg) *ivt_s=0;
 	ivt_s[index_v] = handler_v;
 }
+
+ivt_entry_t __watcall ivt_get(uint8_t index_v) {
+	__segment seg=0;	
+	ivt_entry_t __based(seg) *ivt_s=0;
+	return ivt_s[index_v];
+}
+
+

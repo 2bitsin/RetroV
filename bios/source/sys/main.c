@@ -7,13 +7,21 @@
 #include <com/ulib.h>
 #include <com/intrin.h>
 
+void video_init(uint8_t idx) 
+{
+  __asm
+  {
+    mov ax, 0x0000
+    mov al, idx
+    int 0x10
+  }
+}
+
 __declspec(noreturn) 
 void __cdecl __loadds Main() 
 {
   xrom_init();
-  write_log_string("Testing int 0x10!\n");
-  __asm { int 0x10 };
-  write_log_string("Done testing int 0x10!\n");
+  video_init(0x3);
   __sti();
   while(true) __hlt();  
 }

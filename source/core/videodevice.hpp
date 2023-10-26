@@ -10,6 +10,7 @@
 #include <core/videodevice/common.hpp>
 #include <core/videodevice/ramdac.hpp>
 #include <core/videodevice/chargen.hpp>
+#include <core/videodevice/crtctrl.hpp>
 
 #include <core/configuration.hpp>
 #include <core/mapgparange.hpp>
@@ -39,6 +40,7 @@ namespace core
 ;
 	;	using RamDAC = videodevice::RamDAC;
 		using CharGen = videodevice::CharGen;
+		using CrtCtrl = videodevice::CrtCtrl;
 
 		VideoDevice(Machine& machine_v);
 		~VideoDevice();
@@ -56,6 +58,7 @@ namespace core
 		auto MemorySize() const->std::size_t;
 
 	protected:
+		auto Hypercall_SetVideoMode(uint16_t horiz_v, uint16_t vert_v, uint16_t mode_v, uint16_t flags_v) -> std::int32_t;
 
 		auto IoPortWrite(Processor const& vcpu_v, std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t;
 		auto IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>;
@@ -70,14 +73,14 @@ namespace core
 	private:	
 		Machine& m_Machine;		
 		
-
 		std::optional<RomImage> m_BiosRom;
 		std::list<MapGpaRange> m_MemoryMap;
 		buffer_type m_VideoMemory [2u];
 
 		std::jthread m_RefreshThread;
 
-		RamDAC m_RamDAC;
+		RamDAC	m_RamDAC;
 		CharGen m_CharGen;
+		CrtCtrl m_CrtCtrl;
 	};
 }

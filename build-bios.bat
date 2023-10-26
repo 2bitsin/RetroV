@@ -1,6 +1,6 @@
 @echo off
 setlocal 
-
+cls
 REM Check if image 'bios_build_env' exists
 docker image inspect bios_build_env >nul 2>&1
 if errorlevel 1 (

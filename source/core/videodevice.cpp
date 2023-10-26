@@ -12,6 +12,8 @@
 #include <win32/whvcapabilities.hpp>
 #include <win32/waitabletimer.hpp>
 
+#include <bios/vmcall.h>
+
 #include <algorithm>
 #include <chrono>
 #include <ranges>
@@ -103,8 +105,14 @@ auto VideoDevice::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::ui
 	return ERROR_SUCCESS;
 }
 
-auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t
+auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& context_v) -> std::int32_t
 {	
+	using namespace win32::regs;
+	return ERROR_SUCCESS;
+}
+
+auto VideoDevice::Hypercall_SetVideoMode(uint16_t horiz_v, uint16_t vert_v, uint16_t mode_v, uint16_t flags_v) -> std::int32_t
+{
 	return ERROR_SUCCESS;
 }
 
@@ -117,7 +125,13 @@ auto VideoDevice::IoPortWrite(Processor const& vcpu_v, std::uint16_t port_v, std
 	case 0x018u: // 0x3C8
 	case 0x019u: // 0x3C9
 		return m_RamDAC.IoPortWrite(port_v - 0x016u, data_v);
-	default: break;
+
+	case 0x024u: // 0x3D4
+	case 0x025u: // 0x3D5
+		return m_CrtCtrl.IoPortWrite(port_v - 0x024u, data_v);
+
+	default: 
+		break;
 	}
 	return ERROR_ACCESS_DENIED;
 }
@@ -131,6 +145,13 @@ auto VideoDevice::IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> 
 	case 0x018u: // 0x3C8
 	case 0x019u: // 0x3C9
 		return m_RamDAC.IoPortFetch(port_v - 0x016u);
+
+	case 0x024u: // 0x3D4
+	case 0x025u: // 0x3D5
+		return m_CrtCtrl.IoPortFetch(port_v - 0x024u);
+
+	default:
+		break;
 	}
 	return { ERROR_ACCESS_DENIED, 0 };
 }
