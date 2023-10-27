@@ -16,6 +16,7 @@ auto CrtCtrl::IoPortWrite(uint16_t port, uint8_t value) -> int32_t
 	if (port == 1) {
 		if (m_Index < std::size(m_Registers)) 
 		{	m_Registers[m_Index] = value; 
+			m_Index = (m_Index + 1u)&0x1Fu;			
 			return ERROR_SUCCESS; }
 		return ERROR_ACCESS_DENIED;
 	}
@@ -29,8 +30,11 @@ auto CrtCtrl::IoPortFetch(uint16_t port)
 		return { ERROR_SUCCESS, m_Index }; 
 	}
 	if (port == 1) {
-		if (m_Index < std::size(m_Registers)) 
-			return { ERROR_SUCCESS, m_Registers[m_Index] }; 		
+		if (m_Index < std::size(m_Registers)) {			
+			auto data_v = m_Registers[m_Index];
+			m_Index = (m_Index + 1u) & 0x1Fu;
+			return { ERROR_SUCCESS, data_v };
+		}
 		return { ERROR_ACCESS_DENIED, 0 }; 
 	}
 	return { ERROR_ACCESS_DENIED, 0 };

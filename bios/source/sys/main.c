@@ -11,7 +11,7 @@ void video_init(uint8_t idx)
 {
   __asm
   {
-    mov ax, 0x0000
+    xor ah, ah
     mov al, idx
     int 0x10
   }
