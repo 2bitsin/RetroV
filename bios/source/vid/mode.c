@@ -314,8 +314,10 @@ void __watcall set_video_mode(uint8_t index_v)
   mode_p = &vga_modes_s[index_v];
 
   // Write attribute registers
+  // TODO : this needs special procedure to write
   __outb(0x3C0, 0x00);
-  __rep_outsb(mode_p->actl_regs, ACTL_REGS)
+  __rep_outsb(mode_p->actl_regs, ACTL_REGS);
+  //__outb(0x)
 
 	// Write sequencer registers
 	__outw(0x3C4, 0x0300);
