@@ -1,0 +1,1 @@
+call %~dp0ida sys f000

@@ -2,6 +2,7 @@
 #include <com/data.h>
 
 #include <vid/mode.h>
+#include <vid/vgadefs.h>
 
 #define MM_TEXT             0x00
 #define MM_CGA              0x01
@@ -306,24 +307,66 @@ static struct stdvga_mode_s const _DATA vga_modes_s[] =
 //{0x6A, {MM_PLANAR, 800, 600, 4, 8, 16, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xe3, crtc_6A, actl_10, grdc_0d},
 };
 
+inline  void __watcall vga_write_attr(
+	uint8_t index_v, uint8_t value_v) 
+{
+	register uint8_t oaddr_v=0;
+	__inb(VGAREG_ACTL_RESET); // Reset
+	oaddr_v = __inb(VGAREG_ACTL_ADDRESS);
+	__outb(VGAREG_ACTL_ADDRESS, index_v);
+	__outb(VGAREG_ACTL_WRITE_DATA, value_v);
+	__outb(VGAREG_ACTL_ADDRESS, oaddr_v);
+}
+
+inline void __watcall vga_write(uint8_t index_v, uint8_t value_v, uint16_t addr_v) {
+	__outw(addr_v, (value_v << 8) | index_v);
+}
+
 void __watcall set_video_mode(uint8_t index_v)
 {  
   stdvga_mode_t const __far* mode_p=0;  
+	unsigned i=0;
+	uint16_t crtc_addr_v = VGAREG_VGA_CRTC_ADDRESS;
+
   if (index_v > 0x13)
     return;  
   mode_p = &vga_modes_s[index_v];
+	
+	if (!(mode_p->miscreg & 1)) {
+		crtc_addr_v = VGAREG_MDA_CRTC_ADDRESS;
+	}
 
+	////////////////////////////////
   // Write attribute registers
-  // TODO : this needs special procedure to write
-  __outb(0x3C0, 0x00);
-  __rep_outsb(mode_p->actl_regs, ACTL_REGS);
-  //__outb(0x)
+	////////////////////////////////
+  for(i = 0u; i < ACTL_REGS; i += 1u) {
+		vga_write_attr(i, mode_p->actl_regs[i]);	
+  }
+	vga_write_attr(0x14u, 0x00u);
 
+	////////////////////////////////
 	// Write sequencer registers
-	__outw(0x3C4, 0x0300);
-  __rep_outsb(0x3C5, mode_p->sequ_regs, SEQU_REGS);
+	////////////////////////////////
+	vga_write(0x00u, 0x03u, 
+    VGAREG_SEQU_ADDRESS);	
+	for (i = 1u; i <= SEQU_REGS; i += 1u) {
+		vga_write(i, mode_p->sequ_regs[i - 1],
+			VGAREG_SEQU_ADDRESS);
+  }
 
+	/////////////////////////////////////////
+	// Write graphics controller registers
+	/////////////////////////////////////////
+	for (i = 0u; i < GRDC_REGS; i += 1u) {
+		vga_write(i, mode_p->grdc_regs[i], 
+			VGAREG_GRDC_ADDRESS);
+  }
+
+	//////////////////////////////////
 	// Write CRT controller registers
-  __outb(0x3D4, 0x00); 
-  __rep_outsb(0x3D5, mode_p->crtc_regs, CRTC_REGS);
+	//////////////////////////////////
+	for (i = 0u; i < CRTC_REGS; i += 1u) {
+		vga_write(i, mode_p->crtc_regs[i], 
+			crtc_addr_v);
+  }
 }
