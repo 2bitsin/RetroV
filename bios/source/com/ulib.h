@@ -20,8 +20,17 @@ void __cdecl prnf(char const __far* format, ...);
 //
 /////////////////
 typedef void __far* ivt_entry_t;
-void __watcall ivt_set(uint8_t index_v, ivt_entry_t handler_v);
-ivt_entry_t __watcall ivt_get(uint8_t index);
+
+extern ivt_entry_t __far ivt[256];
+
+inline void __watcall ivt_set(uint8_t index_v, ivt_entry_t handler_v) {	
+	ivt[index_v] = handler_v;
+}
+
+inline ivt_entry_t __watcall ivt_get(uint8_t index_v) {	
+	return ivt[index_v];
+}
+
 
 ///////////////////////// 
 //

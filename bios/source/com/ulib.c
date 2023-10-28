@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <malloc.h>
 
 char __far* __watcall vsprnf(char __far* buffer, char const __far* format, va_list args_va)
 {	
@@ -102,16 +103,5 @@ void __cdecl prnf(char const __far* format, ...)
 	va_end(args_va);
 }
 
-void __watcall ivt_set(uint8_t index_v, void __far* handler_v) {
-	__segment seg=0;	
-	ivt_entry_t __based(seg) *ivt_s=0;
-	ivt_s[index_v] = handler_v;
-}
-
-ivt_entry_t __watcall ivt_get(uint8_t index_v) {
-	__segment seg=0;	
-	ivt_entry_t __based(seg) *ivt_s=0;
-	return ivt_s[index_v];
-}
 
 

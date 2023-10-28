@@ -14,5 +14,10 @@ _BSS ends
 _BDA segment use16 'BDA' AT 0x0040
 _BDA ends
 
+_NULL segment use16 'NULL' AT 0x0000    
+public _ivt
+  _ivt:  
+_NULL ends
+
   end
   

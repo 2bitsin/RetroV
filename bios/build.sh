@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 BUILD_DIR=${1:-'/base/build/ROMs'}
 OUTPUT_DIR=${2:-'/base/workspace/ROMs'}

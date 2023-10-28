@@ -10,5 +10,5 @@ __declspec(noreturn)
 void __far __cdecl __loadds Main()
 {
   write_log_string("RevBIOS VGA 0.1g...\n");
-  install_int10h();
+  ivt_set(0x10, &int0x10);
 }

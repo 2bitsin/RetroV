@@ -21,11 +21,10 @@ typedef struct xrom_s {
 
 void __watcall xrom_init(void) 
 {  
-  register uint16_t seg = XROM_SEARCH_BEG;
-  register xrom_type __far* xrom_p=0;
+  register __segment seg = XROM_SEARCH_BEG;
+  register xrom_type __based(seg)* xrom_p=0;
   prnf("Searching for Extension ROMs...\n");
-  while(seg < XROM_SEARCH_END) {
-    xrom_p = make_fp(seg, 0);
+  while(seg < XROM_SEARCH_END) {    
     if (xrom_p->magic != XROM_MAGIC_SIGN) {
       seg += XROM_SEARCH_INC;
       continue;

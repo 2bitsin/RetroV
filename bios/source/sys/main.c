@@ -23,5 +23,5 @@ void __cdecl __loadds Main()
   xrom_init();
   video_init(0x3);
   __sti();
-  while(true) __hlt();  
+  while(true) asm_hlt();  
 }
