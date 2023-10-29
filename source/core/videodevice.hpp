@@ -37,10 +37,6 @@ namespace core
 		using duration_type = videodevice::duration_type;
 		using buffer_type = videodevice::buffer_type;
 		using region_type = utils::region64_type;
-;
-	;	using RamDAC = videodevice::RamDAC;
-		using CharGen = videodevice::CharGen;
-		using CrtCtrl = videodevice::CrtCtrl;
 
 		VideoDevice(Machine& machine_v);
 		~VideoDevice();
@@ -104,13 +100,96 @@ namespace core
 		static inline constexpr const auto Port_VgaFeatureControl	= VgaPort(0x3DAu);	
 
 
-	private:	
-		
-
+	private:			
 		Machine& m_Machine;		
 
-		std::optional<core::RomImage> m_BiosRom;
-		videodevice::buffer_type m_VideoMemory[2u];
+		std::optional<RomImage> m_BiosRom;
+		buffer_type m_VideoMemory[2u];
+#pragma pack(push, 1)
+		struct
+		{
+			struct
+		{
+			uint8_t index;
+			union 
+			{
+				uint8_t data[0x19u];
+				struct 
+				{
+					uint8_t horizontal_total;
+					uint8_t end_horizontal_display;			
+					uint8_t start_horizontal_blanking;
+					uint8_t end_horizontal_blanking;	
+					uint8_t start_horizontal_retrace;
+					uint8_t end_horizontal_retrace;
+					uint8_t vertical_total;
+					uint8_t overflow;
+					uint8_t preset_row_scan;
+					uint8_t maximum_scan_line;
+					uint8_t cursor_start;
+					uint8_t cursor_end;
+					uint8_t start_address_high;
+					uint8_t start_address_low;
+					uint8_t cursor_location_high;
+					uint8_t cursor_location_low;
+					uint8_t vertical_retrace_start;
+					uint8_t vertical_retrace_end;
+					uint8_t vertical_display_end;
+					uint8_t offset;
+					uint8_t underline_location;
+					uint8_t start_vertical_blanking;
+					uint8_t end_vertical_blanking;
+					uint8_t crt_mode_control;
+					uint8_t line_compare;
+				};
+			};
+		} crtctrl;
+			struct 
+		{
+			uint8_t index;
+			union 
+			{
+				uint8_t data[0x5u];
+				struct 
+				{
+					uint8_t reset;
+					uint8_t clocking_mode;
+					uint8_t map_mask;
+					uint8_t character_map_select;
+					uint8_t memory_mode;				
+				};
+			};
+		} sequencer;
+			struct 
+		{
+			uint8_t index;
+			union 
+			{
+				uint8_t data[0x9u];
+				struct 
+				{
+					uint8_t set_or_reset;
+					uint8_t enable_set_or_reset;
+					uint8_t color_compare;
+					uint8_t data_rotate;
+					uint8_t read_map_select;
+					uint8_t graphics_mode;
+					uint8_t miscellaneous;
+					uint8_t color_dont_care;
+					uint8_t bit_mask;
+				};
+			};
 
+		} graphics;		
+			struct
+		{
+			uint8_t index;
+			uint8_t mask;
+			uint8_t latch;
+			uint8_t flags;
+			uint8_t color[256u][3u];
+		} ramdac;
+		} m_State;
+#pragma pack(pop)
 	};
 }
