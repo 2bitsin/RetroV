@@ -22,7 +22,6 @@ using core::VideoDevice;
 
 VideoDevice::VideoDevice(core::Machine& machine_v)
 	: m_Machine{ machine_v }
-	, m_CharGen{ *this }
 {}
 
 VideoDevice::~VideoDevice()
@@ -41,18 +40,10 @@ auto VideoDevice::Initialize(Configuration const& config_v) -> void
 
 auto VideoDevice::Start() -> void
 {
-	m_RefreshThread = std::jthread{ 
-		utils::lambda(this, &VideoDevice::Refresh)
-	};
 }
 
 auto VideoDevice::Stop() -> void
 {
-	if (m_RefreshThread.joinable()) 
-	{
-		m_RefreshThread.request_stop();
-		m_RefreshThread.join();
-	}
 }
 
 auto VideoDevice::Restart() -> void
@@ -111,28 +102,14 @@ auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& con
 	return ERROR_SUCCESS;
 }
 
-auto VideoDevice::Hypercall_SetVideoMode(uint16_t horiz_v, uint16_t vert_v, uint16_t mode_v, uint16_t flags_v) -> std::int32_t
-{
-	return ERROR_SUCCESS;
-}
-
 auto VideoDevice::IoPortWrite(Processor const& vcpu_v, std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t
 {
 	switch (port_v)
-	{
-	case 0x016u: // 0x3C6
-	case 0x017u: // 0x3C7
-	case 0x018u: // 0x3C8
-	case 0x019u: // 0x3C9
-		return m_RamDAC.IoPortWrite(port_v - 0x016u, data_v);
-
-	case 0x024u: // 0x3D4
-	case 0x025u: // 0x3D5
-		return m_CrtCtrl.IoPortWrite(port_v - 0x024u, data_v);
-
+	{	
 	default: 
 		break;
 	}
+	__debugbreak();
 	return ERROR_ACCESS_DENIED;
 }
 
@@ -140,19 +117,10 @@ auto VideoDevice::IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> 
 {
 	switch (port_v)
 	{
-	case 0x016u: // 0x3C6
-	case 0x017u: // 0x3C7
-	case 0x018u: // 0x3C8
-	case 0x019u: // 0x3C9
-		return m_RamDAC.IoPortFetch(port_v - 0x016u);
-
-	case 0x024u: // 0x3D4
-	case 0x025u: // 0x3D5
-		return m_CrtCtrl.IoPortFetch(port_v - 0x024u);
-
-	default:
+	default: 
 		break;
 	}
+	__debugbreak();
 	return { ERROR_ACCESS_DENIED, 0 };
 }
 
@@ -175,24 +143,6 @@ auto VideoDevice::ConfigureMemory(core::Configuration const& config_v) -> void
 	auto const size_bytes_v = config_v.GetPropertyUint64("video.memory.size.kilobytes")*1_KiB;
 	m_VideoMemory[0u] = VirtualAlloc_s(size_bytes_v, read_write, commit|reserve|write_watch, nullptr);
 	m_VideoMemory[1u] = VirtualAlloc_s(size_bytes_v, read_write, commit|reserve, nullptr);
-}
-
-auto VideoDevice::GetMemoryRegion(region_type const& region_v, uint32_t flags_v) const
-	-> std::tuple<std::int32_t, std::size_t, std::span<std::byte>>
-{
-	using namespace win32;
-	assert(0u == (region_v.base() & 0xFFFu));
-	assert(0u == (region_v.size() & 0xFFFu));
-	auto source_s = m_VideoMemory[0].subspan(region_v.base(), region_v.size());
-	auto target_s = m_VideoMemory[1].subspan(region_v.base(), region_v.size());
-	auto [status_v, copied_v] =	CopyDirtyPages(target_s, source_s);
-	if (ERROR_SUCCESS!=status_v) return { status_v, 0, {} };
-	return { ERROR_SUCCESS, copied_v, target_s };
-}
-
-auto VideoDevice::MemorySize() const -> std::size_t
-{
-	return m_MemoryMap.size();
 }
 
 auto VideoDevice::Refresh(std::stop_token stopee_v) -> void
