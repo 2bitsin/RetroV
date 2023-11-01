@@ -1,3 +1,5 @@
+#include <bios/vmcall.h>
+
 #include <com/intrin.h>
 #include <com/data.h>
 
@@ -22,6 +24,7 @@
 #define GRDC_REGS           0x09
 #define SEQU_REGS           0x04
 
+#pragma pack(push, 1)
 struct vgamode_s
 {
   uint8_t memmodel;
@@ -46,8 +49,10 @@ struct stdvga_mode_s
   uint8_t const miscreg;
   uint8_t const _DATA* crtc_regs;
   uint8_t const _DATA* actl_regs;
-  uint8_t const _DATA* grdc_regs;
+  uint8_t const _DATA* grdc_regs;	
+	uint8_t const padding[6];
 };
+#pragma pack(pop)
 
 typedef struct stdvga_mode_s stdvga_mode_t;
 
@@ -289,27 +294,25 @@ static uint8_t const _DATA crtc_6A[] = {
 
 static struct stdvga_mode_s const _DATA vga_modes_s[] = 
 {
-  {0x00, {MM_TEXT,   40,  25,  4, 9, 16, SEG_CTEXT}, 0xFF, PAL(palette2), sequ_01, 0x67, crtc_01, actl_01, grdc_01},
-  {0x01, {MM_TEXT,   40,  25,  4, 9, 16, SEG_CTEXT}, 0xFF, PAL(palette2), sequ_01, 0x67, crtc_01, actl_01, grdc_01},
-  {0x02, {MM_TEXT,   80,  25,  4, 9, 16, SEG_CTEXT}, 0xFF, PAL(palette2), sequ_03, 0x67, crtc_03, actl_01, grdc_01},
-  {0x03, {MM_TEXT,   80,  25,  4, 9, 16, SEG_CTEXT}, 0xFF, PAL(palette2), sequ_03, 0x67, crtc_03, actl_01, grdc_01},
-  {0x04, {MM_CGA,    320, 200, 2, 8, 8,  SEG_CTEXT}, 0xFF, PAL(palette1), sequ_04, 0x63, crtc_04, actl_04, grdc_04},
-  {0x05, {MM_CGA,    320, 200, 2, 8, 8,  SEG_CTEXT}, 0xFF, PAL(palette1), sequ_04, 0x63, crtc_04, actl_04, grdc_04},
-  {0x06, {MM_CGA,    640, 200, 1, 8, 8,  SEG_CTEXT}, 0xFF, PAL(palette1), sequ_06, 0x63, crtc_06, actl_06, grdc_06},
-  {0x07, {MM_TEXT,   80,  25,  4, 9, 16, SEG_MTEXT}, 0xFF, PAL(palette0), sequ_03, 0x66, crtc_07, actl_07, grdc_07},
-  {0x0D, {MM_PLANAR, 320, 200, 4, 8, 8,  SEG_GRAPH}, 0xFF, PAL(palette1), sequ_0d, 0x63, crtc_0d, actl_0d, grdc_0d},
-  {0x0E, {MM_PLANAR, 640, 200, 4, 8, 8,  SEG_GRAPH}, 0xFF, PAL(palette1), sequ_0e, 0x63, crtc_0e, actl_0d, grdc_0d},
-  {0x0F, {MM_PLANAR, 640, 350, 1, 8, 14, SEG_GRAPH}, 0xFF, PAL(palette0), sequ_0e, 0xa3, crtc_0f, actl_0f, grdc_0d},
-  {0x10, {MM_PLANAR, 640, 350, 4, 8, 14, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xa3, crtc_0f, actl_10, grdc_0d},
-  {0x11, {MM_PLANAR, 640, 480, 1, 8, 16, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xe3, crtc_11, actl_11, grdc_0d},
-  {0x12, {MM_PLANAR, 640, 480, 4, 8, 16, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xe3, crtc_11, actl_10, grdc_0d},
-  {0x13, {MM_PACKED, 320, 200, 8, 8, 8,  SEG_GRAPH}, 0xFF, PAL(palette3), sequ_13, 0x63, crtc_13, actl_13, grdc_13},
-//{0x6A, {MM_PLANAR, 800, 600, 4, 8, 16, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xe3, crtc_6A, actl_10, grdc_0d},
+  {0x00, {MM_TEXT,   40,  25,  4, 9, 16, SEG_CTEXT}, 0xFF, PAL(palette2), sequ_01, 0x67, crtc_01, actl_01, grdc_01, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x01, {MM_TEXT,   40,  25,  4, 9, 16, SEG_CTEXT}, 0xFF, PAL(palette2), sequ_01, 0x67, crtc_01, actl_01, grdc_01, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x02, {MM_TEXT,   80,  25,  4, 9, 16, SEG_CTEXT}, 0xFF, PAL(palette2), sequ_03, 0x67, crtc_03, actl_01, grdc_01, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x03, {MM_TEXT,   80,  25,  4, 9, 16, SEG_CTEXT}, 0xFF, PAL(palette2), sequ_03, 0x67, crtc_03, actl_01, grdc_01, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x04, {MM_CGA,    320, 200, 2, 8, 8,  SEG_CTEXT}, 0xFF, PAL(palette1), sequ_04, 0x63, crtc_04, actl_04, grdc_04, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x05, {MM_CGA,    320, 200, 2, 8, 8,  SEG_CTEXT}, 0xFF, PAL(palette1), sequ_04, 0x63, crtc_04, actl_04, grdc_04, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x06, {MM_CGA,    640, 200, 1, 8, 8,  SEG_CTEXT}, 0xFF, PAL(palette1), sequ_06, 0x63, crtc_06, actl_06, grdc_06, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x07, {MM_TEXT,   80,  25,  4, 9, 16, SEG_MTEXT}, 0xFF, PAL(palette0), sequ_03, 0x66, crtc_07, actl_07, grdc_07, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x0D, {MM_PLANAR, 320, 200, 4, 8, 8,  SEG_GRAPH}, 0xFF, PAL(palette1), sequ_0d, 0x63, crtc_0d, actl_0d, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x0E, {MM_PLANAR, 640, 200, 4, 8, 8,  SEG_GRAPH}, 0xFF, PAL(palette1), sequ_0e, 0x63, crtc_0e, actl_0d, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x0F, {MM_PLANAR, 640, 350, 1, 8, 14, SEG_GRAPH}, 0xFF, PAL(palette0), sequ_0e, 0xa3, crtc_0f, actl_0f, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x10, {MM_PLANAR, 640, 350, 4, 8, 14, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xa3, crtc_0f, actl_10, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x11, {MM_PLANAR, 640, 480, 1, 8, 16, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xe3, crtc_11, actl_11, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x12, {MM_PLANAR, 640, 480, 4, 8, 16, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xe3, crtc_11, actl_10, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x13, {MM_PACKED, 320, 200, 8, 8, 8,  SEG_GRAPH}, 0xFF, PAL(palette3), sequ_13, 0x63, crtc_13, actl_13, grdc_13, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+//{0x6A, {MM_PLANAR, 800, 600, 4, 8, 16, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xe3, crtc_6A, actl_10, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
 };
 
-inline  void __watcall vga_write_attr(
-	uint8_t index_v, uint8_t value_v) 
-{
+static inline  void __watcall vga_write_attr(uint8_t index_v, uint8_t value_v) {
 	register uint8_t oaddr_v=0;
 	__inb(VGAREG_ACTL_RESET); // Reset
 	oaddr_v = __inb(VGAREG_ACTL_ADDRESS);
@@ -318,22 +321,66 @@ inline  void __watcall vga_write_attr(
 	__outb(VGAREG_ACTL_ADDRESS, oaddr_v);
 }
 
-inline void __watcall vga_write(uint8_t index_v, uint8_t value_v, uint16_t addr_v) {
+static inline void __watcall vga_write(uint8_t index_v, 
+	uint8_t value_v, uint16_t addr_v) 
+{
 	__outw(addr_v, (value_v << 8) | index_v);
+}
+
+static inline void __watcall vga_write_dac(uint8_t const __far* data_p, 
+	uint16_t index_v, uint16_t count_v) 
+{	
+  register unsigned q = 0u;
+	__outb(VGAREG_DAC_WRITE_ADDRESS, index_v);
+	for(index_v = 0u; index_v < count_v; index_v += 1u) {
+    q = index_v+(index_v<<1u);
+		__outb(VGAREG_DAC_DATA, data_p[0u + q]);	
+		__outb(VGAREG_DAC_DATA, data_p[1u + q]);	
+		__outb(VGAREG_DAC_DATA, data_p[2u + q]);	
+  }
+}
+
+static inline void __watcall vga_write_pelmask(uint8_t value_v) 
+{
+	__outb(VGAREG_PEL_MASK, value_v);
+}
+
+static inline void __watcall vga_write_misc(uint8_t value_v) 
+{
+	__outb(VGAREG_WRITE_MISC_OUTPUT, value_v);
+}
+
+static inline void __watcall vga_write_attrindex(uint8_t value_v) 
+{
+	__inb(VGAREG_ACTL_RESET); 
+	__outb(VGAREG_ACTL_ADDRESS, value_v);
 }
 
 void __watcall set_video_mode(uint8_t index_v)
 {  
   stdvga_mode_t const __far* mode_p=0;  
-	unsigned i=0;
+	unsigned i=0, j=0;
 	uint16_t crtc_addr_v = VGAREG_VGA_CRTC_ADDRESS;
 
   if (index_v > 0x13)
     return;  
+    
+	video_update_begin();
+
   mode_p = &vga_modes_s[index_v];
-	
 	if (!(mode_p->miscreg & 1)) {
 		crtc_addr_v = VGAREG_MDA_CRTC_ADDRESS;
+	}
+
+	/////////////////////////////////////////
+	//	Write palette registers
+	/////////////////////////////////////////		
+	vga_write_pelmask(mode_p->pelmask);	
+	j = mode_p->dacsize / 3;
+	vga_write_dac(mode_p->dac, 0, j);		
+	for (i = j; i < 0x0100; i++) {
+		static uint8_t const _DATA rgb[3] = { 0, 0, 0 };
+		vga_write_dac(rgb, i, 1);
 	}
 
 	////////////////////////////////
@@ -369,4 +416,16 @@ void __watcall set_video_mode(uint8_t index_v)
 		vga_write(i, mode_p->crtc_regs[i], 
 			crtc_addr_v);
   }
+
+	//////////////////////////////////
+	// Write miscellaneous register
+	//////////////////////////////////
+	vga_write_misc(mode_p->miscreg);
+
+
+	// Enable video
+	vga_write_attrindex(0x20);
+
+	
+	video_update_end();
 }

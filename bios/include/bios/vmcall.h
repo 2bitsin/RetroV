@@ -61,19 +61,20 @@
 
 #define HYPERCALL_VIDEO															0x0000
 
-#define HYPERCALL_VIDEO_SET_MODE										0x0000
-
-#define HYPERCALL_VIDEO_MODE_CHARACTER_COLOR_ATTR		0x0000
-#define HYPERCALL_VIDEO_MODE_CHARACTER_MONO_ATTR		0x0001
-#define HYPERCALL_VIDEO_MODE_GRAPHICAL_COLOR_IDX8		0x0002
-
+#define HYPERCALL_VIDEO_BEGIN_UPDATE								0x0000
+	void video_update_begin(void);
 #ifdef __WATCOMC__
-		int32_t video_set_mode(uint16_t horiz_v, uint16_t vert_v, uint16_t mode_v, uint16_t flags_v);
-		#pragma aux video_set_mode  	\
-			__parm [bx][cx][dx][ax] =		\
-			"push word ptr 0x0000"			\
-			"db 0x0f, 0x01, 0xd9"				\
-			"add sp, 2"									\
-			__value [dx ax]							;				
+	#pragma aux video_update_begin =	\
+		"push word ptr 0x0000"					\
+		"db 0x0f, 0x01, 0xd9"						\
+		"add sp, 2"											;		
 #endif
 
+#define HYPERCALL_VIDEO_END_UPDATE									0x0001
+	void video_update_end(void);
+#ifdef __WATCOMC__
+	#pragma aux video_update_end =		\
+		"push word ptr 0x0001"					\
+		"db 0x0f, 0x01, 0xd9"						\
+		"add sp, 2"											;
+#endif
