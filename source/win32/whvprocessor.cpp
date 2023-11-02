@@ -91,7 +91,7 @@ auto WHvProcessor::Reset() const -> std::int32_t
 
 auto WHvProcessor::RunToExit(WHV_RUN_VP_EXIT_CONTEXT& exit_v) const -> std::int32_t
 {
-	return ::WHvRunVirtualProcessor(m_Partition.GetHandle(), m_VcpuIndex, &exit_v, sizeof(exit_v));
+	return ::WHvRunVirtualProcessor(m_Partition.GetHandle(), m_VcpuIndex, &exit_v, sizeof(exit_v));	
 }
 
 auto WHvProcessor::GetIndex() const -> std::uint32_t

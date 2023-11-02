@@ -19,6 +19,7 @@
 #include <ranges>
 
 using core::VideoDevice;
+using core::VgaState;
 
 VideoDevice::VideoDevice(core::Machine& machine_v)
 	: m_Machine{ machine_v }
@@ -82,8 +83,8 @@ auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::ui
 	}
 
 	if (is_write_v) 
-		return IoPortWrite(vcpu_v, port_v, data_v.as<std::uint8_t>());		
-	auto const [status_v, value_v] = IoPortFetch(vcpu_v, port_v);
+		return m_State.IoPortWrite(port_v, data_v.as<std::uint8_t>());		
+	auto const [status_v, value_v] = m_State.IoPortFetch(port_v);
 	if (status_v != ERROR_SUCCESS) 
 		return status_v;
 	data_v.write(value_v);
@@ -111,107 +112,6 @@ auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& con
 		return ERROR_SUCCESS;
 	}
 	return ERROR_SUCCESS;
-}
-
-auto VideoDevice::IoPortWrite(Processor const& vcpu_v, std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t
-{
-	switch (port_v)
-	{	
-	/***********************
-	 *	RAM DAC  
-	 *******************/
-	case Port_DacIndexWrite:
-		m_State.ramdac.index = data_v*3u;
-		m_State.ramdac.latch = 0x3u;
-		break;
-	case Port_DacIndexRead:
-		m_State.ramdac.index = data_v*3u;
-		m_State.ramdac.latch = 0x0u;
-		break;
-	case Port_DacDataWrite:
-		m_State.ramdac.color[m_State.ramdac.index] = data_v&0x3Fu;
-		m_State.ramdac.index += 1u;
-		while (m_State.ramdac.index >= 0x300u)
-			m_State.ramdac.index -= 0x300u;
-		break;
-	/***********************
-	 *	CRTC
-	 *******************/
-	case Port_VgaCrtIndex:
-		m_State.crtctrl.index = data_v&0x1Fu;
-		while(m_State.crtctrl.index >= std::size(m_State.crtctrl.data))
-			m_State.crtctrl.index -= std::size(m_State.crtctrl.data);
-		break;
-	case Port_VgaCrtData:
-		if (!(m_State.crtctrl.data[0x11u] & 0x80u) 
-			&& m_State.crtctrl.index < std::size(m_State.crtctrl.data))		
-			m_State.crtctrl.data[m_State.crtctrl.index] = data_v;		
-		m_State.crtctrl.index += 1u;
-		while (m_State.crtctrl.index >= std::size(m_State.crtctrl.data))
-			m_State.crtctrl.index -= std::size(m_State.crtctrl.data);
-		break;
-	/***********************
-	 *	SEQ
-	 *******************/
-	case Port_SequencerIndex:
-		m_State.sequencer.index = data_v&0x7u;
-		while(m_State.sequencer.index >= std::size(m_State.sequencer.data))
-			m_State.sequencer.index -= std::size(m_State.sequencer.data);
-		break;
-	case Port_SequencerData:
-		m_State.sequencer.data[m_State.sequencer.index] = data_v;
-		m_State.sequencer.index += 1u;
-		while (m_State.sequencer.index >= std::size(m_State.sequencer.data))
-			m_State.sequencer.index -= std::size(m_State.sequencer.data);
-		break;
-	default:
-		break;
-	}	
-	return ERROR_SUCCESS;
-}
-
-auto VideoDevice::IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>
-{
-	uint8_t tmp_v{ 0 };
-	switch (port_v)
-	{
-	/***********************
-	 *	RAM DAC  
-	 *******************/
-	case Port_DacDataRead:
-		tmp_v = m_State.ramdac.color[m_State.ramdac.index];
-		m_State.ramdac.index += 1u;
-		while(m_State.ramdac.index >= 0x300u)
-			m_State.ramdac.index -= 0x300u;
-		return { ERROR_SUCCESS, tmp_v };
-	case Port_DacStateRead:
-		return { ERROR_SUCCESS, m_State.ramdac.latch };
-	/***********************
-	 *	CRTC
-	 *******************/
-	case Port_VgaCrtIndex:
-		return { ERROR_SUCCESS, m_State.crtctrl.index };
-	case Port_VgaCrtData:
-		tmp_v = m_State.crtctrl.data[m_State.crtctrl.index];
-		m_State.crtctrl.index += 1u;
-		while(m_State.crtctrl.index >= std::size(m_State.crtctrl.data))
-			m_State.crtctrl.index -= std::size(m_State.crtctrl.data);
-		return { ERROR_SUCCESS, tmp_v };
-	/***********************
-	 *	SEQ
-	 *******************/
-	case Port_SequencerIndex:
-		return { ERROR_SUCCESS, m_State.sequencer.index };
-	case Port_SequencerData:
-		tmp_v = m_State.sequencer.data[m_State.sequencer.index];
-		m_State.sequencer.index += 1u;
-		while(m_State.sequencer.index >= std::size(m_State.sequencer.data))
-			m_State.sequencer.index -= std::size(m_State.sequencer.data);
-		return { ERROR_SUCCESS, tmp_v };
-	default: 
-		break;
-	}
-	return { ERROR_SUCCESS, 0 };
 }
 
 auto VideoDevice::ConfigureROM(core::Configuration const& config_v) -> void
@@ -261,3 +161,103 @@ try
 catch (std::exception const& ex)
 {}
 
+auto VgaState::IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t
+{
+	switch (port_v)
+	{
+		/***********************
+		 *	RAM DAC
+		 *******************/
+	case Port_DacIndexWrite:
+		ramdac.index = data_v * 3u;
+		ramdac.latch = 0x3u;
+		break;
+	case Port_DacIndexRead:
+		ramdac.index = data_v * 3u;
+		ramdac.latch = 0x0u;
+		break;
+	case Port_DacDataWrite:
+		ramdac.color[ramdac.index] = data_v & 0x3Fu;
+		ramdac.index += 1u;
+		while (ramdac.index >= 0x300u)
+			ramdac.index -= 0x300u;
+		break;
+		/***********************
+		 *	CRTC
+		 *******************/
+	case Port_VgaCrtIndex:
+		crtctrl.index = data_v & 0x1Fu;
+		while (crtctrl.index >= std::size(crtctrl.data))
+			crtctrl.index -= std::size(crtctrl.data);
+		break;
+	case Port_VgaCrtData:
+		if (!(crtctrl.data[0x11u] & 0x80u)
+			&& crtctrl.index < std::size(crtctrl.data))
+			crtctrl.data[crtctrl.index] = data_v;
+		crtctrl.index += 1u;
+		while (crtctrl.index >= std::size(crtctrl.data))
+			crtctrl.index -= std::size(crtctrl.data);
+		break;
+		/***********************
+		 *	SEQ
+		 *******************/
+	case Port_SequencerIndex:
+		sequencer.index = data_v & 0x7u;
+		while (sequencer.index >= std::size(sequencer.data))
+			sequencer.index -= std::size(sequencer.data);
+		break;
+	case Port_SequencerData:
+		sequencer.data[sequencer.index] = data_v;
+		sequencer.index += 1u;
+		while (sequencer.index >= std::size(sequencer.data))
+			sequencer.index -= std::size(sequencer.data);
+		break;
+	default:
+		break;
+	}
+	return ERROR_SUCCESS;
+}
+
+auto VgaState::IoPortFetch(std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>
+{
+	uint8_t tmp_v{ 0 };
+	switch (port_v)
+	{
+		/***********************
+		 *	RAM DAC
+		 *******************/
+	case Port_DacDataRead:
+		tmp_v = ramdac.color[ramdac.index];
+		ramdac.index += 1u;
+		while (ramdac.index >= 0x300u)
+			ramdac.index -= 0x300u;
+		return { ERROR_SUCCESS, tmp_v };
+	case Port_DacStateRead:
+		return { ERROR_SUCCESS, ramdac.latch };
+		/***********************
+		 *	CRTC
+		 *******************/
+	case Port_VgaCrtIndex:
+		return { ERROR_SUCCESS, crtctrl.index };
+	case Port_VgaCrtData:
+		tmp_v = crtctrl.data[crtctrl.index];
+		crtctrl.index += 1u;
+		while (crtctrl.index >= std::size(crtctrl.data))
+			crtctrl.index -= std::size(crtctrl.data);
+		return { ERROR_SUCCESS, tmp_v };
+		/***********************
+		 *	SEQ
+		 *******************/
+	case Port_SequencerIndex:
+		return { ERROR_SUCCESS, sequencer.index };
+	case Port_SequencerData:
+		tmp_v = sequencer.data[sequencer.index];
+		sequencer.index += 1u;
+		while (sequencer.index >= std::size(sequencer.data))
+			sequencer.index -= std::size(sequencer.data);
+		return { ERROR_SUCCESS, tmp_v };
+	default:
+		break;
+	}
+	return { ERROR_SUCCESS, 0 };
+}

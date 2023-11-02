@@ -5,8 +5,11 @@
 #include <win32/winhvpx.hpp>
 #include <win32/whvprocessor.hpp>
 #include <win32/whvemulator.hpp>
+#include <win32/chrono.hpp>
+
 #include <core/accessflags.hpp>
 #include <core/eventlog.hpp>
+
 #include <utils/span.hpp>
 #include <utils/coqueue.hpp>
 
@@ -69,6 +72,8 @@ namespace core
 		auto Interject(interjection_type what_v) -> void;
 
 		auto GetRuntime() const -> std::tuple<std::int32_t, std::uint64_t>;
+		auto LastExitTime() const -> win32::filetime_clock::time_point;
+		auto CurrentTime() const -> win32::filetime_clock::time_point;
 
 		auto InterruptsEnabled() const -> bool;
 		auto PagingEnabled() const -> bool;
@@ -91,6 +96,7 @@ namespace core
 		std::binary_semaphore m_Suspend;		
 		std::stop_source m_Stopper;
 		exit_future_type m_FutureExit;
+		win32::filetime_clock::time_point m_LastExitTime;
 		utils::coqueue<interjection_type> m_IjQueue;
 		static inline const EventLog s_log{ "Processor" };
 	};

@@ -92,6 +92,7 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 	while (!stoppee_v.stop_requested())
 	{		
 		auto const result_v = WHvProcessor::RunToExit();
+		m_LastExitTime = win32::filetime_clock::now();
 		auto [status_v, context_v] = result_v;
 		if (ERROR_SUCCESS != status_v) 
 			return result_v;	
@@ -216,6 +217,16 @@ auto Processor::GetRuntime() const -> std::tuple<std::int32_t, std::uint64_t>
 	WHV_REGISTER_VALUE value_v{};
 	auto result_v = GetRegister(WHvRegisterVpRuntime, value_v);
 	return { result_v, value_v.Reg64 };
+}
+
+auto Processor::LastExitTime() const -> win32::filetime_clock::time_point
+{
+	return m_LastExitTime;
+}
+
+auto Processor::CurrentTime() const -> win32::filetime_clock::time_point
+{
+	return win32::filetime_clock::now();
 }
 
 auto Processor::Emulator() -> win32::WHvEmulator&
