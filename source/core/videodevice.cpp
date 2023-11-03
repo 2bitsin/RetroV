@@ -414,10 +414,17 @@ auto VgaState::Log() const -> void
 		}
 	}
 
+	auto const resolution_w = uint32_t
+		(	(crtctrl.end_horizontal_display + 1u)
+		*	(sequencer.clocking_mode & 0x1u ? 8u : 9u));
+	auto const resolution_h = uint32_t(crtctrl.vertical_total 
+		+ ((crtctrl.crt_mode_control & 0x01u) * 0x100u)
+		+ ((crtctrl.crt_mode_control & 0x20u) * 0x010u));
+
 #define Fmt(X) std::format("  > " #X " = {}\n", X)
 #define Fmt_(X, Y) std::format("  > " #X " = {} ({})\n", X, Y)
 	logger::debug(logger::deflog, "video state : \n{}\n", 
-		std::string()
+		std::format("  > resolution : {} x {}\n", resolution_w, resolution_h)
 		+Fmt(crtctrl.horizontal_total)
 		+Fmt(crtctrl.end_horizontal_display)
 		+Fmt(crtctrl.start_horizontal_blanking)
