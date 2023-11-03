@@ -40,36 +40,39 @@ namespace core
 		}
 	}
 
-	static inline constexpr const auto Port_MdaCrtIndex				= detail::VgaPort(0x3B4u);
-	static inline constexpr const auto Port_MdaCrtData				= detail::VgaPort(0x3B5u);
-	static inline constexpr const auto Port_MdaInputStatus		= detail::VgaPort(0x3BAu);
-	static inline constexpr const auto Port_MdaFeatureControl = detail::VgaPort(0x3BAu);
-	static inline constexpr const auto Port_AttributeWrite		= detail::VgaPort(0x3C0u);
-	static inline constexpr const auto Port_AttributeRead			= detail::VgaPort(0x3C1u);
-	static inline constexpr const auto Port_InputStatus				= detail::VgaPort(0x3C2u);
-	static inline constexpr const auto Port_MiscOutputWrite		= detail::VgaPort(0x3C2u);
-	static inline constexpr const auto Port_SequencerIndex		= detail::VgaPort(0x3C4u);
-	static inline constexpr const auto Port_SequencerData			= detail::VgaPort(0x3C5u);
-	static inline constexpr const auto Port_DacStateRead			= detail::VgaPort(0x3C7u);
-	static inline constexpr const auto Port_DacIndexRead			= detail::VgaPort(0x3C7u);
-	static inline constexpr const auto Port_DacIndexWrite			= detail::VgaPort(0x3C8u);
-	static inline constexpr const auto Port_DacDataRead				= detail::VgaPort(0x3C9u);
-	static inline constexpr const auto Port_DacDataWrite			= detail::VgaPort(0x3C9u);
-	static inline constexpr const auto Port_FeatureControl		= detail::VgaPort(0x3CAu);
-	static inline constexpr const auto Port_MiscOutputRead		= detail::VgaPort(0x3CCu);
-	static inline constexpr const auto Port_GraphicsCtrlIndex = detail::VgaPort(0x3CEu);
-	static inline constexpr const auto Port_GraphicsCtrlData	= detail::VgaPort(0x3CFu);
-	static inline constexpr const auto Port_VgaCrtIndex				= detail::VgaPort(0x3D4u);
-	static inline constexpr const auto Port_VgaCrtData				= detail::VgaPort(0x3D5u);
-	static inline constexpr const auto Port_VgaInputStatus		= detail::VgaPort(0x3DAu);
-	static inline constexpr const auto Port_VgaFeatureControl = detail::VgaPort(0x3DAu);
-
-
+	static inline constexpr const auto Port_MdaCrtIndex					= detail::VgaPort(0x3B4u);
+	static inline constexpr const auto Port_MdaCrtData					= detail::VgaPort(0x3B5u);
+	static inline constexpr const auto Port_MdaInputStatus			= detail::VgaPort(0x3BAu);
+	static inline constexpr const auto Port_MdaFeatureControl		= detail::VgaPort(0x3BAu);
+	static inline constexpr const auto Port_Attribute0					= detail::VgaPort(0x3C0u);
+	static inline constexpr const auto Port_Attribute1					= detail::VgaPort(0x3C1u);
+	static inline constexpr const auto Port_InputStatus					= detail::VgaPort(0x3C2u);
+	static inline constexpr const auto Port_MiscOutputWrite			= detail::VgaPort(0x3C2u);
+	static inline constexpr const auto Port_SequencerIndex			= detail::VgaPort(0x3C4u);
+	static inline constexpr const auto Port_SequencerData				= detail::VgaPort(0x3C5u);
+	static inline constexpr const auto Port_DacPixelMask				= detail::VgaPort(0x3C6u);
+	static inline constexpr const auto Port_DacStateRead				= detail::VgaPort(0x3C7u);
+	static inline constexpr const auto Port_DacIndexRead				= detail::VgaPort(0x3C7u);
+	static inline constexpr const auto Port_DacIndexWrite				= detail::VgaPort(0x3C8u);
+	static inline constexpr const auto Port_DacDataRead					= detail::VgaPort(0x3C9u);
+	static inline constexpr const auto Port_DacDataWrite				= detail::VgaPort(0x3C9u);	
+	static inline constexpr const auto Port_FeatureControlRead	= detail::VgaPort(0x3CAu);
+	static inline constexpr const auto Port_MiscOutputRead			= detail::VgaPort(0x3CCu);
+	static inline constexpr const auto Port_GraphicsCtrlIndex		= detail::VgaPort(0x3CEu);
+	static inline constexpr const auto Port_GraphicsCtrlData		= detail::VgaPort(0x3CFu);
+	static inline constexpr const auto Port_VgaCrtIndex					= detail::VgaPort(0x3D4u);
+	static inline constexpr const auto Port_VgaCrtData					= detail::VgaPort(0x3D5u);
+	static inline constexpr const auto Port_VgaInputStatus			= detail::VgaPort(0x3DAu);
+	static inline constexpr const auto Port_VgaFeatureControl		= detail::VgaPort(0x3DAu);
+	
 #pragma pack(push, 1)
 	struct VgaState
 	{
+		VgaState();
+
 		auto IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t;
 		auto IoPortFetch(std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>;
+		auto Log() const -> void;
 
 		struct
 		{
@@ -159,8 +162,31 @@ namespace core
 		struct
 		{
 			bool latch;
-			uint8_t index;
+
+			union
+			{
+				struct {			
+					uint8_t index:5;
+					uint8_t pas:1;
+					uint8_t reserved:2;
+				};
+				uint8_t index_and_pas;
+			};
+			union
+			{
+				uint8_t data[0x15u];
+				struct {
+					uint8_t palette[0x10u];
+					uint8_t mode_control;
+					uint8_t overscan_color;
+					uint8_t color_plane_enable;
+					uint8_t horizontal_panning;
+					uint8_t color_select;
+				};
+			};
 		} attrib;
+		uint8_t misc_output;
+		uint8_t feature_control;
 
 	};
 #pragma pack(pop)
@@ -199,6 +225,6 @@ namespace core
 
 		std::optional<RomImage> m_BiosRom;
 		buffer_type m_VideoMemory[2u];
-		VgaState m_State;
+		VgaState m_State[2u];		
 	};
 }
