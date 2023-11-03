@@ -66,13 +66,25 @@ namespace core
 	static inline constexpr const auto Port_VgaFeatureControl		= detail::VgaPort(0x3DAu);
 	
 #pragma pack(push, 1)
-	struct VgaState
+	struct VideoDeviceStateVga
 	{
-		VgaState();
+		VideoDeviceStateVga();
 
 		auto IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t;
 		auto IoPortFetch(std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>;
-		auto Log() const -> void;
+
+		auto HorizontalTotal() const -> uint16_t;
+		auto VerticalTotal() const -> uint16_t;
+		auto HorizontalDisplayEnd() const -> uint16_t;
+		auto VerticalDisplayEnd() const -> uint16_t;
+		auto StartHorizontalRetrace() const -> uint16_t;
+		auto EndHorizontalRetrace() const -> uint16_t;
+		auto StartVerticalRetrace() const -> uint16_t;
+
+		auto CharacterWidth() const -> uint8_t;
+		auto CharacterHeight() const -> uint8_t;
+
+		auto Log() const -> void ;
 
 		struct
 		{
@@ -225,6 +237,6 @@ namespace core
 
 		std::optional<RomImage> m_BiosRom;
 		buffer_type m_VideoMemory[2u];
-		VgaState m_State[2u];		
+		VideoDeviceStateVga m_State[2u];		
 	};
 }

@@ -20,7 +20,7 @@
 #include <ranges>
 
 using core::VideoDevice;
-using core::VgaState;
+using core::VideoDeviceStateVga;
 
 VideoDevice::VideoDevice(core::Machine& machine_v)
 	: m_Machine{ machine_v }
@@ -162,14 +162,14 @@ try
 catch (std::exception const& ex)
 {}
 
-VgaState::VgaState()	
+VideoDeviceStateVga::VideoDeviceStateVga()	
 {
-	static_assert(std::is_trivially_copyable_v<VgaState>);
+	static_assert(std::is_trivially_copyable_v<VideoDeviceStateVga>);
 	std::memset(this, 0, sizeof(*this));
 	misc_output = 0x03u;	
 }
 
-auto VgaState::IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t
+auto VideoDeviceStateVga::IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t
 {
 	switch (port_v)
 	{
@@ -287,7 +287,7 @@ auto VgaState::IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) -> std::in
 	return ERROR_SUCCESS;
 }
 
-auto VgaState::IoPortFetch(std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>
+auto VideoDeviceStateVga::IoPortFetch(std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>
 {
 	uint8_t tmp_v{ 0 };
 	switch (port_v)
@@ -388,7 +388,52 @@ auto VgaState::IoPortFetch(std::uint16_t port_v) -> std::tuple<std::int32_t, std
 	return { ERROR_SUCCESS, 0xffu };
 }
 
-auto VgaState::Log() const -> void
+auto VideoDeviceStateVga::HorizontalTotal() const -> uint16_t
+{
+	return (crtctrl.horizontal_total + 5u) * CharacterWidth();
+}
+
+auto VideoDeviceStateVga::VerticalTotal() const -> uint16_t
+{
+	return 0;
+}
+
+auto VideoDeviceStateVga::HorizontalDisplayEnd() const -> uint16_t
+{
+	return 0;
+}
+
+auto VideoDeviceStateVga::VerticalDisplayEnd() const -> uint16_t
+{
+	return 0;
+}
+
+auto VideoDeviceStateVga::StartHorizontalRetrace() const -> uint16_t
+{
+	return 0;
+}
+
+auto VideoDeviceStateVga::EndHorizontalRetrace() const -> uint16_t
+{
+	return 0;
+}
+
+auto VideoDeviceStateVga::StartVerticalRetrace() const -> uint16_t
+{
+	return 0;
+}
+
+auto VideoDeviceStateVga::CharacterWidth() const -> uint8_t
+{
+	return sequencer.clocking_mode & 0x1u ? 8u : 9u;
+}
+
+auto VideoDeviceStateVga::CharacterHeight() const -> uint8_t
+{
+	return (crtctrl.maximum_scan_line & 0x1F) + 1u;
+}
+
+auto VideoDeviceStateVga::Log() const -> void
 {
 	using namespace std::string_literals;
 	using utils::logger;
