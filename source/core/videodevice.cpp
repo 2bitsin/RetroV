@@ -283,7 +283,7 @@ auto VideoDeviceStateVga::IoPortWrite(std::uint16_t port_v, std::uint8_t data_v)
 	default:
 		break;
 	}
-	__debugbreak();
+	//__debugbreak();
 	return ERROR_SUCCESS;
 }
 
@@ -384,44 +384,10 @@ auto VideoDeviceStateVga::IoPortFetch(std::uint16_t port_v) -> std::tuple<std::i
 		break;
 	}
 
-	__debugbreak();
+	//__debugbreak();
 	return { ERROR_SUCCESS, 0xffu };
 }
 
-auto VideoDeviceStateVga::HorizontalTotal() const -> uint16_t
-{
-	return (crtctrl.horizontal_total + 5u) * CharacterWidth();
-}
-
-auto VideoDeviceStateVga::VerticalTotal() const -> uint16_t
-{
-	return 0;
-}
-
-auto VideoDeviceStateVga::HorizontalDisplayEnd() const -> uint16_t
-{
-	return 0;
-}
-
-auto VideoDeviceStateVga::VerticalDisplayEnd() const -> uint16_t
-{
-	return 0;
-}
-
-auto VideoDeviceStateVga::StartHorizontalRetrace() const -> uint16_t
-{
-	return 0;
-}
-
-auto VideoDeviceStateVga::EndHorizontalRetrace() const -> uint16_t
-{
-	return 0;
-}
-
-auto VideoDeviceStateVga::StartVerticalRetrace() const -> uint16_t
-{
-	return 0;
-}
 
 auto VideoDeviceStateVga::CharacterWidth() const -> uint8_t
 {
@@ -429,9 +395,89 @@ auto VideoDeviceStateVga::CharacterWidth() const -> uint8_t
 }
 
 auto VideoDeviceStateVga::CharacterHeight() const -> uint8_t
-{
+{	
 	return (crtctrl.maximum_scan_line & 0x1F) + 1u;
 }
+
+auto VideoDeviceStateVga::HorizontalTotal(Unit unit_v) const -> uint16_t
+{
+	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
+	return size_v * (crtctrl.horizontal_total + 5u);
+}
+
+auto VideoDeviceStateVga::HorizontalDisplayEnd(Unit unit_v) const -> uint16_t
+{
+	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
+	return size_v * (crtctrl.horizontal_display_end + 1u);
+}
+
+auto VideoDeviceStateVga::HorizontalRetraceStart(Unit unit_v) const -> uint16_t
+{
+	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
+	return size_v * crtctrl.horizontal_retrace_start;
+}
+
+auto VideoDeviceStateVga::HorizontalRetraceEnd(Unit unit_v) const -> uint16_t
+{
+	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
+	return size_v * (crtctrl.horizontal_retrace_end & 0x1Fu);
+}
+
+auto VideoDeviceStateVga::HorizontalBlankingStart(Unit unit_v) const -> uint16_t
+{
+	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
+	return size_v * crtctrl.horizontal_blanking_start;
+}
+
+auto VideoDeviceStateVga::HorizontalBlankingEnd(Unit unit_v) const -> uint16_t
+{
+	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
+	return size_v * ((crtctrl.horizontal_blanking_end & 0x1Fu) +
+		((crtctrl.horizontal_retrace_end & 0x80u) >> 2u));
+}
+
+auto VideoDeviceStateVga::VerticalTotal() const -> uint16_t
+{
+	return crtctrl.vertical_total
+		+ 0x100u * (crtctrl.overflow & 0x01u)
+		+ 0x010u * (crtctrl.overflow & 0x20u)
+		;
+}
+
+auto VideoDeviceStateVga::VerticalDisplayEnd() const -> uint16_t
+{
+	return crtctrl.vertical_blanking_end
+		+ 0x80u*(crtctrl.overflow & 0x02u)
+		+ 0x08u*(crtctrl.overflow & 0x40u)
+		;	
+}
+
+auto VideoDeviceStateVga::VerticalRetraceStart() const -> uint16_t
+{
+	return crtctrl.vertical_retrace_start 
+		+ 0x40u*(crtctrl.overflow & 0x04u)
+		+ 0x04u*(crtctrl.overflow & 0x80u)
+		;
+}
+
+auto VideoDeviceStateVga::VerticalRetraceEnd() const -> uint16_t
+{
+	return crtctrl.vertical_retrace_end & 0xFu;
+}
+
+auto VideoDeviceStateVga::VerticalBlankingStart() const -> uint16_t
+{
+	return crtctrl.vertical_blanking_start 
+		+ (crtctrl.maximum_scan_line & 0x20u) * 0x10u
+		+ (crtctrl.overflow & 0x08u) * 0x20u
+		; 
+}
+
+auto VideoDeviceStateVga::VerticalBlankingEnd() const -> uint16_t
+{
+	return crtctrl.vertical_blanking_end & 0x7Fu;
+}
+
 
 auto VideoDeviceStateVga::Log() const -> void
 {
@@ -444,7 +490,11 @@ auto VideoDeviceStateVga::Log() const -> void
 		return std::format("\x1b[48;2;{};{};{}m  \x1b[0m", r, g, b);
 	};
 	static constexpr const auto draw_index_rgb = [](auto&& i, auto&& table) {
-		return draw_rgb(table[3u * i + 0u]*4, table[3u * i + 1u]*4, table[3u * i + 2u]*4);
+		return draw_rgb(
+			table[3u * i + 0u]*4, 
+			table[3u * i + 1u]*4,
+			table[3u * i + 2u]*4
+		);
 	};
 
 	for (auto j = 0u; j < 0x10u; ++j)
@@ -459,23 +509,34 @@ auto VideoDeviceStateVga::Log() const -> void
 		}
 	}
 
-	auto const resolution_w = uint32_t
-		(	(crtctrl.end_horizontal_display + 1u)
-		*	(sequencer.clocking_mode & 0x1u ? 8u : 9u));
-	auto const resolution_h = uint32_t(crtctrl.vertical_total 
-		+ ((crtctrl.crt_mode_control & 0x01u) * 0x100u)
-		+ ((crtctrl.crt_mode_control & 0x20u) * 0x010u));
-
 #define Fmt(X) std::format("  > " #X " = {}\n", X)
 #define Fmt_(X, Y) std::format("  > " #X " = {} ({})\n", X, Y)
 	logger::debug(logger::deflog, "video state : \n{}\n", 
-		std::format("  > resolution : {} x {}\n", resolution_w, resolution_h)
+		std::string()
+
+		+Fmt(HorizontalTotal())
+		+Fmt(HorizontalDisplayEnd())
+		+Fmt(HorizontalRetraceStart())
+		+Fmt(HorizontalRetraceEnd())
+		+Fmt(HorizontalBlankingStart())
+		+Fmt(HorizontalBlankingEnd())
+
+		+Fmt(VerticalTotal())
+		+Fmt(VerticalDisplayEnd())
+		+Fmt(VerticalRetraceStart())
+		+Fmt(VerticalRetraceEnd())
+		+Fmt(VerticalBlankingStart())
+		+Fmt(VerticalBlankingEnd())
+
+		+Fmt(CharacterWidth())
+		+Fmt(CharacterHeight())
+
 		+Fmt(crtctrl.horizontal_total)
-		+Fmt(crtctrl.end_horizontal_display)
-		+Fmt(crtctrl.start_horizontal_blanking)
-		+Fmt(crtctrl.end_horizontal_blanking)
-		+Fmt(crtctrl.start_horizontal_retrace)
-		+Fmt(crtctrl.end_horizontal_retrace)
+		+Fmt(crtctrl.horizontal_display_end)
+		+Fmt(crtctrl.horizontal_blanking_start)
+		+Fmt(crtctrl.horizontal_blanking_end)
+		+Fmt(crtctrl.horizontal_retrace_start)
+		+Fmt(crtctrl.horizontal_retrace_end)
 		+Fmt(crtctrl.vertical_total)
 		+Fmt(crtctrl.overflow)
 		+Fmt(crtctrl.preset_row_scan)
@@ -491,8 +552,8 @@ auto VideoDeviceStateVga::Log() const -> void
 		+Fmt(crtctrl.vertical_display_end)
 		+Fmt(crtctrl.offset)
 		+Fmt(crtctrl.underline_location)
-		+Fmt(crtctrl.start_vertical_blanking)
-		+Fmt(crtctrl.end_vertical_blanking)
+		+Fmt(crtctrl.vertical_blanking_start)
+		+Fmt(crtctrl.vertical_blanking_end)
 		+Fmt(crtctrl.crt_mode_control)
 		+Fmt(crtctrl.line_compare)
 		+Fmt(sequencer.reset)

@@ -2,6 +2,7 @@
 
 #include <com/intrin.h>
 #include <com/data.h>
+#include <com/ulib.h>
 
 #include <vid/mode.h>
 #include <vid/vgadefs.h>
@@ -301,7 +302,7 @@ static struct stdvga_mode_s const _DATA vga_modes_s[] =
   {0x04, {MM_CGA,    320, 200, 2, 8, 8,  SEG_CTEXT}, 0xFF, PAL(palette1), sequ_04, 0x63, crtc_04, actl_04, grdc_04, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
   {0x05, {MM_CGA,    320, 200, 2, 8, 8,  SEG_CTEXT}, 0xFF, PAL(palette1), sequ_04, 0x63, crtc_04, actl_04, grdc_04, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
   {0x06, {MM_CGA,    640, 200, 1, 8, 8,  SEG_CTEXT}, 0xFF, PAL(palette1), sequ_06, 0x63, crtc_06, actl_06, grdc_06, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
-  {0x07, {MM_TEXT,   80,  25,  4, 9, 16, SEG_MTEXT}, 0xFF, PAL(palette0), sequ_03, 0x66, crtc_07, actl_07, grdc_07, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x07, {MM_TEXT,   80,  25,  4, 9, 16, SEG_MTEXT}, 0xFF, PAL(palette0), sequ_03, 0x66, crtc_07, actl_07, grdc_07, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}}, 
   {0x0D, {MM_PLANAR, 320, 200, 4, 8, 8,  SEG_GRAPH}, 0xFF, PAL(palette1), sequ_0d, 0x63, crtc_0d, actl_0d, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
   {0x0E, {MM_PLANAR, 640, 200, 4, 8, 8,  SEG_GRAPH}, 0xFF, PAL(palette1), sequ_0e, 0x63, crtc_0e, actl_0d, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
   {0x0F, {MM_PLANAR, 640, 350, 1, 8, 14, SEG_GRAPH}, 0xFF, PAL(palette0), sequ_0e, 0xa3, crtc_0f, actl_0f, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
@@ -356,23 +357,26 @@ static inline void __watcall vga_write_attrindex(uint8_t value_v)
 	__outb(VGAREG_ACTL_ADDRESS, value_v);
 }
 
-void __watcall set_video_mode(uint8_t index_v)
+void __watcall __loadds set_video_mode(uint8_t index_v)
 {  
   stdvga_mode_t const __far* mode_p=0;  
 	unsigned i=0, j=0;
 	uint16_t crtc_addr_v = VGAREG_VGA_CRTC_ADDRESS;
+  prnf("set_video_mode(%x)\n", (unsigned int)index_v);
 
-  if (index_v > 0x13)
-    return;  
-    
-	video_update_begin();
+  for(i = 0; i < SIZE(vga_modes_s);++i) {
+    if (vga_modes_s[i].mode != index_v)
+      continue;
+    mode_p = &vga_modes_s[i];
+  }
+  if (mode_p == 0) return;    
 
-  mode_p = &vga_modes_s[index_v];
+	video_update_begin();  
 	if (!(mode_p->miscreg & 1)) {
 		crtc_addr_v = VGAREG_MDA_CRTC_ADDRESS;
 	}
 
-	/////////////////////////////////////////
+  /////////////////////////////////////////
 	//	Write palette registers
 	/////////////////////////////////////////		
 	vga_write_pelmask(mode_p->pelmask);	

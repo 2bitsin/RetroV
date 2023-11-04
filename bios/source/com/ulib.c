@@ -6,16 +6,16 @@
 #include <string.h>
 #include <malloc.h>
 
-char __far* __watcall vsprnf(char __far* buffer, char const __far* format, va_list args_va)
+char __far* __cdecl vsprnf(char __far* buffer, char const _DATA* format, va_list args_va)
 {	
-	char const __far* next_src;
+	char const _DATA* next_src;
 	char __far* next_dst = buffer;
 	union {
 		int ival;
 		unsigned int uval;
 		long lval;
 		unsigned long ulval;
-		char const* sval;
+		char const __far* sval;
 		char cval;
 	} u;	
 	for (next_src = format; *next_src; ++next_src)
@@ -85,7 +85,7 @@ char __far* __watcall vsprnf(char __far* buffer, char const __far* format, va_li
 	return buffer;
 }
 
-char __far* __cdecl sprnf(char __far* buffer, char const __far* format, ...)
+char __far* __cdecl sprnf(char __far* buffer, char const _DATA* format, ...)
 {
 	va_list args_va;
 	va_start(args_va, format);
@@ -94,7 +94,7 @@ char __far* __cdecl sprnf(char __far* buffer, char const __far* format, ...)
 	return buffer;
 }
 
-void __cdecl prnf(char const __far* format, ...)
+void __cdecl prnf(char const _DATA* format, ...)
 {
 	va_list args_va;
 	va_start(args_va, format);

@@ -9,6 +9,8 @@ _STACK segment use16 'STACK' AT 0x30
 _STACK ends
 
 _BSS segment use16 'BSS' AT 0x9FC0
+public _ebda
+	_ebda:
 _BSS ends
 
 _BDA segment use16 'BDA' AT 0x0040

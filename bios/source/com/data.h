@@ -14,4 +14,3 @@ typedef struct {
 
 extern ebda_type ebda;
 
-

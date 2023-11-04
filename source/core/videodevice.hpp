@@ -24,8 +24,8 @@
 
 namespace core
 {
-	struct Machine;	
-	struct Processor;	
+	struct Machine;
+	struct Processor;
 	struct HypercallContext;
 
 	namespace detail
@@ -40,51 +40,62 @@ namespace core
 		}
 	}
 
-	static inline constexpr const auto Port_MdaCrtIndex					= detail::VgaPort(0x3B4u);
-	static inline constexpr const auto Port_MdaCrtData					= detail::VgaPort(0x3B5u);
-	static inline constexpr const auto Port_MdaInputStatus			= detail::VgaPort(0x3BAu);
-	static inline constexpr const auto Port_MdaFeatureControl		= detail::VgaPort(0x3BAu);
-	static inline constexpr const auto Port_Attribute0					= detail::VgaPort(0x3C0u);
-	static inline constexpr const auto Port_Attribute1					= detail::VgaPort(0x3C1u);
-	static inline constexpr const auto Port_InputStatus					= detail::VgaPort(0x3C2u);
-	static inline constexpr const auto Port_MiscOutputWrite			= detail::VgaPort(0x3C2u);
-	static inline constexpr const auto Port_SequencerIndex			= detail::VgaPort(0x3C4u);
-	static inline constexpr const auto Port_SequencerData				= detail::VgaPort(0x3C5u);
-	static inline constexpr const auto Port_DacPixelMask				= detail::VgaPort(0x3C6u);
-	static inline constexpr const auto Port_DacStateRead				= detail::VgaPort(0x3C7u);
-	static inline constexpr const auto Port_DacIndexRead				= detail::VgaPort(0x3C7u);
-	static inline constexpr const auto Port_DacIndexWrite				= detail::VgaPort(0x3C8u);
-	static inline constexpr const auto Port_DacDataRead					= detail::VgaPort(0x3C9u);
-	static inline constexpr const auto Port_DacDataWrite				= detail::VgaPort(0x3C9u);	
-	static inline constexpr const auto Port_FeatureControlRead	= detail::VgaPort(0x3CAu);
-	static inline constexpr const auto Port_MiscOutputRead			= detail::VgaPort(0x3CCu);
-	static inline constexpr const auto Port_GraphicsCtrlIndex		= detail::VgaPort(0x3CEu);
-	static inline constexpr const auto Port_GraphicsCtrlData		= detail::VgaPort(0x3CFu);
-	static inline constexpr const auto Port_VgaCrtIndex					= detail::VgaPort(0x3D4u);
-	static inline constexpr const auto Port_VgaCrtData					= detail::VgaPort(0x3D5u);
-	static inline constexpr const auto Port_VgaInputStatus			= detail::VgaPort(0x3DAu);
-	static inline constexpr const auto Port_VgaFeatureControl		= detail::VgaPort(0x3DAu);
-	
+	static inline constexpr const auto Port_MdaCrtIndex = detail::VgaPort(0x3B4u);
+	static inline constexpr const auto Port_MdaCrtData = detail::VgaPort(0x3B5u);
+	static inline constexpr const auto Port_MdaInputStatus = detail::VgaPort(0x3BAu);
+	static inline constexpr const auto Port_MdaFeatureControl = detail::VgaPort(0x3BAu);
+	static inline constexpr const auto Port_Attribute0 = detail::VgaPort(0x3C0u);
+	static inline constexpr const auto Port_Attribute1 = detail::VgaPort(0x3C1u);
+	static inline constexpr const auto Port_InputStatus = detail::VgaPort(0x3C2u);
+	static inline constexpr const auto Port_MiscOutputWrite = detail::VgaPort(0x3C2u);
+	static inline constexpr const auto Port_SequencerIndex = detail::VgaPort(0x3C4u);
+	static inline constexpr const auto Port_SequencerData = detail::VgaPort(0x3C5u);
+	static inline constexpr const auto Port_DacPixelMask = detail::VgaPort(0x3C6u);
+	static inline constexpr const auto Port_DacStateRead = detail::VgaPort(0x3C7u);
+	static inline constexpr const auto Port_DacIndexRead = detail::VgaPort(0x3C7u);
+	static inline constexpr const auto Port_DacIndexWrite = detail::VgaPort(0x3C8u);
+	static inline constexpr const auto Port_DacDataRead = detail::VgaPort(0x3C9u);
+	static inline constexpr const auto Port_DacDataWrite = detail::VgaPort(0x3C9u);
+	static inline constexpr const auto Port_FeatureControlRead = detail::VgaPort(0x3CAu);
+	static inline constexpr const auto Port_MiscOutputRead = detail::VgaPort(0x3CCu);
+	static inline constexpr const auto Port_GraphicsCtrlIndex = detail::VgaPort(0x3CEu);
+	static inline constexpr const auto Port_GraphicsCtrlData = detail::VgaPort(0x3CFu);
+	static inline constexpr const auto Port_VgaCrtIndex = detail::VgaPort(0x3D4u);
+	static inline constexpr const auto Port_VgaCrtData = detail::VgaPort(0x3D5u);
+	static inline constexpr const auto Port_VgaInputStatus = detail::VgaPort(0x3DAu);
+	static inline constexpr const auto Port_VgaFeatureControl = detail::VgaPort(0x3DAu);
+
 #pragma pack(push, 1)
 	struct VideoDeviceStateVga
 	{
 		VideoDeviceStateVga();
 
+		enum class Unit {
+			Cols = 0,
+			Dots = 1
+		};
+
 		auto IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t;
 		auto IoPortFetch(std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>;
 
-		auto HorizontalTotal() const -> uint16_t;
-		auto VerticalTotal() const -> uint16_t;
-		auto HorizontalDisplayEnd() const -> uint16_t;
-		auto VerticalDisplayEnd() const -> uint16_t;
-		auto StartHorizontalRetrace() const -> uint16_t;
-		auto EndHorizontalRetrace() const -> uint16_t;
-		auto StartVerticalRetrace() const -> uint16_t;
+		auto HorizontalTotal(Unit = Unit::Dots) const->uint16_t;
+		auto HorizontalDisplayEnd(Unit = Unit::Dots) const->uint16_t;
+		auto HorizontalRetraceStart(Unit = Unit::Dots) const->uint16_t;
+		auto HorizontalRetraceEnd(Unit = Unit::Dots) const->uint16_t;
+		auto HorizontalBlankingStart(Unit = Unit::Dots) const->uint16_t;
+		auto HorizontalBlankingEnd(Unit = Unit::Dots) const->uint16_t;
 
-		auto CharacterWidth() const -> uint8_t;
-		auto CharacterHeight() const -> uint8_t;
+		auto VerticalTotal() const->uint16_t;
+		auto VerticalDisplayEnd() const->uint16_t;
+		auto VerticalRetraceStart() const->uint16_t;
+		auto VerticalRetraceEnd() const->uint16_t;
+		auto VerticalBlankingStart() const->uint16_t;
+		auto VerticalBlankingEnd() const->uint16_t;
 
-		auto Log() const -> void ;
+		auto CharacterWidth() const->uint8_t;
+		auto CharacterHeight() const->uint8_t;
+
+		auto Log() const -> void;
 
 		struct
 		{
@@ -95,11 +106,11 @@ namespace core
 				struct
 				{
 					uint8_t horizontal_total;
-					uint8_t end_horizontal_display;
-					uint8_t start_horizontal_blanking;
-					uint8_t end_horizontal_blanking;
-					uint8_t start_horizontal_retrace;
-					uint8_t end_horizontal_retrace;
+					uint8_t horizontal_display_end;
+					uint8_t horizontal_blanking_start;
+					uint8_t horizontal_blanking_end;
+					uint8_t horizontal_retrace_start;
+					uint8_t horizontal_retrace_end;
 					uint8_t vertical_total;
 					uint8_t overflow;
 					uint8_t preset_row_scan;
@@ -115,8 +126,8 @@ namespace core
 					uint8_t vertical_display_end;
 					uint8_t offset;
 					uint8_t underline_location;
-					uint8_t start_vertical_blanking;
-					uint8_t end_vertical_blanking;
+					uint8_t vertical_blanking_start;
+					uint8_t vertical_blanking_end;
 					uint8_t crt_mode_control;
 					uint8_t line_compare;
 				};
@@ -177,10 +188,10 @@ namespace core
 
 			union
 			{
-				struct {			
-					uint8_t index:5;
-					uint8_t pas:1;
-					uint8_t reserved:2;
+				struct {
+					uint8_t index : 5;
+					uint8_t pas : 1;
+					uint8_t reserved : 2;
 				};
 				uint8_t index_and_pas;
 			};
@@ -223,20 +234,20 @@ namespace core
 		auto Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
 
 	protected:
-		
+
 		auto ConfigureROM(core::Configuration const&) -> void;
 		auto ConfigureMemory(core::Configuration const&) -> void;
-		
+
 		auto Refresh(std::stop_token stopee_v) -> void;
-		
+
 	protected:
 
 
-	private:			
-		Machine& m_Machine;		
+	private:
+		Machine& m_Machine;
 
 		std::optional<RomImage> m_BiosRom;
 		buffer_type m_VideoMemory[2u];
-		VideoDeviceStateVga m_State[2u];		
+		VideoDeviceStateVga m_State[2u];
 	};
 }
