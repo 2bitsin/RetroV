@@ -95,6 +95,14 @@ namespace core
 		auto CharacterWidth() const->uint8_t;
 		auto CharacterHeight() const->uint8_t;
 
+		auto ScanlineDouble() const -> bool ;
+		auto ScanlineClockDivide() const -> bool;
+		auto MemoryClockDivide() const -> bool;
+		auto MasterClockDivide() const -> bool;
+
+		auto MasterClockRate() const -> uint64_t;
+
+
 		auto Log() const -> void;
 
 		struct

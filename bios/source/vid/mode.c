@@ -371,7 +371,16 @@ void __watcall __loadds set_video_mode(uint8_t index_v)
   }
   if (mode_p == 0) return;    
 
-	video_update_begin();  
+	 prnf("desired : %c %u x %u (%u x %u)\n",
+		mode_p->info.memmodel == MM_TEXT ? 'T' : 'G',
+	  1u * mode_p->info.width  * (mode_p->info.memmodel == MM_TEXT ? mode_p->info.cwidth  : 1u), 
+	  1u * mode_p->info.height * (mode_p->info.memmodel == MM_TEXT ? mode_p->info.cheight : 1u),
+	  1u * mode_p->info.cwidth , 
+	  1u * mode_p->info.cheight
+	 );
+  
+
+	video_update_begin();
 	if (!(mode_p->miscreg & 1)) {
 		crtc_addr_v = VGAREG_MDA_CRTC_ADDRESS;
 	}

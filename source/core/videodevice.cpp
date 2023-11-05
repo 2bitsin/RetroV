@@ -399,6 +399,38 @@ auto VideoDeviceStateVga::CharacterHeight() const -> uint8_t
 	return (crtctrl.maximum_scan_line & 0x1F) + 1u;
 }
 
+auto VideoDeviceStateVga::ScanlineDouble() const -> bool
+{
+	return bool(crtctrl.maximum_scan_line & 0x80u);
+}
+
+auto VideoDeviceStateVga::ScanlineClockDivide() const -> bool
+{
+	return bool(crtctrl.crt_mode_control & 0x04u);
+}
+
+auto VideoDeviceStateVga::MemoryClockDivide() const -> bool
+{
+	return bool(crtctrl.crt_mode_control & 0x08u);
+}
+
+auto VideoDeviceStateVga::MasterClockDivide() const -> bool
+{
+	return bool(sequencer.character_map_select & 0x08u);
+}
+
+auto VideoDeviceStateVga::MasterClockRate() const -> uint64_t
+{
+	switch ((misc_output & 0xCu) >> 2u)
+	{
+	case 0x0 : return 25175000ull;
+	case 0x1 : return 28322000ull;
+	case 0x2 : return 31500000ull;
+	case 0x3 : return 40000000ull;
+
+	}
+}
+
 auto VideoDeviceStateVga::HorizontalTotal(Unit unit_v) const -> uint16_t
 {
 	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
@@ -527,6 +559,11 @@ auto VideoDeviceStateVga::Log() const -> void
 		+Fmt(VerticalRetraceEnd())
 		+Fmt(VerticalBlankingStart())
 		+Fmt(VerticalBlankingEnd())
+
+		+Fmt(ScanlineDouble())
+		+Fmt(ScanlineClockDivide())
+		+Fmt(MemoryClockDivide())
+		+Fmt(MasterClockRate()*1e-6)
 
 		+Fmt(CharacterWidth())
 		+Fmt(CharacterHeight())
