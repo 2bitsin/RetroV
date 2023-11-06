@@ -487,9 +487,11 @@ int stdvga_set_mode(struct stdvga_mode_s const _DATA* stdmode_g, int flags_v) {
   // Enable video
   stdvga_attrindex_write(0x20u);
   // Clear screen
+
+#if 0
   if (!(flags_v & MF_NOCLEARMEM))
     clear_screen(&stdmode_g->info);
-
+#endif
   // Write the fonts in memory  
 #if 0
   if (stdmode_g->info.memmodel == MM_TEXT) {

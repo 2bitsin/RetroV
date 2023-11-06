@@ -94,7 +94,8 @@ auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::ui
 
 auto VideoDevice::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t
 {
-	__debugbreak();
+	if (addr_v < 0xA0000u || addr_v >= 0xC0000u)
+		__debugbreak();
 	return ERROR_SUCCESS;
 }
 
