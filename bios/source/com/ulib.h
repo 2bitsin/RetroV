@@ -45,3 +45,14 @@ inline void __far* __watcall make_fp(uint16_t seg, uint16_t off) {
 #define MAKE_FP(T, seg, off) (T __far*)((seg)*0x10000ul + (off))
 
 #define SIZE(X) (sizeof(X)/sizeof((X)[0]))
+
+inline void fill_u16 (void __far* dst_p, uint16_t value_v, uint16_t size_v) {
+	register uint16_t __far * dst16_p =
+		(uint16_t __far *)dst_p;
+	register uint16_t cx_v = 0; 
+	while(cx_v < size_v) { 
+		*dst16_p = value_v;		
+		dst16_p += 1u;
+		cx_v += 1u;
+	}	
+}

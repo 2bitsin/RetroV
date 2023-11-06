@@ -4,8 +4,18 @@
 #include <com/data.h>
 #include <com/ulib.h>
 
-#include <vid/mode.h>
+#include <vid/vgaio.h>
 #include <vid/vgadefs.h>
+#include <vid/fonts.h>
+
+////////////////////////////////////////////////////
+///
+/// !!! ADMISSION OF GUILT !!!
+/// This code is stolen from coreboot/SeaBIOS :/
+/// https://github.com/coreboot/seabios 
+///
+////////////////////////////////////////////////////
+
 
 #define MM_TEXT             0x00
 #define MM_CGA              0x01
@@ -293,7 +303,7 @@ static uint8_t const _DATA crtc_6A[] = {
 
 #define PAL(x) x, sizeof(x)
 
-static struct stdvga_mode_s const _DATA vga_modes_s[] = 
+static struct stdvga_mode_s const _DATA stdvga_mode_table[] = 
 {
   {0x00, {MM_TEXT,   40,  25,  4, 9, 16, SEG_CTEXT}, 0xFF, PAL(palette2), sequ_01, 0x67, crtc_01, actl_01, grdc_01, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
   {0x01, {MM_TEXT,   40,  25,  4, 9, 16, SEG_CTEXT}, 0xFF, PAL(palette2), sequ_01, 0x67, crtc_01, actl_01, grdc_01, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
@@ -310,135 +320,201 @@ static struct stdvga_mode_s const _DATA vga_modes_s[] =
   {0x11, {MM_PLANAR, 640, 480, 1, 8, 16, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xe3, crtc_11, actl_11, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
   {0x12, {MM_PLANAR, 640, 480, 4, 8, 16, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xe3, crtc_11, actl_10, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
   {0x13, {MM_PACKED, 320, 200, 8, 8, 8,  SEG_GRAPH}, 0xFF, PAL(palette3), sequ_13, 0x63, crtc_13, actl_13, grdc_13, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
-//{0x6A, {MM_PLANAR, 800, 600, 4, 8, 16, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xe3, crtc_6A, actl_10, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
+  {0x6A, {MM_PLANAR, 800, 600, 4, 8, 16, SEG_GRAPH}, 0xFF, PAL(palette2), sequ_0e, 0xe3, crtc_6A, actl_10, grdc_0d, {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}},
 };
 
-static inline  void __watcall vga_write_attr(uint8_t index_v, uint8_t value_v) {
-	register uint8_t oaddr_v=0;
-	__inb(VGAREG_ACTL_RESET); // Reset
-	oaddr_v = __inb(VGAREG_ACTL_ADDRESS);
-	__outb(VGAREG_ACTL_ADDRESS, index_v);
-	__outb(VGAREG_ACTL_WRITE_DATA, value_v);
-	__outb(VGAREG_ACTL_ADDRESS, oaddr_v);
+//////////////////////////////////////////////////////////////////////////
+///                                                                    ///
+//////////////////////////////////////////////////////////////////////////
+
+static inline void __watcall stdvga_pelmask_write(uint8_t value_v) {
+  __outb(VGAREG_PEL_MASK, value_v);
 }
 
-static inline void __watcall vga_write(uint8_t index_v, 
-	uint8_t value_v, uint16_t addr_v) 
-{
-	__outw(addr_v, (value_v << 8) | index_v);
-}
-
-static inline void __watcall vga_write_dac(uint8_t const __far* data_p, 
-	uint16_t index_v, uint16_t count_v) 
-{	
-  register unsigned q = 0u;
-	__outb(VGAREG_DAC_WRITE_ADDRESS, index_v);
-	for(index_v = 0u; index_v < count_v; index_v += 1u) {
-    q = index_v+(index_v<<1u);
-		__outb(VGAREG_DAC_DATA, data_p[0u + q]);	
-		__outb(VGAREG_DAC_DATA, data_p[1u + q]);	
-		__outb(VGAREG_DAC_DATA, data_p[2u + q]);	
+static inline void __watcall stdvga_dac_write(uint8_t const __far *data_v, uint8_t start_v, int count_v) {
+  __outb(VGAREG_DAC_WRITE_ADDRESS, start_v);
+  while (count_v) {
+    __outb(VGAREG_DAC_DATA, *data_v++); 
+    __outb(VGAREG_DAC_DATA, *data_v++); 
+    __outb(VGAREG_DAC_DATA, *data_v++); 
+    count_v -= 1u;
   }
 }
 
-static inline void __watcall vga_write_pelmask(uint8_t value_v) 
-{
-	__outb(VGAREG_PEL_MASK, value_v);
+static inline void __watcall stdvga_attr_write(uint8_t index_v, uint8_t value_v) {
+  uint8_t orig_v = 0;
+  __inb(VGAREG_ACTL_RESET);
+  orig_v = __inb(VGAREG_ACTL_ADDRESS);
+  __outb(VGAREG_ACTL_ADDRESS, index_v);
+  __outb(VGAREG_ACTL_WRITE_DATA, value_v);
+  __outb(VGAREG_ACTL_ADDRESS, orig_v);
 }
 
-static inline void __watcall vga_write_misc(uint8_t value_v) 
-{
-	__outb(VGAREG_WRITE_MISC_OUTPUT, value_v);
+static inline void __watcall stdvga_sequ_write(uint8_t index_v, uint8_t value_v) {
+  __outw(VGAREG_SEQU_ADDRESS, (value_v * 0x100u) | index_v);
 }
 
-static inline void __watcall vga_write_attrindex(uint8_t value_v) 
-{
-	__inb(VGAREG_ACTL_RESET); 
-	__outb(VGAREG_ACTL_ADDRESS, value_v);
+static inline void __watcall stdvga_grdc_write(uint8_t index_v, uint8_t value_v) { 
+  __outw(VGAREG_GRDC_ADDRESS, (value_v * 0x100u) | index_v);
 }
 
-void __watcall __loadds set_video_mode(uint8_t index_v)
-{  
-  stdvga_mode_t const __far* mode_p=0;  
-	unsigned i=0, j=0;
-	uint16_t crtc_addr_v = VGAREG_VGA_CRTC_ADDRESS;
-  prnf("set_video_mode(%x)\n", (unsigned int)index_v);
+static inline void __watcall stdvga_crtc_write(uint16_t crtc_addr_v, uint8_t index_v, uint8_t value_v) {
+  __outw(crtc_addr_v, (value_v*0x100u) | index_v);
+}
 
-  for(i = 0; i < SIZE(vga_modes_s);++i) {
-    if (vga_modes_s[i].mode != index_v)
+static inline void __watcall stdvga_misc_write(uint8_t value_v) {
+  __outb(VGAREG_WRITE_MISC_OUTPUT, value_v);
+}
+
+static inline void __watcall stdvga_attrindex_write(uint8_t value_v) {
+  __inb(VGAREG_ACTL_RESET);
+  __outb(VGAREG_ACTL_ADDRESS, value_v);
+}
+
+static inline uint8_t __watcall stdvga_misc_read(void) {
+  return __inb(VGAREG_READ_MISC_OUTPUT);
+}
+
+
+static void __watcall clear_screen(struct vgamode_s const _DATA* vmode_g) {
+  static uint16_t __based(void)* const screen_p = 0;  
+  void __far* dst_p = ((__segment)vmode_g->sstart):>screen_p;
+  switch (vmode_g->memmodel) 
+  {
+  case MM_TEXT: fill_u16(dst_p, 0x0720u, 32u*1024u); break;
+  case MM_CGA:  fill_u16(dst_p, 0x0000u, 32u*1024u); break;
+  default:      fill_u16(dst_p, 0x0000u, 64u*1024u); break;
+  }
+}
+
+static void __watcall get_font_access(void) {
+  stdvga_sequ_write(0x00u, 0x01u);
+  stdvga_sequ_write(0x02u, 0x04u);
+  stdvga_sequ_write(0x04u, 0x07u);
+  stdvga_sequ_write(0x00u, 0x03u);
+  stdvga_grdc_write(0x04u, 0x02u);
+  stdvga_grdc_write(0x05u, 0x00u);
+  stdvga_grdc_write(0x06u, 0x04u);
+}
+
+static void __watcall release_font_access(void) {
+  uint16_t tmp_v=0;
+  stdvga_sequ_write(0x00u, 0x01u);
+  stdvga_sequ_write(0x02u, 0x03u);
+  stdvga_sequ_write(0x04u, 0x03u);
+  stdvga_sequ_write(0x00u, 0x03u);
+  tmp_v = (stdvga_misc_read() & 0x01u) ? 0x0eu : 0x0au;
+  stdvga_grdc_write(0x06u, tmp_v);
+  stdvga_grdc_write(0x04u, 0x00u);
+  stdvga_grdc_write(0x05u, 0x10u);
+}
+
+
+static void __watcall stdvga_load_font(void __far *src_far, uint16_t count, uint16_t start, uint8_t destflags, uint8_t fontsize) {
+  get_font_access();
+#if 0
+  u16 blockaddr = ((destflags & 0x03) << 14) + ((destflags & 0x04) << 11);
+  void *dest_far = (void*)(blockaddr + start*32);
+  u16 i;
+  for (i = 0; i < count; i++)
+    memcpy_far(SEG_GRAPH, dest_far + i*32, seg, src_far + i*fontsize, fontsize);    
+#endif
+  release_font_access();
+}
+
+
+int stdvga_set_mode(struct stdvga_mode_s const _DATA* stdmode_g, int flags_v) {
+  register uint8_t const _DATA* u8ctmp_p = 0;
+  register uint16_t u16tmp_v = 0, i = 0;
+  uint16_t crtc_addr_v = 0;
+
+  video_update_begin();
+  // if palette loading (bit 3 of modeset ctl = 0)
+  if (!(flags_v & MF_NOPALETTE))
+  {    
+    // Set the PEL mask
+    stdvga_pelmask_write(stdmode_g->pelmask);
+    
+    // From which palette
+    u8ctmp_p = stdmode_g->dac;
+    u16tmp_v = stdmode_g->dacsize / 3;
+
+    // Always 256*3 values
+    stdvga_dac_write(u8ctmp_p, 0, u16tmp_v);    
+    for (i = u16tmp_v; i < 0x100u; i += 1u) {
+      static uint8_t const zero[3] = { 0, 0, 0 };
+      stdvga_dac_write(&zero[0], i, 1u);
+    }
+
+  #if 0
+    if (flags_v & MF_GRAYSUM) {
+      stdvga_perform_gray_scale_summing(0x00, 0x100);
+    }
+  #endif
+  }
+  // Set Attribute Ctl
+  u8ctmp_p = stdmode_g->actl_regs;  
+  for (i = 0; i <= 0x13u; i += 1u)
+    stdvga_attr_write(i, u8ctmp_p[i]);
+  stdvga_attr_write(0x14u, 0x00u);
+
+  // Set Sequencer Ctl
+  stdvga_sequ_write(0x00u, 0x03u);
+  u8ctmp_p = stdmode_g->sequ_regs;
+  for (i = 1u; i <= 4u; i += 1u)
+    stdvga_sequ_write(i, u8ctmp_p[i - 1u]);
+
+  // Set Grafx Ctl
+  u8ctmp_p = stdmode_g->grdc_regs;
+  for (i = 0u; i <= 8u; i += 1u)
+    stdvga_grdc_write(i, u8ctmp_p[i]);
+
+  // Set CRTC address VGA or MDA  
+  crtc_addr_v = VGAREG_VGA_CRTC_ADDRESS;
+  if (!(stdmode_g->miscreg & 1)) {
+    crtc_addr_v = VGAREG_MDA_CRTC_ADDRESS;
+  }
+
+  // Disable CRTC write protection
+  stdvga_crtc_write(crtc_addr_v, 0x11u, 0x00u);
+  // Set CRTC regs
+  u8ctmp_p = stdmode_g->crtc_regs;
+  for (i = 0u; i <= 0x18u; i += 1u)
+    stdvga_crtc_write(crtc_addr_v, i, u8ctmp_p[i]);
+
+  // Set the misc register
+  stdvga_misc_write(stdmode_g->miscreg);
+  // Enable video
+  stdvga_attrindex_write(0x20u);
+  // Clear screen
+  if (!(flags_v & MF_NOCLEARMEM))
+    clear_screen(&stdmode_g->info);
+
+  // Write the fonts in memory  
+#if 0
+  if (stdmode_g->info.memmodel == MM_TEXT) {
+    stdvga_load_font(_font8x16, 0x100, 0, 0, 16);
+  }
+#endif
+  video_update_end();
+  return 0;
+}
+
+int __watcall __loadds set_video_mode(uint8_t index_v, int flags_v) 
+{
+  struct stdvga_mode_s const _DATA* stdmode_p = 0;
+  uint16_t i = 0;
+
+  for (i = 0; i < SIZE(stdvga_mode_table); i += 1u) {
+    if (stdvga_mode_table[i].mode != index_v) 
       continue;
-    mode_p = &vga_modes_s[i];
-  }
-  if (mode_p == 0) return;    
-
-	 prnf("desired : %c %u x %u (%u x %u)\n",
-		mode_p->info.memmodel == MM_TEXT ? 'T' : 'G',
-	  1u * mode_p->info.width  * (mode_p->info.memmodel == MM_TEXT ? mode_p->info.cwidth  : 1u), 
-	  1u * mode_p->info.height * (mode_p->info.memmodel == MM_TEXT ? mode_p->info.cheight : 1u),
-	  1u * mode_p->info.cwidth , 
-	  1u * mode_p->info.cheight
-	 );
-  
-
-	video_update_begin();
-	if (!(mode_p->miscreg & 1)) {
-		crtc_addr_v = VGAREG_MDA_CRTC_ADDRESS;
-	}
-
-  /////////////////////////////////////////
-	//	Write palette registers
-	/////////////////////////////////////////		
-	vga_write_pelmask(mode_p->pelmask);	
-	j = mode_p->dacsize / 3;
-	vga_write_dac(mode_p->dac, 0, j);		
-	for (i = j; i < 0x0100; i++) {
-		static uint8_t const _DATA rgb[3] = { 0, 0, 0 };
-		vga_write_dac(rgb, i, 1);
-	}
-
-	////////////////////////////////
-  // Write attribute registers
-	////////////////////////////////
-  for(i = 0u; i < ACTL_REGS; i += 1u) {
-		vga_write_attr(i, mode_p->actl_regs[i]);	
-  }
-	vga_write_attr(0x14u, 0x00u);
-
-	////////////////////////////////
-	// Write sequencer registers
-	////////////////////////////////
-	vga_write(0x00u, 0x03u, 
-    VGAREG_SEQU_ADDRESS);	
-	for (i = 1u; i <= SEQU_REGS; i += 1u) {
-		vga_write(i, mode_p->sequ_regs[i - 1],
-			VGAREG_SEQU_ADDRESS);
+    stdmode_p = &stdvga_mode_table[i];
+    break;
   }
 
-	/////////////////////////////////////////
-	// Write graphics controller registers
-	/////////////////////////////////////////
-	for (i = 0u; i < GRDC_REGS; i += 1u) {
-		vga_write(i, mode_p->grdc_regs[i], 
-			VGAREG_GRDC_ADDRESS);
-  }
+  if (stdmode_p == 0)
+    return -1;
 
-	//////////////////////////////////
-	// Write CRT controller registers
-	//////////////////////////////////
-	for (i = 0u; i < CRTC_REGS; i += 1u) {
-		vga_write(i, mode_p->crtc_regs[i], 
-			crtc_addr_v);
-  }
-
-	//////////////////////////////////
-	// Write miscellaneous register
-	//////////////////////////////////
-	vga_write_misc(mode_p->miscreg);
-
-
-	// Enable video
-	vga_write_attrindex(0x20);
-
-	
-	video_update_end();
+  return stdvga_set_mode(stdmode_p, flags_v);
 }
+
