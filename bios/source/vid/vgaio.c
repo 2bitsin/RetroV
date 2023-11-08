@@ -410,7 +410,12 @@ static void __watcall release_font_access(void) {
 }
 
 
-static void __watcall stdvga_load_font(void __far *src_far, uint16_t count, uint16_t start, uint8_t destflags, uint8_t fontsize) {
+static void __watcall stdvga_load_font(void __far *src_far, 
+	uint16_t count, 
+	uint16_t start, 
+	uint8_t destflags, 
+	uint8_t fontsize)
+{
   get_font_access();
 #if 0
   u16 blockaddr = ((destflags & 0x03) << 14) + ((destflags & 0x04) << 11);
@@ -427,8 +432,19 @@ int stdvga_set_mode(struct stdvga_mode_s const _DATA* stdmode_g, int flags_v) {
   register uint8_t const _DATA* u8ctmp_p = 0;
   register uint16_t u16tmp_v = 0, i = 0;
   uint16_t crtc_addr_v = 0;
+	prnf("stdvga_set_mode: %c %ux%u (%ux%u)\n", 
+		stdmode_g->info.memmodel == MM_TEXT ? 'T' : 'G',
+		stdmode_g->info.memmodel != MM_TEXT 
+			? stdmode_g->info.width 
+			: stdmode_g->info.width * stdmode_g->info.cwidth,
+		stdmode_g->info.memmodel != MM_TEXT 
+			? stdmode_g->info.height 
+			: stdmode_g->info.height * stdmode_g->info.cheight,		
+		stdmode_g->info.cwidth, 
+		stdmode_g->info.cheight
+	);
 
-  video_update_begin();
+  video_update_begin(&stdmode_g->info);
   // if palette loading (bit 3 of modeset ctl = 0)
   if (!(flags_v & MF_NOPALETTE))
   {    

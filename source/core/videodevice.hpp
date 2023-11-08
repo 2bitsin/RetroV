@@ -78,12 +78,12 @@ namespace core
 		auto IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t;
 		auto IoPortFetch(std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>;
 
-		auto HorizontalTotal(Unit = Unit::Dots) const->uint16_t;
-		auto HorizontalDisplayEnd(Unit = Unit::Dots) const->uint16_t;
-		auto HorizontalRetraceStart(Unit = Unit::Dots) const->uint16_t;
-		auto HorizontalRetraceEnd(Unit = Unit::Dots) const->uint16_t;
-		auto HorizontalBlankingStart(Unit = Unit::Dots) const->uint16_t;
-		auto HorizontalBlankingEnd(Unit = Unit::Dots) const->uint16_t;
+		auto HorizontalTotal() const->uint16_t;
+		auto HorizontalDisplayEnd() const->uint16_t;
+		auto HorizontalRetraceStart() const->uint16_t;
+		auto HorizontalRetraceEnd() const->uint16_t;
+		auto HorizontalBlankingStart() const->uint16_t;
+		auto HorizontalBlankingEnd() const->uint16_t;
 
 		auto VerticalTotal() const->uint16_t;
 		auto VerticalDisplayEnd() const->uint16_t;
@@ -92,6 +92,11 @@ namespace core
 		auto VerticalBlankingStart() const->uint16_t;
 		auto VerticalBlankingEnd() const->uint16_t;
 
+		
+		auto DisplayEnableSkew() const -> uint8_t;
+		auto HorizontalRetraceSkew() const -> uint8_t;
+		auto CursorSkew() const -> uint8_t;
+
 		auto CharacterWidth() const->uint8_t;
 		auto CharacterHeight() const->uint8_t;
 
@@ -99,8 +104,8 @@ namespace core
 		auto ScanlineClockDivide() const -> bool;
 		auto MemoryClockDivide() const -> bool;
 		auto MasterClockDivide() const -> bool;
-
 		auto MasterClockRate() const -> uint64_t;
+
 
 
 		auto Log() const -> void;

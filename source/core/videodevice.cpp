@@ -212,9 +212,11 @@ auto VideoDeviceStateVga::IoPortWrite(std::uint16_t port_v, std::uint8_t data_v)
 	case Port_MdaCrtData:
 	case Port_VgaCrtData:
 		if ((port_v < detail::VgaPort(0x3D0u)) == bool(misc_output & 0x1u)) break;
-		if (!(crtctrl.data[0x11u] & 0x80u)
-			&& crtctrl.index < std::size(crtctrl.data))
-			crtctrl.data[crtctrl.index] = data_v;
+		if (crtctrl.index < std::size(crtctrl.data)) {
+			if (!(crtctrl.data[0x11u] & 0x80u) || crtctrl.index > 0x07u) { 
+				crtctrl.data[crtctrl.index] = data_v;
+			}
+		}
 		crtctrl.index += 1u;
 		while (crtctrl.index >= std::size(crtctrl.data))
 			crtctrl.index -= std::size(crtctrl.data);
@@ -428,45 +430,47 @@ auto VideoDeviceStateVga::MasterClockRate() const -> uint64_t
 	case 0x1 : return 28322000ull;
 	case 0x2 : return 31500000ull;
 	case 0x3 : return 40000000ull;
-
 	}
 }
 
-auto VideoDeviceStateVga::HorizontalTotal(Unit unit_v) const -> uint16_t
+auto VideoDeviceStateVga::HorizontalTotal() const -> uint16_t
 {
-	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
-	return size_v * (crtctrl.horizontal_total + 5u);
+	return CharacterWidth() * (crtctrl.horizontal_total + 5u);
 }
 
-auto VideoDeviceStateVga::HorizontalDisplayEnd(Unit unit_v) const -> uint16_t
+auto VideoDeviceStateVga::HorizontalDisplayEnd() const -> uint16_t
 {
-	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
-	return size_v * (crtctrl.horizontal_display_end + 1u);
+	return CharacterWidth() * (crtctrl.horizontal_display_end + 1u);
 }
 
-auto VideoDeviceStateVga::HorizontalRetraceStart(Unit unit_v) const -> uint16_t
+auto VideoDeviceStateVga::HorizontalRetraceStart() const -> uint16_t
 {
-	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
-	return size_v * crtctrl.horizontal_retrace_start;
+	return CharacterWidth() * crtctrl.horizontal_retrace_start;
 }
 
-auto VideoDeviceStateVga::HorizontalRetraceEnd(Unit unit_v) const -> uint16_t
+auto VideoDeviceStateVga::HorizontalRetraceEnd() const -> uint16_t
 {
-	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
-	return size_v * (crtctrl.horizontal_retrace_end & 0x1Fu);
+	auto const lsb_v = crtctrl.horizontal_retrace_end & 0x1Fu;
+	auto const counter_v = lsb_v + (HorizontalRetraceStart() & ~0x1Fu);
+	if (counter_v > HorizontalTotal())
+		return counter_v;
+	return lsb_v;
 }
 
-auto VideoDeviceStateVga::HorizontalBlankingStart(Unit unit_v) const -> uint16_t
-{
-	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
-	return size_v * crtctrl.horizontal_blanking_start;
+auto VideoDeviceStateVga::HorizontalBlankingStart() const -> uint16_t
+{	
+	return CharacterWidth() * crtctrl.horizontal_blanking_start;
 }
 
-auto VideoDeviceStateVga::HorizontalBlankingEnd(Unit unit_v) const -> uint16_t
-{
-	auto size_v = unit_v == Unit::Dots ? CharacterWidth() : 1u;
-	return size_v * ((crtctrl.horizontal_blanking_end & 0x1Fu) +
-		((crtctrl.horizontal_retrace_end & 0x80u) >> 2u));
+auto VideoDeviceStateVga::HorizontalBlankingEnd() const -> uint16_t
+{	
+	auto const lsb_v = (
+		 ((crtctrl.horizontal_blanking_end & 0x1Fu) >> 0u) +
+		 ((crtctrl.horizontal_retrace_end  & 0x80u) >> 2u));
+	auto const counter_v = lsb_v + (HorizontalBlankingStart() & ~0x1Fu);
+	if (counter_v > HorizontalTotal())
+		return counter_v;
+	return lsb_v;
 }
 
 auto VideoDeviceStateVga::VerticalTotal() const -> uint16_t
@@ -495,7 +499,11 @@ auto VideoDeviceStateVga::VerticalRetraceStart() const -> uint16_t
 
 auto VideoDeviceStateVga::VerticalRetraceEnd() const -> uint16_t
 {
-	return crtctrl.vertical_retrace_end & 0xFu;
+	auto const lsb_v = crtctrl.vertical_retrace_end & 0x0Fu;
+	auto counter_v = lsb_v + (VerticalRetraceStart() & ~0x0Fu);
+	if (counter_v > VerticalTotal())
+		return counter_v;
+	return lsb_v;
 }
 
 auto VideoDeviceStateVga::VerticalBlankingStart() const -> uint16_t
@@ -508,7 +516,26 @@ auto VideoDeviceStateVga::VerticalBlankingStart() const -> uint16_t
 
 auto VideoDeviceStateVga::VerticalBlankingEnd() const -> uint16_t
 {
-	return crtctrl.vertical_blanking_end & 0x7Fu;
+	auto const lsb_v = crtctrl.vertical_blanking_end & 0x7Fu;
+	auto counter_v = lsb_v + (VerticalBlankingStart() & ~0x7Fu);
+	if (counter_v > VerticalTotal())
+		return counter_v;
+	return lsb_v;
+}
+
+auto VideoDeviceStateVga::DisplayEnableSkew() const -> uint8_t
+{
+	return (crtctrl.horizontal_blanking_end >> 5u) & 3u;
+}
+
+auto VideoDeviceStateVga::HorizontalRetraceSkew() const -> uint8_t
+{
+	return (crtctrl.horizontal_retrace_end >> 5u) & 3u;
+}
+
+auto VideoDeviceStateVga::CursorSkew() const -> uint8_t
+{
+	return (crtctrl.cursor_end >> 5u) & 3u;
 }
 
 
@@ -542,24 +569,29 @@ auto VideoDeviceStateVga::Log() const -> void
 		}
 	}
 
-#define Fmt(X) std::format("  > " #X " = {}\n", X)
-#define Fmt_(X, Y) std::format("  > " #X " = {} ({})\n", X, Y)
+#define Fmt(X)     std::format("  > {:.<35} = {}\n"      , #X, X)
+#define Fmt_(X, Y) std::format("  > {:.<35} = {} ({})\n" , #X, X, Y)
+#define FmtH(X)    std::format("  > {:.<35} = 0x{:02X}\n", #X, X)
 	logger::debug(logger::deflog, "video state : \n{}\n", 
 		std::string()
 
 		+Fmt(HorizontalTotal())
 		+Fmt(HorizontalDisplayEnd())
+		+Fmt(HorizontalBlankingStart())
 		+Fmt(HorizontalRetraceStart())
 		+Fmt(HorizontalRetraceEnd())
-		+Fmt(HorizontalBlankingStart())
 		+Fmt(HorizontalBlankingEnd())
 
 		+Fmt(VerticalTotal())
 		+Fmt(VerticalDisplayEnd())
+		+Fmt(VerticalBlankingStart())
 		+Fmt(VerticalRetraceStart())
 		+Fmt(VerticalRetraceEnd())
-		+Fmt(VerticalBlankingStart())
 		+Fmt(VerticalBlankingEnd())
+
+		+Fmt(DisplayEnableSkew())
+		+Fmt(HorizontalRetraceSkew())
+		+Fmt(CursorSkew())
 
 		+Fmt(ScanlineDouble())
 		+Fmt(ScanlineClockDivide())
@@ -569,45 +601,45 @@ auto VideoDeviceStateVga::Log() const -> void
 		+Fmt(CharacterWidth())
 		+Fmt(CharacterHeight())
 
-		+Fmt(crtctrl.horizontal_total)
-		+Fmt(crtctrl.horizontal_display_end)
-		+Fmt(crtctrl.horizontal_blanking_start)
-		+Fmt(crtctrl.horizontal_blanking_end)
-		+Fmt(crtctrl.horizontal_retrace_start)
-		+Fmt(crtctrl.horizontal_retrace_end)
-		+Fmt(crtctrl.vertical_total)
-		+Fmt(crtctrl.overflow)
-		+Fmt(crtctrl.preset_row_scan)
-		+Fmt(crtctrl.maximum_scan_line)
-		+Fmt(crtctrl.cursor_start)
-		+Fmt(crtctrl.cursor_end)
-		+Fmt(crtctrl.start_address_high)
-		+Fmt(crtctrl.start_address_low)
-		+Fmt(crtctrl.cursor_location_high)
-		+Fmt(crtctrl.cursor_location_low)
-		+Fmt(crtctrl.vertical_retrace_start)
-		+Fmt(crtctrl.vertical_retrace_end)
-		+Fmt(crtctrl.vertical_display_end)
-		+Fmt(crtctrl.offset)
-		+Fmt(crtctrl.underline_location)
-		+Fmt(crtctrl.vertical_blanking_start)
-		+Fmt(crtctrl.vertical_blanking_end)
-		+Fmt(crtctrl.crt_mode_control)
-		+Fmt(crtctrl.line_compare)
-		+Fmt(sequencer.reset)
-		+Fmt(sequencer.clocking_mode)
-		+Fmt(sequencer.map_mask)
-		+Fmt(sequencer.character_map_select)
-		+Fmt(sequencer.memory_mode)
-		+Fmt(graphics.set_or_reset)
-		+Fmt(graphics.enable_set_or_reset)
-		+Fmt(graphics.color_compare)
-		+Fmt(graphics.data_rotate)
-		+Fmt(graphics.read_map_select)
-		+Fmt(graphics.graphics_mode)
-		+Fmt(graphics.miscellaneous)
-		+Fmt(graphics.color_dont_care)
-		+Fmt(graphics.bit_mask)
+		+FmtH(crtctrl.horizontal_total)
+		+FmtH(crtctrl.horizontal_display_end)
+		+FmtH(crtctrl.horizontal_blanking_start)
+		+FmtH(crtctrl.horizontal_blanking_end)
+		+FmtH(crtctrl.horizontal_retrace_start)
+		+FmtH(crtctrl.horizontal_retrace_end)
+		+FmtH(crtctrl.vertical_total)
+		+FmtH(crtctrl.overflow)
+		+FmtH(crtctrl.preset_row_scan)
+		+FmtH(crtctrl.maximum_scan_line)
+		+FmtH(crtctrl.cursor_start)
+		+FmtH(crtctrl.cursor_end)
+		+FmtH(crtctrl.start_address_high)
+		+FmtH(crtctrl.start_address_low)
+		+FmtH(crtctrl.cursor_location_high)
+		+FmtH(crtctrl.cursor_location_low)
+		+FmtH(crtctrl.vertical_retrace_start)
+		+FmtH(crtctrl.vertical_retrace_end)
+		+FmtH(crtctrl.vertical_display_end)
+		+FmtH(crtctrl.offset)
+		+FmtH(crtctrl.underline_location)
+		+FmtH(crtctrl.vertical_blanking_start)
+		+FmtH(crtctrl.vertical_blanking_end)
+		+FmtH(crtctrl.crt_mode_control)
+		+FmtH(crtctrl.line_compare)
+		+FmtH(sequencer.reset)
+		+FmtH(sequencer.clocking_mode)
+		+FmtH(sequencer.map_mask)
+		+FmtH(sequencer.character_map_select)
+		+FmtH(sequencer.memory_mode)
+		+FmtH(graphics.set_or_reset)
+		+FmtH(graphics.enable_set_or_reset)
+		+FmtH(graphics.color_compare)
+		+FmtH(graphics.data_rotate)
+		+FmtH(graphics.read_map_select)
+		+FmtH(graphics.graphics_mode)
+		+FmtH(graphics.miscellaneous)
+		+FmtH(graphics.color_dont_care)
+		+FmtH(graphics.bit_mask)
 		+Fmt_(attrib.palette[0x0], draw_index_rgb(attrib.palette[0x0], ramdac.color))
 		+Fmt_(attrib.palette[0x1], draw_index_rgb(attrib.palette[0x1], ramdac.color))
 		+Fmt_(attrib.palette[0x2], draw_index_rgb(attrib.palette[0x2], ramdac.color))
@@ -624,18 +656,18 @@ auto VideoDeviceStateVga::Log() const -> void
 		+Fmt_(attrib.palette[0xD], draw_index_rgb(attrib.palette[0xD], ramdac.color))
 		+Fmt_(attrib.palette[0xE], draw_index_rgb(attrib.palette[0xE], ramdac.color))
 		+Fmt_(attrib.palette[0xF], draw_index_rgb(attrib.palette[0xF], ramdac.color))		
-		+Fmt(attrib.mode_control)
-		+Fmt(attrib.overscan_color)
-		+Fmt(attrib.color_plane_enable)
-		+Fmt(attrib.horizontal_panning)
-		+Fmt(attrib.color_select)
-		+Fmt(ramdac.latch)
-		+Fmt(ramdac.mask)		
+		+FmtH(attrib.mode_control)
+		+FmtH(attrib.overscan_color)
+		+FmtH(attrib.color_plane_enable)
+		+FmtH(attrib.horizontal_panning)
+		+FmtH(attrib.color_select)
+		+FmtH(ramdac.latch)
+		+FmtH(ramdac.mask)		
 	  +"  > ramdac.color => "s + color_tbl + "\n");
 
 #undef Fmt
 #undef Fmt_
-
+#undef FmtH
 
 
 }

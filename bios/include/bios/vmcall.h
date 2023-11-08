@@ -62,17 +62,18 @@
 #define HYPERCALL_VIDEO															0x0000
 
 #define HYPERCALL_VIDEO_BEGIN_UPDATE								0x0000
-	void video_update_begin(void);
 #ifdef __WATCOMC__
-	#pragma aux video_update_begin =	\
+	void video_update_begin(void const _far* mode_info_p);
+	#pragma aux video_update_begin  	\
+		__parm [es di] =								\
 		"push word ptr 0x0000"					\
 		"db 0x0f, 0x01, 0xd9"						\
 		"add sp, 2"											;		
 #endif
 
 #define HYPERCALL_VIDEO_END_UPDATE									0x0001
-	void video_update_end(void);
 #ifdef __WATCOMC__
+	void video_update_end(void);
 	#pragma aux video_update_end =		\
 		"push word ptr 0x0001"					\
 		"db 0x0f, 0x01, 0xd9"						\
