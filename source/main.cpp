@@ -16,6 +16,7 @@
 #include <utils/metaprog.hpp>
 #include <utils/logger.hpp>
 #include <utils/paths.hpp>
+#include <utils/pattern.hpp>
 
 #include <string_view>
 #include <filesystem>
@@ -61,6 +62,7 @@ int main(int argc, char** argv) try
 	using namespace std::chrono_literals;
 	using namespace std::chrono;
 	using namespace std::filesystem;
+	using namespace misc_literals;
 	using namespace core;
 
 	using namespace win32;
@@ -69,7 +71,9 @@ int main(int argc, char** argv) try
 		.parent_path()
 		.parent_path());
 
-#if 1
+	utils::pattern ({ 0x13_b, 0x40_b });
+
+#if 0
 	using std::chrono::steady_clock;
 
 	using core::Machine;

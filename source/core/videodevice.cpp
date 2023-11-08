@@ -426,11 +426,12 @@ auto VideoDeviceStateVga::MasterClockRate() const -> uint64_t
 {
 	switch ((misc_output & 0xCu) >> 2u)
 	{
+	default  : 
 	case 0x0 : return 25175000ull;
 	case 0x1 : return 28322000ull;
 	case 0x2 : return 31500000ull;
 	case 0x3 : return 40000000ull;
-	}
+	}	
 }
 
 auto VideoDeviceStateVga::HorizontalTotal() const -> uint16_t

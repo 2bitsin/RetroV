@@ -87,3 +87,13 @@ auto RomImage::Remap(region_type target_region_v) -> void
 {
 	return m_Mapping.Remap(target_region_v, kAccessReadOnly);	
 }
+
+auto RomImage::Patch(std::size_t offset_v, std::span<std::byte const> bytes_v) -> void
+{
+	auto data_v = m_Image.Data();
+	auto size_v = std::min(bytes_v.size(), 
+		data_v.size() - offset_v);
+	if (size_v <= 0u) return;
+	std::copy(bytes_v.begin(), bytes_v.end(), 
+		data_v.begin() + offset_v);
+}

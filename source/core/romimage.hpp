@@ -60,6 +60,8 @@ namespace core
 		auto Enable() -> void;
 		auto Disable() -> void;
 		auto Remap(region_type target_region_v) -> void;
+
+		auto Patch(std::size_t offset_v, std::span<std::byte const> bytes_v) -> void;
 	private:
 		mapped_type m_Image;
 		MapGpaRange m_Mapping;

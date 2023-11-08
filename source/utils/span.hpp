@@ -46,7 +46,6 @@ namespace utils
 	static inline auto as_span_of(std::span<Q> input_v) -> std::span<T const> {
 		return { reinterpret_cast<T const*>(input_v.data()), input_v.size_bytes() / sizeof(T) };
 	}
-
 }
 
 #include <utils/limited_span.hpp>
