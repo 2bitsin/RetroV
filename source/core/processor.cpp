@@ -163,11 +163,14 @@ auto Processor::RunToExit(std::stop_token stoppee_v) -> exit_result_type
 				SetRegister(WHvX64RegisterRflags, { .Reg64 = GetRegister(WHvX64RegisterRflags).Reg64 | core::kTrapFlag });
 				continue;
 			case WHvX64ExceptionTypeInvalidOpcodeFault:
-				if (std::span{ context_v.VpException.InstructionBytes, 
-					             context_v.VpException.InstructionByteCount }
-						== "\x0f\x01\xd9"_bytes)
-					;
-				continue;
+				//if (std::span{ context_v.VpException.InstructionBytes, 
+				//	             context_v.VpException.InstructionByteCount }
+				//		== )
+				//	;
+				//continue;
+				[[fallthrough]];
+			default:
+				break;
 			}
 			
 			[[fallthrough]];

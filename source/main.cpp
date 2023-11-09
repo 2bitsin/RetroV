@@ -70,10 +70,7 @@ int main(int argc, char** argv) try
 	current_path(path(argv[0])
 		.parent_path()
 		.parent_path());
-
-	utils::pattern ({ 0x13_b, 0x40_b });
-
-#if 0
+#if 1
 	using std::chrono::steady_clock;
 
 	using core::Machine;
