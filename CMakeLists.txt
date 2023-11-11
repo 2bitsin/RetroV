@@ -25,12 +25,12 @@ target_link_libraries(RetroV PRIVATE ${LIB_WINHVPLATFORM} ${LIB_WINHVEMULATION} 
 set_target_properties(RetroV PROPERTIES LINK_FLAGS "/level='requireAdministrator' /uiAccess='false'")
 target_stack_size(RetroV "256MiB")
 
-add_custom_command(
-  OUTPUT ${CMAKE_INSTALL_PREFIX}/ROMs/sys.bin always_rebuild
-  COMMAND ${CMAKE_SOURCE_DIR}/build-bios.bat
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMENT "Building BIOS ROMs ...")
-add_custom_target(RevBIOS ALL DEPENDS ${CMAKE_INSTALL_PREFIX}/ROMs/sys.bin)
+#add_custom_command(
+#  OUTPUT ${CMAKE_INSTALL_PREFIX}/ROMs/sys.bin always_rebuild
+#  COMMAND ${CMAKE_SOURCE_DIR}/build-bios.bat
+#  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+#  COMMENT "Building BIOS ROMs ...")
+#add_custom_target(RevBIOS ALL DEPENDS ${CMAKE_INSTALL_PREFIX}/ROMs/sys.bin)
 
 install (FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_PREFIX}/bin OPTIONAL)
 install (TARGETS RetroV DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
