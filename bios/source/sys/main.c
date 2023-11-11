@@ -35,7 +35,7 @@ void __cdecl __loadds Main()
 //video_init(0x10);
 //video_init(0x11);
 //video_init(0x12);
-	video_init(0x13);
+//video_init(0x13);
   __sti();
   while(true) __hlt();  
 }

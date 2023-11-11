@@ -417,9 +417,107 @@ auto VideoDeviceStateVga::MemoryClockDivide() const -> bool
 	return bool(crtctrl.crt_mode_control & 0x08u);
 }
 
+auto VideoDeviceStateVga::ScreenDisable() const -> bool
+{
+	return bool(sequencer.clocking_mode & 0x20u);
+}
+
+auto VideoDeviceStateVga::ShiftFour() const -> bool
+{
+	return bool(sequencer.clocking_mode & 0x10u);
+}
+
+auto VideoDeviceStateVga::DotClockDivide() const -> bool
+{
+	return bool(sequencer.clocking_mode & 0x08u);
+}
+
+auto VideoDeviceStateVga::ShiftLoadRate() const -> bool
+{
+	return bool(sequencer.clocking_mode & 0x04u);
+}
+
 auto VideoDeviceStateVga::MasterClockDivide() const -> bool
 {
 	return bool(sequencer.character_map_select & 0x08u);
+}
+
+auto VideoDeviceStateVga::ByteAddressMode() const -> bool
+{
+	return bool(crtctrl.crt_mode_control & 0x40u);
+}
+
+auto VideoDeviceStateVga::OddEventDisable() const -> bool
+{
+	return bool(sequencer.memory_mode & 0x04u);
+}
+
+auto VideoDeviceStateVga::ChainOddEven() const -> bool
+{
+	return bool(graphics.miscellaneous & 0x02u);
+}
+
+auto VideoDeviceStateVga::ChainFour() const -> bool
+{
+	return bool(sequencer.memory_mode & 0x08u);
+}
+
+auto VideoDeviceStateVga::GraphicsMode() const -> bool
+{
+	return bool(graphics.miscellaneous & 0x01u);
+}
+
+auto VideoDeviceStateVga::MemoryMapSelect() const -> utils::region32_type
+{
+	switch ((graphics.miscellaneous >> 2u) & 0x3u)
+	{
+	case 0x0: return { 0xA0000u, 0x20000u };
+	case 0x1: return { 0xA0000u, 0x10000u };
+	case 0x2: return { 0xB0000u, 0x08000u };
+	default:
+	case 0x3: return { 0xB8000u, 0x08000u };
+	}
+
+}
+
+auto VideoDeviceStateVga::CharsetA() const -> utils::region32_type
+{
+	const uint8_t value_v
+	  { ((sequencer.character_map_select >> 2u) & 0x3u)
+		+ ((sequencer.character_map_select >> 5u) & 0x1u) };
+
+	switch(value_v & 0x7u)
+	{
+		default:
+		case 0b000: return { 0x0000u, 0x2000u };
+		case 0b001: return { 0x4000u, 0x2000u };
+		case 0b010: return { 0x8000u, 0x2000u };
+		case 0b011: return { 0xC000u, 0x2000u };
+		case 0b100: return { 0x2000u, 0x2000u };
+		case 0b101: return { 0x6000u, 0x2000u };
+		case 0b110: return { 0xA000u, 0x2000u };
+		case 0b111: return { 0xE000u, 0x2000u };
+	}
+}
+
+auto VideoDeviceStateVga::CharsetB() const -> utils::region32_type
+{
+	const uint8_t value_v
+	{ ((sequencer.character_map_select >> 0u) & 0x3u)
+	+ ((sequencer.character_map_select >> 4u) & 0x1u) };
+
+	switch (value_v & 0x7u)
+	{
+	default:
+	case 0b000: return { 0x0000u, 0x2000u };
+	case 0b001: return { 0x4000u, 0x2000u };
+	case 0b010: return { 0x8000u, 0x2000u };
+	case 0b011: return { 0xC000u, 0x2000u };
+	case 0b100: return { 0x2000u, 0x2000u };
+	case 0b101: return { 0x6000u, 0x2000u };
+	case 0b110: return { 0xA000u, 0x2000u };
+	case 0b111: return { 0xE000u, 0x2000u };
+	}
 }
 
 auto VideoDeviceStateVga::MasterClockRate() const -> uint64_t
@@ -594,10 +692,29 @@ auto VideoDeviceStateVga::Log() const -> void
 		+Fmt(HorizontalRetraceSkew())
 		+Fmt(CursorSkew())
 
+		+Fmt(ScreenDisable())
+
+		+Fmt(MasterClockRate()*1e-6)
+		+Fmt(MemoryClockDivide())
+		+Fmt(DotClockDivide())
+
 		+Fmt(ScanlineDouble())
 		+Fmt(ScanlineClockDivide())
-		+Fmt(MemoryClockDivide())
-		+Fmt(MasterClockRate()*1e-6)
+
+		+Fmt(ShiftLoadRate())
+		+Fmt(ShiftFour())
+		+Fmt(ChainFour())
+		+Fmt(ByteAddressMode())
+		+Fmt(OddEventDisable())
+
+		+Fmt(ChainOddEven())
+		+Fmt(GraphicsMode())
+		+FmtH(MemoryMapSelect().base())
+		+FmtH(MemoryMapSelect().end())
+		+FmtH(CharsetA().base())	
+		+FmtH(CharsetA().end())
+		+FmtH(CharsetB().base())
+		+FmtH(CharsetB().end())
 
 		+Fmt(CharacterWidth())
 		+Fmt(CharacterHeight())

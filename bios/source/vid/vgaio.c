@@ -432,7 +432,7 @@ int stdvga_set_mode(struct stdvga_mode_s const _DATA* stdmode_g, int flags_v) {
   register uint8_t const _DATA* u8ctmp_p = 0;
   register uint16_t u16tmp_v = 0, i = 0;
   uint16_t crtc_addr_v = 0;
-	prnf("stdvga_set_mode: %c %ux%u (%ux%u)\n", 
+	prnf("stdvga_set_mode(%c, %ux%u, %ux%u)\n", 
 		stdmode_g->info.memmodel == MM_TEXT ? 'T' : 'G',
 		stdmode_g->info.memmodel != MM_TEXT 
 			? stdmode_g->info.width 
@@ -522,7 +522,7 @@ int __watcall __loadds set_video_mode(uint8_t index_v, int flags_v)
 {
   struct stdvga_mode_s const _DATA* stdmode_p = 0;
   uint16_t i = 0;
-
+	prnf("set_video_mode(0x%x)\n", index_v);
   for (i = 0; i < SIZE(stdvga_mode_table); i += 1u) {
     if (stdvga_mode_table[i].mode != index_v) 
       continue;

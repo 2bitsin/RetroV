@@ -100,13 +100,27 @@ namespace core
 		auto CharacterWidth() const->uint8_t;
 		auto CharacterHeight() const->uint8_t;
 
+		auto ScreenDisable() const -> bool;
+
 		auto ScanlineDouble() const -> bool ;
 		auto ScanlineClockDivide() const -> bool;
-		auto MemoryClockDivide() const -> bool;
-		auto MasterClockDivide() const -> bool;
+
 		auto MasterClockRate() const -> uint64_t;
+		auto MasterClockDivide() const -> bool;
+		auto MemoryClockDivide() const -> bool;
+    auto DotClockDivide() const -> bool;
 
+		auto ShiftLoadRate() const -> bool;
+		auto ShiftFour() const -> bool;
+		auto ByteAddressMode() const -> bool;
+		auto OddEventDisable() const -> bool;
 
+		auto ChainOddEven() const -> bool;
+		auto ChainFour() const -> bool;
+		auto GraphicsMode() const -> bool;
+		auto MemoryMapSelect() const -> utils::region32_type;
+		auto CharsetA() const -> utils::region32_type;
+		auto CharsetB() const -> utils::region32_type;
 
 		auto Log() const -> void;
 
