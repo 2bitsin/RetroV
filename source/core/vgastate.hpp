@@ -313,14 +313,36 @@ namespace core
 					uint8_t cursor_location_lsb:8;
 					// 0x10
 					uint8_t vertical_retrace_start_0_7;
-					uint8_t vertical_retrace_end;
-					uint8_t vertical_display_end;
+					// 0x11
+					uint8_t vertical_retrace_end:4;
+					uint8_t _3:2;
+					uint8_t bandwidth:1;
+					uint8_t protect:1;
+					// 0x12
+					uint8_t vertical_display_end_0_7;
+					// 0x13
 					uint8_t offset;
-					uint8_t underline_location;
-					uint8_t vertical_blanking_start;
-					uint8_t vertical_blanking_end;
-					uint8_t crt_mode_control;
-					uint8_t line_compare;
+					// 0x14
+					uint8_t underline_location:5;
+					uint8_t memory_address_clock_divide_by_four:1;
+					uint8_t double_word_addressing:1;
+					uint8_t _4:1;
+					// 0x15
+					uint8_t vertical_blanking_start_0_7;
+					// 0x16
+					uint8_t vertical_blanking_end:7;
+					uint8_t _5:1;
+					// 0x17
+					uint8_t map_display_address_13:1;
+					uint8_t map_display_address_14:1;
+					uint8_t scanline_clock_divide_by_two:1;
+					uint8_t memory_address_clock_divide_by_two:1;
+					uint8_t _6:1;
+					uint8_t address_wrap_select:1;
+					uint8_t word_byte_mode_select:1;
+					uint8_t sync_enable:1;					
+					// 0x18
+					uint8_t line_compare_0_7;
 				};
 			};
 		} crtctrl;
@@ -333,11 +355,33 @@ namespace core
 				uint8_t data[0x5u];
 				struct
 				{
-					uint8_t reset;
-					uint8_t clocking_mode;
-					uint8_t map_mask;
-					uint8_t character_map_select;
-					uint8_t memory_mode;
+					// 0x00
+					uint8_t synchroneous_reset:1;
+					uint8_t asynchroneous_reset:1;
+					uint8_t _0:6;
+					// 0x01
+					uint8_t eight_dot_mode:1;
+					uint8_t _1:1;
+					uint8_t shift_load_rate:1;
+					uint8_t dot_clock_rate:1;
+					uint8_t shift_four_enable:1;
+					uint8_t screen_disable:1;
+					uint8_t _2:2;
+					// 0x02
+					uint8_t memory_plane_write_mask:4;
+					uint8_t _3:4;
+					// 0x03
+					uint8_t character_map_select_b_0_1:2;
+					uint8_t character_map_select_a_0_1:2;
+					uint8_t character_map_select_b_2:1;
+					uint8_t character_map_select_a_2:1;
+					uint8_t _4:2;
+					// 0x04
+					uint8_t _5:1;
+					uint8_t extended_memory_enable:1;
+					uint8_t odd_even_write_addressing_disable:1;
+					uint8_t chain_four_enable:1;
+					uint8_t _6:4;
 				};
 			};
 		} sequencer;
