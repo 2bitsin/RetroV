@@ -38,7 +38,7 @@ namespace core
 				throw std::out_of_range{ "port value is out of range" };
 			return value_v - _Base;
 		}
-	}
+		}
 
 	static inline constexpr const auto Port_MdaCrtIndex = detail::VgaPort(0x3B4u);
 	static inline constexpr const auto Port_MdaCrtData = detail::VgaPort(0x3B5u);
@@ -70,13 +70,32 @@ namespace core
 	{
 		VideoDeviceStateVga();
 
-		enum class Unit {
-			Cols = 0,
-			Dots = 1
+		enum class EValueIndex: std::uint16_t {
+			HorizontalTotal,
+			HorizontalDisplayEnd,
+			HorizontalRetraceStart,
+			HorizontalRetraceEnd,
+			HorizontalBlankingStart,
+			HorizontalBlankingEnd,
+
+			VerticalTotal,
+			VerticalDisplayEnd,
+			VerticalRetraceStart,
+			VerticalRetraceEnd,
+			VerticalBlankingStart,
+			VerticalBlankingEnd
+
+			
+
+
 		};
 
 		auto IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t;
 		auto IoPortFetch(std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>;
+
+		auto GetValue(EValueIndex index_v) const -> std::uint64_t;
+		auto SetValue(EValueIndex index_v, std::uint64_t value_v) -> void;
+
 
 		auto HorizontalTotal() const->uint16_t;
 		auto HorizontalDisplayEnd() const->uint16_t;
