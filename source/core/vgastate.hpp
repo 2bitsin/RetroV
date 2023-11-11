@@ -258,23 +258,61 @@ namespace core
 				uint8_t data[0x19u];
 				struct
 				{
-					uint8_t horizontal_total;
-					uint8_t horizontal_display_end;
-					uint8_t horizontal_blanking_start;
-					uint8_t horizontal_blanking_end;
-					uint8_t horizontal_retrace_start;
-					uint8_t horizontal_retrace_end;
-					uint8_t vertical_total;
-					uint8_t overflow;
-					uint8_t preset_row_scan;
-					uint8_t maximum_scan_line;
-					uint8_t cursor_start;
-					uint8_t cursor_end;
-					uint8_t start_address_high;
-					uint8_t start_address_low;
-					uint8_t cursor_location_high;
-					uint8_t cursor_location_low;
-					uint8_t vertical_retrace_start;
+					// 0x00
+					uint8_t horizontal_total_0_7:8;
+					// 0x01
+					uint8_t horizontal_display_end:8;
+					// 0x02
+					uint8_t horizontal_blanking_start:8;
+					// 0x03
+					uint8_t horizontal_blanking_end_0_4:5;
+					uint8_t display_enable_skew:2;
+					uint8_t enable_vrtical_retrace_access:1;
+					// 0x04
+					uint8_t horizontal_retrace_start:8;
+					// 0x05
+					uint8_t horizontal_retrace_end:5;
+					uint8_t horizontal_retrace_skew:2;
+					uint8_t horizontal_blanking_end_5:1;
+					// 0x06
+					uint8_t vertical_total_0_7:8;
+					// 0x07
+					uint8_t vertical_total_8:1;
+					uint8_t vertical_display_end_8:1;
+					uint8_t vertical_retrace_start_8:1;
+					uint8_t vertical_blanking_start_8:1;
+					uint8_t line_compare_8:1;
+					uint8_t vertical_total_9:1;
+					uint8_t vertical_display_end_9:1;
+					uint8_t vertical_retrace_start_9:1;
+					// 0x08
+					uint8_t preset_row_scan:5;
+					uint8_t byte_panning:2;
+					uint8_t _0:1;
+					// 0x09
+					uint8_t maximum_scan_line:5;
+					uint8_t vertical_blanking_start_9:1;
+					uint8_t line_compare_9:1;
+					uint8_t scan_doubling:1;
+					// 0x0A
+					uint8_t cursor_line_start:5;
+					uint8_t cursor_disable:1;
+					uint8_t _1:2;
+
+					// 0x0B
+					uint8_t cursor_line_end:5;
+					uint8_t cursor_skew:2;
+					uint8_t _2:1;
+					// 0x0C
+					uint8_t start_address_msb:8;
+					// 0x0D
+					uint8_t start_address_lsb:8;
+					// 0x0E
+					uint8_t cursor_location_msb:8;
+					// 0x0F
+					uint8_t cursor_location_lsb:8;
+					// 0x10
+					uint8_t vertical_retrace_start_0_7;
 					uint8_t vertical_retrace_end;
 					uint8_t vertical_display_end;
 					uint8_t offset;
