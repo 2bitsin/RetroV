@@ -49,6 +49,17 @@ namespace core
 	static inline constexpr const auto Port_VgaInputStatus			= detail::port_vga_io(0x3DAu);
 	static inline constexpr const auto Port_VgaFeatureControl		= detail::port_vga_io(0x3DAu);
 
+	static inline constexpr const auto SyncPolarity_350					= 0b10u;	
+	static inline constexpr const auto SyncPolarity_400					= 0b01u;
+	static inline constexpr const auto SyncPolarity_480					= 0b11u;
+
+	static inline constexpr const auto ClockSelect_25MHz				= 0b00u;
+	static inline constexpr const auto ClockSelect_28MHz				= 0b01u;
+	// Custom
+	static inline constexpr const auto ClockSelect_31MHz				= 0b10u;
+	static inline constexpr const auto ClockSelect_40MHz				= 0b11u;
+
+
 #pragma pack(push, 1)
 	struct VgaState
 	{
@@ -72,11 +83,41 @@ namespace core
 
 		};
 
-		constexpr inline VgaState() noexcept {
+		constexpr inline VgaState() noexcept 
+		{
+			crtctrl.index = 0;
+			for(auto& value_v: crtctrl.data) 
+				value_v = 0x00u;
 
+			sequencer.index = 0;
+			for(auto& value_v: sequencer.data) 
+				value_v = 0x00u;
+
+			graphics.index = 0;
+			for(auto& value_v: graphics.data) 
+				value_v = 0x00u;
+			
+			attrib.index_and_pas = 0;
+			for(auto& value_v: attrib.data) 
+				value_v = 0x00u;
+
+			ramdac.latch = 0;
+			ramdac.index = 0;
+			ramdac.flags = 0;
+			ramdac.mask = 0;
+			for(auto& value_v: ramdac.color) 
+				value_v = 0x00u;
+
+			miscellanious.value = 0x00u;
+			miscellanious.io_address_select = 1u;
+			miscellanious.ram_access_enable = 1u;
+			miscellanious.sync_polarity = SyncPolarity_400;
+			miscellanious.clock_select = ClockSelect_28MHz;
+
+			feature_control = 0x00u;
 		}
 
-		constexpr inline auto IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) -> std::int32_t 
+		constexpr inline auto IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) noexcept -> std::int32_t 
 		{
 			switch (port_v)
 			{
@@ -109,7 +150,7 @@ namespace core
 				 ***********************/
 			case Port_MdaCrtIndex:
 			case Port_VgaCrtIndex:
-				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(misc_output & 0x1u)) break;
+				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
 				crtctrl.index = data_v & 0x1Fu;
 				while (crtctrl.index >= std::size(crtctrl.data))
 					crtctrl.index -= std::size(crtctrl.data);
@@ -117,7 +158,7 @@ namespace core
 
 			case Port_MdaCrtData:
 			case Port_VgaCrtData:
-				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(misc_output & 0x1u)) break;
+				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
 				if (crtctrl.index < std::size(crtctrl.data)) {
 					if (!(crtctrl.data[0x11u] & 0x80u) || crtctrl.index > 0x07u) {
 						crtctrl.data[crtctrl.index] = data_v;
@@ -181,24 +222,122 @@ namespace core
 				 *	MISC OUTPUT & FEATURE CONTROL
 				 *********************************/
 			case Port_MiscOutputWrite:
-				misc_output = data_v;
+				miscellanious.value = data_v;
 				return ERROR_SUCCESS;
 
 			case Port_MdaFeatureControl:
 			case Port_VgaFeatureControl:
-				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(misc_output & 0x1u)) break;
+				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
 				feature_control = data_v;
 				return ERROR_SUCCESS;
 
 			default:
 				break;
 			}
-			//__debugbreak();
+			
 			return ERROR_SUCCESS;
 		}
 
 		
-		auto IoPortFetch(std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>;
+		constexpr inline auto IoPortFetch(std::uint16_t port_v) noexcept -> std::tuple<std::int32_t, std::uint8_t> 
+		{
+			uint8_t tmp_v{ 0 };
+			switch (port_v)
+			{
+				/***********************
+				 *	RAM DAC
+				 *******************/
+			case Port_DacPixelMask:
+				return { ERROR_SUCCESS, ramdac.mask };
+
+			case Port_DacDataRead:
+				tmp_v = ramdac.color[ramdac.index];
+				ramdac.index += 1u;
+				while (ramdac.index >= 0x300u)
+					ramdac.index -= 0x300u;
+				return { ERROR_SUCCESS, tmp_v };
+
+			case Port_DacStateRead:
+				return { ERROR_SUCCESS, ramdac.latch };
+
+				/***********************
+				 *	CRT CONTROLLER
+				 ***********************/
+			case Port_MdaCrtIndex:
+			case Port_VgaCrtIndex:
+				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
+				return { ERROR_SUCCESS, crtctrl.index };
+
+			case Port_VgaCrtData:
+			case Port_MdaCrtData:
+				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
+				tmp_v = crtctrl.data[crtctrl.index];
+				crtctrl.index += 1u;
+				while (crtctrl.index >= std::size(crtctrl.data))
+					crtctrl.index -= std::size(crtctrl.data);
+				return { ERROR_SUCCESS, tmp_v };
+
+			case Port_MdaInputStatus:
+			case Port_VgaInputStatus:
+				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
+				attrib.latch = false;
+				return { ERROR_SUCCESS, 0x00 };
+
+				/***********************
+				 *	SEQUENCER
+				 ***********************/
+			case Port_SequencerIndex:
+				return { ERROR_SUCCESS, sequencer.index };
+
+			case Port_SequencerData:
+				tmp_v = sequencer.data[sequencer.index];
+				sequencer.index += 1u;
+				while (sequencer.index >= std::size(sequencer.data))
+					sequencer.index -= std::size(sequencer.data);
+				return { ERROR_SUCCESS, tmp_v };
+
+				/**************************
+				 *	GRAPHICS CONTROLLER
+				 **************************/
+			case Port_GraphicsCtrlIndex:
+				return { ERROR_SUCCESS, graphics.index };
+
+			case Port_GraphicsCtrlData:
+				tmp_v = graphics.data[graphics.index];
+				graphics.index += 1u;
+				while (graphics.index >= std::size(graphics.data))
+					graphics.index -= std::size(graphics.data);
+				return { ERROR_SUCCESS, tmp_v };
+
+				/***********************
+				 *	ATTRIBUTE CONTROLLER
+				 ***********************/
+			case Port_Attribute0:
+				return { ERROR_SUCCESS, attrib.index_and_pas };
+
+			case Port_Attribute1:
+				if (attrib.index < std::size(attrib.data))
+					return { ERROR_SUCCESS, attrib.data[attrib.index] };
+				return { ERROR_SUCCESS, 0x00u };
+
+				/*********************************
+				 *	MISC OUTPUT & FEATURE CONTROL
+				 *********************************/
+			case Port_MiscOutputRead:
+				return { ERROR_SUCCESS, miscellanious.value };
+
+			case Port_FeatureControlRead:
+				return { ERROR_SUCCESS, feature_control };
+
+			case Port_InputStatus:
+				return { ERROR_SUCCESS, 0x00u };
+
+			default:
+				break;
+			}
+
+			return { ERROR_SUCCESS, 0xffu };
+		}
 
 		//auto GetValue(ValueIndex index_v) const->std::uint64_t;
 		//auto SetValue(ValueIndex index_v, std::uint64_t value_v) -> void;
@@ -379,7 +518,7 @@ namespace core
 					// 0x04
 					uint8_t _5:1;
 					uint8_t extended_memory_enable:1;
-					uint8_t odd_even_write_addressing_disable:1;
+					uint8_t host_odd_even_write_addressing_disable:1;
 					uint8_t chain_four_enable:1;
 					uint8_t _6:4;
 				};
@@ -394,14 +533,39 @@ namespace core
 				uint8_t data[0x9u];
 				struct
 				{
-					uint8_t set_or_reset;
-					uint8_t enable_set_or_reset;
-					uint8_t color_compare;
-					uint8_t data_rotate;
-					uint8_t read_map_select;
-					uint8_t graphics_mode;
-					uint8_t miscellaneous;
-					uint8_t color_dont_care;
+					// 0x00
+					uint8_t set_or_reset:4;
+					uint8_t _0:4;
+					// 0x01
+					uint8_t enable_set_or_reset:4;
+					uint8_t _1:4;
+					// 0x02
+					uint8_t color_compare:4;
+					uint8_t _2:4;
+					// 0x03
+					uint8_t rotate_count:3;
+					uint8_t logical_operation:2;
+					uint8_t _3:3;
+					// 0x04
+					uint8_t read_map_select:2;
+					uint8_t _4:6;
+					// 0x05
+					uint8_t write_mode:2;
+					uint8_t _5:1;
+					uint8_t read_mode:1;
+					uint8_t host_odd_even_read_addressing_enable:1;
+					uint8_t shift_register_interlieve_mode:1;
+					uint8_t shift_256_color_mode:1;
+					uint8_t _6:1;
+					// 0x06
+					uint8_t alphanumeric_mode_disable:1;
+					uint8_t chain_odd_even_enable:1;
+					uint8_t memory_map_select:2;
+					uint8_t _7:4;
+					// 0x07
+					uint8_t color_dont_care:4;
+					uint8_t _8:4;
+					// 0x08
 					uint8_t bit_mask;
 				};
 			};
@@ -434,131 +598,47 @@ namespace core
 			{
 				uint8_t data[0x15u];
 				struct {
+					// 0x00-0x0F
 					uint8_t palette[0x10u];
-					uint8_t mode_control;
+					// 0x10
+					uint8_t graphics_enable:1;
+					uint8_t monochome_emulation:1;
+					uint8_t line_graphics_enable:1;
+					uint8_t blink_enable:1;
+					uint8_t _0:1;
+					uint8_t pixel_panning_mode:1;
+					uint8_t eight_bit_color_enable:1;
+					uint8_t palette_bits_5_4_select:1;
+					// 0x11
 					uint8_t overscan_color;
-					uint8_t color_plane_enable;
-					uint8_t horizontal_panning;
-					uint8_t color_select;
+					// 0x12
+					uint8_t color_plane_enable:4;
+					uint8_t _1:4;
+					// 0x13
+					uint8_t horizontal_panning:4;
+					uint8_t _2:4;
+					// 0x14
+					uint8_t color_select_5_4:2;
+					uint8_t color_select_7_6:2;
+					uint8_t _3:4;
 				};
 			};
 		} attrib;
-		uint8_t misc_output;
+		union {
+			uint8_t value;
+			struct {				
+				uint8_t io_address_select:1;
+				uint8_t ram_access_enable:1;
+				uint8_t clock_select:2;
+				uint8_t _0:1;
+				uint8_t odd_even_page_select:1;
+				uint8_t sync_polarity:2;
+			};
+		} miscellanious;
 		uint8_t feature_control;
 
 	};
-#pragma pack(pop)
-	/*
-	inline VgaState::VgaState()
-	{
-		static_assert(std::is_trivially_copyable_v<VgaState>);
-		std::memset(this, 0, sizeof(*this));
-		misc_output = 0x03u;
-	}
-	*/
-
-
-
-	inline auto VgaState::IoPortFetch(std::uint16_t port_v) -> std::tuple<std::int32_t, std::uint8_t>
-	{
-		uint8_t tmp_v{ 0 };
-		switch (port_v)
-		{
-			/***********************
-			 *	RAM DAC
-			 *******************/
-		case Port_DacPixelMask:
-			return { ERROR_SUCCESS, ramdac.mask };
-
-		case Port_DacDataRead:
-			tmp_v = ramdac.color[ramdac.index];
-			ramdac.index += 1u;
-			while (ramdac.index >= 0x300u)
-				ramdac.index -= 0x300u;
-			return { ERROR_SUCCESS, tmp_v };
-
-		case Port_DacStateRead:
-			return { ERROR_SUCCESS, ramdac.latch };
-
-			/***********************
-			 *	CRT CONTROLLER
-			 ***********************/
-		case Port_MdaCrtIndex:
-		case Port_VgaCrtIndex:
-			if ((port_v < detail::port_vga_io(0x3D0u)) == bool(misc_output & 0x1u)) break;
-			return { ERROR_SUCCESS, crtctrl.index };
-
-		case Port_VgaCrtData:
-		case Port_MdaCrtData:
-			if ((port_v < detail::port_vga_io(0x3D0u)) == bool(misc_output & 0x1u)) break;
-			tmp_v = crtctrl.data[crtctrl.index];
-			crtctrl.index += 1u;
-			while (crtctrl.index >= std::size(crtctrl.data))
-				crtctrl.index -= std::size(crtctrl.data);
-			return { ERROR_SUCCESS, tmp_v };
-
-		case Port_MdaInputStatus:
-		case Port_VgaInputStatus:
-			if ((port_v < detail::port_vga_io(0x3D0u)) == bool(misc_output & 0x1u)) break;
-			attrib.latch = false;
-			return { ERROR_SUCCESS, 0 };
-
-			/***********************
-			 *	SEQUENCER
-			 ***********************/
-		case Port_SequencerIndex:
-			return { ERROR_SUCCESS, sequencer.index };
-
-		case Port_SequencerData:
-			tmp_v = sequencer.data[sequencer.index];
-			sequencer.index += 1u;
-			while (sequencer.index >= std::size(sequencer.data))
-				sequencer.index -= std::size(sequencer.data);
-			return { ERROR_SUCCESS, tmp_v };
-
-			/**************************
-			 *	GRAPHICS CONTROLLER
-			 **************************/
-		case Port_GraphicsCtrlIndex:
-			return { ERROR_SUCCESS, graphics.index };
-
-		case Port_GraphicsCtrlData:
-			tmp_v = graphics.data[graphics.index];
-			graphics.index += 1u;
-			while (graphics.index >= std::size(graphics.data))
-				graphics.index -= std::size(graphics.data);
-			return { ERROR_SUCCESS, tmp_v };
-
-			/***********************
-			 *	ATTRIBUTE CONTROLLER
-			 ***********************/
-		case Port_Attribute0:
-			return { ERROR_SUCCESS, attrib.index_and_pas };
-
-		case Port_Attribute1:
-			if (attrib.index < std::size(attrib.data))
-				return { ERROR_SUCCESS, attrib.data[attrib.index] };
-			return { ERROR_SUCCESS, 0x00u };
-
-			/*********************************
-			 *	MISC OUTPUT & FEATURE CONTROL
-			 *********************************/
-		case Port_MiscOutputRead:
-			return { ERROR_SUCCESS, misc_output };
-
-		case Port_FeatureControlRead:
-			return { ERROR_SUCCESS, feature_control };
-
-		case Port_InputStatus:
-			return { ERROR_SUCCESS, 0x00u };
-
-		default:
-			break;
-		}
-
-		//__debugbreak();
-		return { ERROR_SUCCESS, 0xffu };
-	}
+#pragma pack(pop)	
 
 	/*
 	inline auto VgaState::CharacterWidth() const -> uint8_t
