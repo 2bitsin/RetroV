@@ -11,7 +11,7 @@
 #include <core/mapgparange.hpp>
 #include <core/romimage.hpp>
 #include <core/display.hpp>
-#include <core/vgastate.hpp>
+#include <core/videodevice/vgastate.hpp>
 
 #include <utils/limited_span.hpp>
 #include <utils/smart_span.hpp>
@@ -28,9 +28,6 @@ namespace core
 	struct Machine;
 	struct Processor;
 	struct HypercallContext;
-
-
-
 
 	struct VideoDevice
 	{

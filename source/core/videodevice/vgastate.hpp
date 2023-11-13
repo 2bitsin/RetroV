@@ -64,6 +64,19 @@ namespace core
 	struct VgaState
 	{
 		enum class ValueIndex : std::uint16_t {
+
+			DrvHorzontalTotal,
+			DrvHorizontalVisible,
+			DrvVerticalTotal,
+			DrvVerticalVisible,
+			DrvCharacterWidth,
+			DrvCharacterHeight,
+
+			DrvVerticalBlankingStart,
+			DrvVerticalBlankingEnd,
+			DrvVerticalRetraceStart,
+			DrvVerticalRetraceEnd,
+
 			HorizontalTotal,
 			HorizontalDisplayEnd,
 			HorizontalRetraceStart,
@@ -76,7 +89,10 @@ namespace core
 			VerticalRetraceStart,
 			VerticalRetraceEnd,
 			VerticalBlankingStart,
-			VerticalBlankingEnd
+			VerticalBlankingEnd,
+
+			MaximumScanline,
+			EightDotMode
 
 
 
@@ -339,55 +355,75 @@ namespace core
 			return { ERROR_SUCCESS, 0xffu };
 		}
 
-		//auto GetValue(ValueIndex index_v) const->std::uint64_t;
-		//auto SetValue(ValueIndex index_v, std::uint64_t value_v) -> void;
+		template <ValueIndex _Index>
+		constexpr inline auto GetValue() const
+		{
+			using enum ValueIndex;
+			     if constexpr (_Index == DrvHorzontalTotal      ) return GetValue<DrvCharacterWidth>()*(GetValue<HorizontalTotal>() + 5u);
+			else if constexpr (_Index == DrvHorizontalVisible   ) return GetValue<DrvCharacterWidth>()*(GetValue<HorizontalDisplayEnd>()+1u);
+			else if constexpr (_Index == DrvVerticalTotal       ) return GetValue<VerticalTotal>() + 2u;
+			else if constexpr (_Index == DrvVerticalVisible     ) return GetValue<VerticalDisplayEnd>() + 1u;
+			else if constexpr (_Index == DrvCharacterWidth      ) return 1u*!GetValue<EightDotMode>() + 8u;
+			else if constexpr (_Index == DrvCharacterHeight     ) return GetValue<MaximumScanline>() + 1u;
 
-/*
-		auto HorizontalTotal() const->uint16_t;
-		auto HorizontalDisplayEnd() const->uint16_t;
-		auto HorizontalRetraceStart() const->uint16_t;
-		auto HorizontalRetraceEnd() const->uint16_t;
-		auto HorizontalBlankingStart() const->uint16_t;
-		auto HorizontalBlankingEnd() const->uint16_t;
+			else if constexpr (_Index == EightDotMode           ) return sequencer.eight_dot_mode ;
+			else if constexpr (_Index == HorizontalTotal        ) return crtctrl.horizontal_total ;
+			else if constexpr (_Index == HorizontalDisplayEnd   ) return crtctrl.horizontal_display_end ;
+			else if constexpr (_Index == HorizontalRetraceStart ) return crtctrl.horizontal_retrace_start ;      
+			else if constexpr (_Index == HorizontalRetraceEnd   ) return crtctrl.horizontal_retrace_end ;
+			else if constexpr (_Index == HorizontalBlankingStart) return crtctrl.horizontal_blanking_start ;     
+			else if constexpr (_Index == HorizontalBlankingEnd  ) return crtctrl.horizontal_blanking_end_0_4
+						                                                     + crtctrl.horizontal_blanking_end_5 ;			
+			else if constexpr (_Index == VerticalTotal          ) return crtctrl.vertical_total_0_7 * 0x1u
+						                                                     + crtctrl.vertical_total_8 * 0x100u 
+						                                                     + crtctrl.vertical_total_9 * 0x200u ;
+			else if constexpr (_Index == VerticalDisplayEnd     ) return crtctrl.vertical_display_end_0_7 * 0x1u
+						                                                     + crtctrl.vertical_display_end_8 * 0x100u 
+					                                                       + crtctrl.vertical_display_end_9 * 0x200u ;		
+			else if constexpr (_Index == VerticalRetraceStart   ) return crtctrl.vertical_retrace_start_0_7 * 0x1u
+				 	                                                       + crtctrl.vertical_retrace_start_8 * 0x100u 
+				 	                                                       + crtctrl.vertical_retrace_start_9 * 0x200u ;			
+			else if constexpr (_Index == VerticalRetraceEnd     ) return crtctrl.vertical_retrace_end ;
+			else if constexpr (_Index == VerticalBlankingStart  ) return crtctrl.vertical_blanking_start_0_7 * 0x1u
+					                                                       + crtctrl.vertical_blanking_start_8 * 0x100u 
+					                                                       + crtctrl.vertical_blanking_start_9 * 0x200u ;		
+			else if constexpr (_Index == VerticalBlankingEnd    ) return crtctrl.vertical_blanking_end ;	
+			else return 0u;			
+		}
 
-		auto VerticalTotal() const->uint16_t;
-		auto VerticalDisplayEnd() const->uint16_t;
-		auto VerticalRetraceStart() const->uint16_t;
-		auto VerticalRetraceEnd() const->uint16_t;
-		auto VerticalBlankingStart() const->uint16_t;
-		auto VerticalBlankingEnd() const->uint16_t;
 
 
-		auto DisplayEnableSkew() const->uint8_t;
-		auto HorizontalRetraceSkew() const->uint8_t;
-		auto CursorSkew() const->uint8_t;
+		auto Log() const -> void
+		{
+			using namespace std::string_literals;
+			using utils::logger;
 
-		auto CharacterWidth() const->uint8_t;
-		auto CharacterHeight() const->uint8_t;
+		#define Fmt(X) std::format("  > {:.<35}: {}\n"      , #X, GetValue<ValueIndex::X>())
+			logger::debug(logger::deflog, "video state : \n{}\n",
+				std::string()
+				+ Fmt(DrvHorzontalTotal)
+				+ Fmt(DrvVerticalTotal)
+				+ Fmt(DrvHorizontalVisible)
+				+ Fmt(DrvVerticalVisible)
+				+ Fmt(DrvCharacterWidth)
+				+ Fmt(DrvCharacterHeight)
 
-		auto ScreenDisable() const -> bool;
+				+ Fmt(HorizontalTotal)
+				+ Fmt(HorizontalDisplayEnd)
+				+ Fmt(HorizontalRetraceStart)
+				+ Fmt(HorizontalBlankingStart)
+				+ Fmt(HorizontalBlankingEnd)
+				+ Fmt(HorizontalRetraceEnd)
 
-		auto ScanlineDouble() const -> bool;
-		auto ScanlineClockDivide() const -> bool;
-
-		auto MasterClockRate() const->uint64_t;
-		auto MasterClockDivide() const -> bool;
-		auto MemoryClockDivide() const -> bool;
-		auto DotClockDivide() const -> bool;
-
-		auto ShiftLoadRate() const -> bool;
-		auto ShiftFour() const -> bool;
-		auto ByteAddressMode() const -> bool;
-		auto OddEventDisable() const -> bool;
-
-		auto ChainOddEven() const -> bool;
-		auto ChainFour() const -> bool;
-		auto GraphicsMode() const -> bool;
-		auto MemoryMapSelect() const->utils::region32_type;
-		auto CharsetA() const->utils::region32_type;
-		auto CharsetB() const->utils::region32_type;
-*/
-		auto Log() const -> void;
+				+ Fmt(VerticalTotal)
+				+ Fmt(VerticalDisplayEnd)
+				+ Fmt(VerticalRetraceStart)
+				+ Fmt(VerticalBlankingStart)
+				+ Fmt(VerticalBlankingEnd)
+				+ Fmt(VerticalRetraceEnd)
+			);
+		#undef Fmt
+		}
 
 		struct
 		{
@@ -398,7 +434,7 @@ namespace core
 				struct
 				{
 					// 0x00
-					uint8_t horizontal_total_0_7:8;
+					uint8_t horizontal_total:8;
 					// 0x01
 					uint8_t horizontal_display_end:8;
 					// 0x02
@@ -451,23 +487,23 @@ namespace core
 					// 0x0F
 					uint8_t cursor_location_lsb:8;
 					// 0x10
-					uint8_t vertical_retrace_start_0_7;
+					uint8_t vertical_retrace_start_0_7:8;
 					// 0x11
 					uint8_t vertical_retrace_end:4;
 					uint8_t _3:2;
 					uint8_t bandwidth:1;
 					uint8_t protect:1;
 					// 0x12
-					uint8_t vertical_display_end_0_7;
+					uint8_t vertical_display_end_0_7:8;
 					// 0x13
-					uint8_t offset;
+					uint8_t offset:8;
 					// 0x14
 					uint8_t underline_location:5;
 					uint8_t memory_address_clock_divide_by_four:1;
 					uint8_t double_word_addressing:1;
 					uint8_t _4:1;
 					// 0x15
-					uint8_t vertical_blanking_start_0_7;
+					uint8_t vertical_blanking_start_0_7:8;
 					// 0x16
 					uint8_t vertical_blanking_end:7;
 					uint8_t _5:1;
@@ -481,7 +517,7 @@ namespace core
 					uint8_t word_byte_mode_select:1;
 					uint8_t sync_enable:1;					
 					// 0x18
-					uint8_t line_compare_0_7;
+					uint8_t line_compare_0_7:8;
 				};
 			};
 		} crtctrl;
@@ -574,10 +610,10 @@ namespace core
 
 		struct
 		{
-			uint16_t index;
-			uint8_t mask;
-			uint8_t latch;
-			uint8_t flags;
+			uint16_t index:16;
+			uint8_t mask:8;
+			uint8_t latch:8;
+			uint8_t flags:8;
 			uint8_t color[256u * 3u];
 		} ramdac;
 
@@ -588,9 +624,9 @@ namespace core
 			union
 			{
 				struct {
-					uint8_t index : 5;
-					uint8_t pas : 1;
-					uint8_t reserved : 2;
+					uint8_t index:5;
+					uint8_t pas:1;
+					uint8_t _4:2;
 				};
 				uint8_t index_and_pas;
 			};
@@ -625,7 +661,7 @@ namespace core
 			};
 		} attrib;
 		union {
-			uint8_t value;
+			uint8_t value:8;
 			struct {				
 				uint8_t io_address_select:1;
 				uint8_t ram_access_enable:1;
@@ -635,407 +671,255 @@ namespace core
 				uint8_t sync_polarity:2;
 			};
 		} miscellanious;
-		uint8_t feature_control;
+		uint8_t feature_control:8;
 
 	};
 #pragma pack(pop)	
+}
 
-	/*
-	inline auto VgaState::CharacterWidth() const -> uint8_t
+/*
+inline auto VgaState::CharacterWidth() const -> uint8_t
+{
+	return sequencer.clocking_mode & 0x1u ? 8u : 9u;
+}
+
+inline auto VgaState::CharacterHeight() const -> uint8_t
+{
+	return (crtctrl.maximum_scan_line & 0x1F) + 1u;
+}
+
+inline auto VgaState::ScanlineDouble() const -> bool
+{
+	return bool(crtctrl.maximum_scan_line & 0x80u);
+}
+
+inline auto VgaState::ScanlineClockDivide() const -> bool
+{
+	return bool(crtctrl.crt_mode_control & 0x04u);
+}
+
+inline auto VgaState::MemoryClockDivide() const -> bool
+{
+	return bool(crtctrl.crt_mode_control & 0x08u);
+}
+
+inline auto VgaState::ScreenDisable() const -> bool
+{
+	return bool(sequencer.clocking_mode & 0x20u);
+}
+
+inline auto VgaState::ShiftFour() const -> bool
+{
+	return bool(sequencer.clocking_mode & 0x10u);
+}
+
+inline auto VgaState::DotClockDivide() const -> bool
+{
+	return bool(sequencer.clocking_mode & 0x08u);
+}
+
+inline auto VgaState::ShiftLoadRate() const -> bool
+{
+	return bool(sequencer.clocking_mode & 0x04u);
+}
+
+inline auto VgaState::MasterClockDivide() const -> bool
+{
+	return bool(sequencer.character_map_select & 0x08u);
+}
+
+inline auto VgaState::ByteAddressMode() const -> bool
+{
+	return bool(crtctrl.crt_mode_control & 0x40u);
+}
+
+inline auto VgaState::OddEventDisable() const -> bool
+{
+	return bool(sequencer.memory_mode & 0x04u);
+}
+
+inline auto VgaState::ChainOddEven() const -> bool
+{
+	return bool(graphics.miscellaneous & 0x02u);
+}
+
+inline auto VgaState::ChainFour() const -> bool
+{
+	return bool(sequencer.memory_mode & 0x08u);
+}
+
+inline auto VgaState::GraphicsMode() const -> bool
+{
+	return bool(graphics.miscellaneous & 0x01u);
+}
+
+inline auto VgaState::MemoryMapSelect() const -> utils::region32_type
+{
+	switch ((graphics.miscellaneous >> 2u) & 0x3u)
 	{
-		return sequencer.clocking_mode & 0x1u ? 8u : 9u;
-	}
-
-	inline auto VgaState::CharacterHeight() const -> uint8_t
-	{
-		return (crtctrl.maximum_scan_line & 0x1F) + 1u;
-	}
-
-	inline auto VgaState::ScanlineDouble() const -> bool
-	{
-		return bool(crtctrl.maximum_scan_line & 0x80u);
-	}
-
-	inline auto VgaState::ScanlineClockDivide() const -> bool
-	{
-		return bool(crtctrl.crt_mode_control & 0x04u);
-	}
-
-	inline auto VgaState::MemoryClockDivide() const -> bool
-	{
-		return bool(crtctrl.crt_mode_control & 0x08u);
-	}
-
-	inline auto VgaState::ScreenDisable() const -> bool
-	{
-		return bool(sequencer.clocking_mode & 0x20u);
-	}
-
-	inline auto VgaState::ShiftFour() const -> bool
-	{
-		return bool(sequencer.clocking_mode & 0x10u);
-	}
-
-	inline auto VgaState::DotClockDivide() const -> bool
-	{
-		return bool(sequencer.clocking_mode & 0x08u);
-	}
-
-	inline auto VgaState::ShiftLoadRate() const -> bool
-	{
-		return bool(sequencer.clocking_mode & 0x04u);
-	}
-
-	inline auto VgaState::MasterClockDivide() const -> bool
-	{
-		return bool(sequencer.character_map_select & 0x08u);
-	}
-
-	inline auto VgaState::ByteAddressMode() const -> bool
-	{
-		return bool(crtctrl.crt_mode_control & 0x40u);
-	}
-
-	inline auto VgaState::OddEventDisable() const -> bool
-	{
-		return bool(sequencer.memory_mode & 0x04u);
-	}
-
-	inline auto VgaState::ChainOddEven() const -> bool
-	{
-		return bool(graphics.miscellaneous & 0x02u);
-	}
-
-	inline auto VgaState::ChainFour() const -> bool
-	{
-		return bool(sequencer.memory_mode & 0x08u);
-	}
-
-	inline auto VgaState::GraphicsMode() const -> bool
-	{
-		return bool(graphics.miscellaneous & 0x01u);
-	}
-
-	inline auto VgaState::MemoryMapSelect() const -> utils::region32_type
-	{
-		switch ((graphics.miscellaneous >> 2u) & 0x3u)
-		{
-		case 0x0: return { 0xA0000u, 0x20000u };
-		case 0x1: return { 0xA0000u, 0x10000u };
-		case 0x2: return { 0xB0000u, 0x08000u };
-		default:
-		case 0x3: return { 0xB8000u, 0x08000u };
-		}
-
-	}
-
-	inline auto VgaState::CharsetA() const -> utils::region32_type
-	{
-		const uint8_t value_v
-		{ ((sequencer.character_map_select >> 2u) & 0x3u)
-		+ ((sequencer.character_map_select >> 5u) & 0x1u) };
-
-		switch (value_v & 0x7u)
-		{
-		default:
-		case 0b000: return { 0x0000u, 0x2000u };
-		case 0b001: return { 0x4000u, 0x2000u };
-		case 0b010: return { 0x8000u, 0x2000u };
-		case 0b011: return { 0xC000u, 0x2000u };
-		case 0b100: return { 0x2000u, 0x2000u };
-		case 0b101: return { 0x6000u, 0x2000u };
-		case 0b110: return { 0xA000u, 0x2000u };
-		case 0b111: return { 0xE000u, 0x2000u };
-		}
-	}
-
-	inline auto VgaState::CharsetB() const -> utils::region32_type
-	{
-		const uint8_t value_v
-		{ ((sequencer.character_map_select >> 0u) & 0x3u)
-		+ ((sequencer.character_map_select >> 4u) & 0x1u) };
-
-		switch (value_v & 0x7u)
-		{
-		default:
-		case 0b000: return { 0x0000u, 0x2000u };
-		case 0b001: return { 0x4000u, 0x2000u };
-		case 0b010: return { 0x8000u, 0x2000u };
-		case 0b011: return { 0xC000u, 0x2000u };
-		case 0b100: return { 0x2000u, 0x2000u };
-		case 0b101: return { 0x6000u, 0x2000u };
-		case 0b110: return { 0xA000u, 0x2000u };
-		case 0b111: return { 0xE000u, 0x2000u };
-		}
-	}
-
-	inline auto VgaState::MasterClockRate() const -> uint64_t
-	{
-		switch ((misc_output & 0xCu) >> 2u)
-		{
-		default:
-		case 0x0: return 25175000ull;
-		case 0x1: return 28322000ull;
-		case 0x2: return 31500000ull;
-		case 0x3: return 40000000ull;
-		}
-	}
-
-	inline auto VgaState::HorizontalTotal() const -> uint16_t
-	{
-		return CharacterWidth() * (crtctrl.horizontal_total + 5u);
-	}
-
-	inline auto VgaState::HorizontalDisplayEnd() const -> uint16_t
-	{
-		return CharacterWidth() * (crtctrl.horizontal_display_end + 1u);
-	}
-
-	inline auto VgaState::HorizontalRetraceStart() const -> uint16_t
-	{
-		return CharacterWidth() * crtctrl.horizontal_retrace_start;
-	}
-
-	inline auto VgaState::HorizontalRetraceEnd() const -> uint16_t
-	{
-		auto const lsb_v = crtctrl.horizontal_retrace_end & 0x1Fu;
-		auto const counter_v = lsb_v + (HorizontalRetraceStart() & ~0x1Fu);
-		if (counter_v > HorizontalTotal())
-			return counter_v;
-		return lsb_v;
-	}
-
-	inline auto VgaState::HorizontalBlankingStart() const -> uint16_t
-	{
-		return CharacterWidth() * crtctrl.horizontal_blanking_start;
-	}
-
-	inline auto VgaState::HorizontalBlankingEnd() const -> uint16_t
-	{
-		auto const lsb_v = (
-			((crtctrl.horizontal_blanking_end & 0x1Fu) >> 0u) +
-			((crtctrl.horizontal_retrace_end & 0x80u) >> 2u));
-		auto const counter_v = lsb_v + (HorizontalBlankingStart() & ~0x1Fu);
-		if (counter_v > HorizontalTotal())
-			return counter_v;
-		return lsb_v;
-	}
-
-	inline auto VgaState::VerticalTotal() const -> uint16_t
-	{
-		return crtctrl.vertical_total
-			+ 0x100u * (crtctrl.overflow & 0x01u)
-			+ 0x010u * (crtctrl.overflow & 0x20u)
-			;
-	}
-
-	inline auto VgaState::VerticalDisplayEnd() const -> uint16_t
-	{
-		return crtctrl.vertical_blanking_end
-			+ 0x80u * (crtctrl.overflow & 0x02u)
-			+ 0x08u * (crtctrl.overflow & 0x40u)
-			;
-	}
-
-	inline auto VgaState::VerticalRetraceStart() const -> uint16_t
-	{
-		return crtctrl.vertical_retrace_start
-			+ 0x40u * (crtctrl.overflow & 0x04u)
-			+ 0x04u * (crtctrl.overflow & 0x80u)
-			;
-	}
-
-	inline auto VgaState::VerticalRetraceEnd() const -> uint16_t
-	{
-		auto const lsb_v = crtctrl.vertical_retrace_end & 0x0Fu;
-		auto counter_v = lsb_v + (VerticalRetraceStart() & ~0x0Fu);
-		if (counter_v > VerticalTotal())
-			return counter_v;
-		return lsb_v;
-	}
-
-	inline auto VgaState::VerticalBlankingStart() const -> uint16_t
-	{
-		return crtctrl.vertical_blanking_start
-			+ (crtctrl.maximum_scan_line & 0x20u) * 0x10u
-			+ (crtctrl.overflow & 0x08u) * 0x20u
-			;
-	}
-
-	inline auto VgaState::VerticalBlankingEnd() const -> uint16_t
-	{
-		auto const lsb_v = crtctrl.vertical_blanking_end & 0x7Fu;
-		auto counter_v = lsb_v + (VerticalBlankingStart() & ~0x7Fu);
-		if (counter_v > VerticalTotal())
-			return counter_v;
-		return lsb_v;
-	}
-
-	inline auto VgaState::DisplayEnableSkew() const -> uint8_t
-	{
-		return (crtctrl.horizontal_blanking_end >> 5u) & 3u;
-	}
-
-	inline auto VgaState::HorizontalRetraceSkew() const -> uint8_t
-	{
-		return (crtctrl.horizontal_retrace_end >> 5u) & 3u;
-	}
-
-	inline auto VgaState::CursorSkew() const -> uint8_t
-	{
-		return (crtctrl.cursor_end >> 5u) & 3u;
-	}
-	*/
-
-	inline auto VgaState::Log() const -> void
-	{
-		/*
-		using namespace std::string_literals;
-		using utils::logger;
-
-		std::string color_tbl;
-
-		static constexpr const auto draw_rgb = [](auto&& r, auto&& g, auto&& b) {
-			return std::format("\x1b[48;2;{};{};{}m  \x1b[0m", r, g, b);
-			};
-		static constexpr const auto draw_index_rgb = [](auto&& i, auto&& table) {
-			return draw_rgb(
-				table[3u * i + 0u] * 4,
-				table[3u * i + 1u] * 4,
-				table[3u * i + 2u] * 4
-			);
-			};
-
-		for (auto j = 0u; j < 0x10u; ++j)
-		{
-			color_tbl.append("\n  > ");
-			for (auto i = 0u; i < 0x10u; ++i)
-			{
-				auto r = ramdac.color[3u * (j * 0x10u + i) + 0u];
-				auto g = ramdac.color[3u * (j * 0x10u + i) + 1u];
-				auto b = ramdac.color[3u * (j * 0x10u + i) + 2u];
-				color_tbl.append(draw_rgb(r * 0x4, g * 0x4, b * 0x4));
-			}
-		}
-
-#define Fmt(X)     std::format("  > {:.<35} = {}\n"      , #X, X)
-#define Fmt_(X, Y) std::format("  > {:.<35} = {} ({})\n" , #X, X, Y)
-#define FmtH(X)    std::format("  > {:.<35} = 0x{:02X}\n", #X, X)
-		logger::debug(logger::deflog, "video state : \n{}\n",
-			std::string()
-
-			+ Fmt(HorizontalTotal())
-			+ Fmt(HorizontalDisplayEnd())
-			+ Fmt(HorizontalBlankingStart())
-			+ Fmt(HorizontalRetraceStart())
-			+ Fmt(HorizontalRetraceEnd())
-			+ Fmt(HorizontalBlankingEnd())
-
-			+ Fmt(VerticalTotal())
-			+ Fmt(VerticalDisplayEnd())
-			+ Fmt(VerticalBlankingStart())
-			+ Fmt(VerticalRetraceStart())
-			+ Fmt(VerticalRetraceEnd())
-			+ Fmt(VerticalBlankingEnd())
-
-			+ Fmt(DisplayEnableSkew())
-			+ Fmt(HorizontalRetraceSkew())
-			+ Fmt(CursorSkew())
-
-			+ Fmt(ScreenDisable())
-
-			+ Fmt(MasterClockRate() * 1e-6)
-			+ Fmt(MemoryClockDivide())
-			+ Fmt(DotClockDivide())
-
-			+ Fmt(ScanlineDouble())
-			+ Fmt(ScanlineClockDivide())
-
-			+ Fmt(ShiftLoadRate())
-			+ Fmt(ShiftFour())
-			+ Fmt(ChainFour())
-			+ Fmt(ByteAddressMode())
-			+ Fmt(OddEventDisable())
-
-			+ Fmt(ChainOddEven())
-			+ Fmt(GraphicsMode())
-			+ FmtH(MemoryMapSelect().base())
-			+ FmtH(MemoryMapSelect().end())
-			+ FmtH(CharsetA().base())
-			+ FmtH(CharsetA().end())
-			+ FmtH(CharsetB().base())
-			+ FmtH(CharsetB().end())
-
-			+ Fmt(CharacterWidth())
-			+ Fmt(CharacterHeight())
-
-			+ FmtH(crtctrl.horizontal_total)
-			+ FmtH(crtctrl.horizontal_display_end)
-			+ FmtH(crtctrl.horizontal_blanking_start)
-			+ FmtH(crtctrl.horizontal_blanking_end)
-			+ FmtH(crtctrl.horizontal_retrace_start)
-			+ FmtH(crtctrl.horizontal_retrace_end)
-			+ FmtH(crtctrl.vertical_total)
-			+ FmtH(crtctrl.overflow)
-			+ FmtH(crtctrl.preset_row_scan)
-			+ FmtH(crtctrl.maximum_scan_line)
-			+ FmtH(crtctrl.cursor_start)
-			+ FmtH(crtctrl.cursor_end)
-			+ FmtH(crtctrl.start_address_high)
-			+ FmtH(crtctrl.start_address_low)
-			+ FmtH(crtctrl.cursor_location_high)
-			+ FmtH(crtctrl.cursor_location_low)
-			+ FmtH(crtctrl.vertical_retrace_start)
-			+ FmtH(crtctrl.vertical_retrace_end)
-			+ FmtH(crtctrl.vertical_display_end)
-			+ FmtH(crtctrl.offset)
-			+ FmtH(crtctrl.underline_location)
-			+ FmtH(crtctrl.vertical_blanking_start)
-			+ FmtH(crtctrl.vertical_blanking_end)
-			+ FmtH(crtctrl.crt_mode_control)
-			+ FmtH(crtctrl.line_compare)
-			+ FmtH(sequencer.reset)
-			+ FmtH(sequencer.clocking_mode)
-			+ FmtH(sequencer.map_mask)
-			+ FmtH(sequencer.character_map_select)
-			+ FmtH(sequencer.memory_mode)
-			+ FmtH(graphics.set_or_reset)
-			+ FmtH(graphics.enable_set_or_reset)
-			+ FmtH(graphics.color_compare)
-			+ FmtH(graphics.data_rotate)
-			+ FmtH(graphics.read_map_select)
-			+ FmtH(graphics.graphics_mode)
-			+ FmtH(graphics.miscellaneous)
-			+ FmtH(graphics.color_dont_care)
-			+ FmtH(graphics.bit_mask)
-			+ Fmt_(attrib.palette[0x0], draw_index_rgb(attrib.palette[0x0], ramdac.color))
-			+ Fmt_(attrib.palette[0x1], draw_index_rgb(attrib.palette[0x1], ramdac.color))
-			+ Fmt_(attrib.palette[0x2], draw_index_rgb(attrib.palette[0x2], ramdac.color))
-			+ Fmt_(attrib.palette[0x3], draw_index_rgb(attrib.palette[0x3], ramdac.color))
-			+ Fmt_(attrib.palette[0x4], draw_index_rgb(attrib.palette[0x4], ramdac.color))
-			+ Fmt_(attrib.palette[0x5], draw_index_rgb(attrib.palette[0x5], ramdac.color))
-			+ Fmt_(attrib.palette[0x6], draw_index_rgb(attrib.palette[0x6], ramdac.color))
-			+ Fmt_(attrib.palette[0x7], draw_index_rgb(attrib.palette[0x7], ramdac.color))
-			+ Fmt_(attrib.palette[0x8], draw_index_rgb(attrib.palette[0x8], ramdac.color))
-			+ Fmt_(attrib.palette[0x9], draw_index_rgb(attrib.palette[0x9], ramdac.color))
-			+ Fmt_(attrib.palette[0xA], draw_index_rgb(attrib.palette[0xA], ramdac.color))
-			+ Fmt_(attrib.palette[0xB], draw_index_rgb(attrib.palette[0xB], ramdac.color))
-			+ Fmt_(attrib.palette[0xC], draw_index_rgb(attrib.palette[0xC], ramdac.color))
-			+ Fmt_(attrib.palette[0xD], draw_index_rgb(attrib.palette[0xD], ramdac.color))
-			+ Fmt_(attrib.palette[0xE], draw_index_rgb(attrib.palette[0xE], ramdac.color))
-			+ Fmt_(attrib.palette[0xF], draw_index_rgb(attrib.palette[0xF], ramdac.color))
-			+ FmtH(attrib.mode_control)
-			+ FmtH(attrib.overscan_color)
-			+ FmtH(attrib.color_plane_enable)
-			+ FmtH(attrib.horizontal_panning)
-			+ FmtH(attrib.color_select)
-			+ FmtH(ramdac.latch)
-			+ FmtH(ramdac.mask)
-			+ "  > ramdac.color => "s + color_tbl + "\n");
-#undef Fmt
-#undef Fmt_
-#undef FmtH
-		*/
+	case 0x0: return { 0xA0000u, 0x20000u };
+	case 0x1: return { 0xA0000u, 0x10000u };
+	case 0x2: return { 0xB0000u, 0x08000u };
+	default:
+	case 0x3: return { 0xB8000u, 0x08000u };
 	}
 
 }
+
+inline auto VgaState::CharsetA() const -> utils::region32_type
+{
+	const uint8_t value_v
+	{ ((sequencer.character_map_select >> 2u) & 0x3u)
+	+ ((sequencer.character_map_select >> 5u) & 0x1u) };
+
+	switch (value_v & 0x7u)
+	{
+	default:
+	case 0b000: return { 0x0000u, 0x2000u };
+	case 0b001: return { 0x4000u, 0x2000u };
+	case 0b010: return { 0x8000u, 0x2000u };
+	case 0b011: return { 0xC000u, 0x2000u };
+	case 0b100: return { 0x2000u, 0x2000u };
+	case 0b101: return { 0x6000u, 0x2000u };
+	case 0b110: return { 0xA000u, 0x2000u };
+	case 0b111: return { 0xE000u, 0x2000u };
+	}
+}
+
+inline auto VgaState::CharsetB() const -> utils::region32_type
+{
+	const uint8_t value_v
+	{ ((sequencer.character_map_select >> 0u) & 0x3u)
+	+ ((sequencer.character_map_select >> 4u) & 0x1u) };
+
+	switch (value_v & 0x7u)
+	{
+	default:
+	case 0b000: return { 0x0000u, 0x2000u };
+	case 0b001: return { 0x4000u, 0x2000u };
+	case 0b010: return { 0x8000u, 0x2000u };
+	case 0b011: return { 0xC000u, 0x2000u };
+	case 0b100: return { 0x2000u, 0x2000u };
+	case 0b101: return { 0x6000u, 0x2000u };
+	case 0b110: return { 0xA000u, 0x2000u };
+	case 0b111: return { 0xE000u, 0x2000u };
+	}
+}
+
+inline auto VgaState::MasterClockRate() const -> uint64_t
+{
+	switch ((misc_output & 0xCu) >> 2u)
+	{
+	default:
+	case 0x0: return 25175000ull;
+	case 0x1: return 28322000ull;
+	case 0x2: return 31500000ull;
+	case 0x3: return 40000000ull;
+	}
+}
+
+inline auto VgaState::HorizontalTotal() const -> uint16_t
+{
+	return CharacterWidth() * (crtctrl.horizontal_total + 5u);
+}
+
+inline auto VgaState::HorizontalDisplayEnd() const -> uint16_t
+{
+	return CharacterWidth() * (crtctrl.horizontal_display_end + 1u);
+}
+
+inline auto VgaState::HorizontalRetraceStart() const -> uint16_t
+{
+	return CharacterWidth() * crtctrl.horizontal_retrace_start;
+}
+
+inline auto VgaState::HorizontalRetraceEnd() const -> uint16_t
+{
+	auto const lsb_v = crtctrl.horizontal_retrace_end & 0x1Fu;
+	auto const counter_v = lsb_v + (HorizontalRetraceStart() & ~0x1Fu);
+	if (counter_v > HorizontalTotal())
+		return counter_v;
+	return lsb_v;
+}
+
+inline auto VgaState::HorizontalBlankingStart() const -> uint16_t
+{
+	return CharacterWidth() * crtctrl.horizontal_blanking_start;
+}
+
+inline auto VgaState::HorizontalBlankingEnd() const -> uint16_t
+{
+	auto const lsb_v = (
+		((crtctrl.horizontal_blanking_end & 0x1Fu) >> 0u) +
+		((crtctrl.horizontal_retrace_end & 0x80u) >> 2u));
+	auto const counter_v = lsb_v + (HorizontalBlankingStart() & ~0x1Fu);
+	if (counter_v > HorizontalTotal())
+		return counter_v;
+	return lsb_v;
+}
+
+inline auto VgaState::VerticalTotal() const -> uint16_t
+{
+	return crtctrl.vertical_total
+		+ 0x100u * (crtctrl.overflow & 0x01u)
+		+ 0x010u * (crtctrl.overflow & 0x20u)
+		;
+}
+
+inline auto VgaState::VerticalDisplayEnd() const -> uint16_t
+{
+	return crtctrl.vertical_blanking_end
+		+ 0x80u * (crtctrl.overflow & 0x02u)
+		+ 0x08u * (crtctrl.overflow & 0x40u)
+		;
+}
+
+inline auto VgaState::VerticalRetraceStart() const -> uint16_t
+{
+	return crtctrl.vertical_retrace_start
+		+ 0x40u * (crtctrl.overflow & 0x04u)
+		+ 0x04u * (crtctrl.overflow & 0x80u)
+		;
+}
+
+inline auto VgaState::VerticalRetraceEnd() const -> uint16_t
+{
+	auto const lsb_v = crtctrl.vertical_retrace_end & 0x0Fu;
+	auto counter_v = lsb_v + (VerticalRetraceStart() & ~0x0Fu);
+	if (counter_v > VerticalTotal())
+		return counter_v;
+	return lsb_v;
+}
+
+inline auto VgaState::VerticalBlankingStart() const -> uint16_t
+{
+	return crtctrl.vertical_blanking_start
+		+ (crtctrl.maximum_scan_line & 0x20u) * 0x10u
+		+ (crtctrl.overflow & 0x08u) * 0x20u
+		;
+}
+
+inline auto VgaState::VerticalBlankingEnd() const -> uint16_t
+{
+	auto const lsb_v = crtctrl.vertical_blanking_end & 0x7Fu;
+	auto counter_v = lsb_v + (VerticalBlankingStart() & ~0x7Fu);
+	if (counter_v > VerticalTotal())
+		return counter_v;
+	return lsb_v;
+}
+
+inline auto VgaState::DisplayEnableSkew() const -> uint8_t
+{
+	return (crtctrl.horizontal_blanking_end >> 5u) & 3u;
+}
+
+inline auto VgaState::HorizontalRetraceSkew() const -> uint8_t
+{
+	return (crtctrl.horizontal_retrace_end >> 5u) & 3u;
+}
+
+inline auto VgaState::CursorSkew() const -> uint8_t
+{
+	return (crtctrl.cursor_end >> 5u) & 3u;
+}
+*/
