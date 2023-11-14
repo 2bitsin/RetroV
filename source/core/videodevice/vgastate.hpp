@@ -65,17 +65,28 @@ namespace core
 	{
 		enum class ValueIndex : std::uint16_t {
 
-			DrvHorzontalTotal,
+			DrvHorizontalTotalChars,
+			DrvHorizontalVisibleChars,
+			DrvHorizontalTotal,
 			DrvHorizontalVisible,
+      DrvHorizontalBlankingStartChars,
+      DrvHorizontalBlankingStart,
+      DrvHorizontalBlankingEndChars,
+      DrvHorizontalBlankingEnd,
+      DrvHorizontalRetraceStartChars,
+      DrvHorizontalRetraceStart,
+      DrvHorizontalRetraceEndChars,
+      DrvHorizontalRetraceEnd,
+
 			DrvVerticalTotal,
 			DrvVerticalVisible,
-			DrvCharacterWidth,
-			DrvCharacterHeight,
-
 			DrvVerticalBlankingStart,
 			DrvVerticalBlankingEnd,
 			DrvVerticalRetraceStart,
 			DrvVerticalRetraceEnd,
+
+			DrvCharacterWidth,
+			DrvCharacterHeight,
 
 			HorizontalTotal,
 			HorizontalDisplayEnd,
@@ -92,11 +103,8 @@ namespace core
 			VerticalBlankingEnd,
 
 			MaximumScanline,
-			EightDotMode
-
-
-
-
+			DotClockRate,
+			EightDotMode,
 		};
 
 		constexpr inline VgaState() noexcept 
@@ -358,36 +366,133 @@ namespace core
 		template <ValueIndex _Index>
 		constexpr inline auto GetValue() const
 		{
-			using enum ValueIndex;
-			     if constexpr (_Index == DrvHorzontalTotal      ) return GetValue<DrvCharacterWidth>()*(GetValue<HorizontalTotal>() + 5u);
-			else if constexpr (_Index == DrvHorizontalVisible   ) return GetValue<DrvCharacterWidth>()*(GetValue<HorizontalDisplayEnd>()+1u);
-			else if constexpr (_Index == DrvVerticalTotal       ) return GetValue<VerticalTotal>() + 2u;
-			else if constexpr (_Index == DrvVerticalVisible     ) return GetValue<VerticalDisplayEnd>() + 1u;
-			else if constexpr (_Index == DrvCharacterWidth      ) return 1u*!GetValue<EightDotMode>() + 8u;
-			else if constexpr (_Index == DrvCharacterHeight     ) return GetValue<MaximumScanline>() + 1u;
+			static constexpr auto F = [](auto x, auto m) { x &= (m - 1); return !x ? m : x; };
 
-			else if constexpr (_Index == EightDotMode           ) return sequencer.eight_dot_mode ;
-			else if constexpr (_Index == HorizontalTotal        ) return crtctrl.horizontal_total ;
-			else if constexpr (_Index == HorizontalDisplayEnd   ) return crtctrl.horizontal_display_end ;
-			else if constexpr (_Index == HorizontalRetraceStart ) return crtctrl.horizontal_retrace_start ;      
-			else if constexpr (_Index == HorizontalRetraceEnd   ) return crtctrl.horizontal_retrace_end ;
-			else if constexpr (_Index == HorizontalBlankingStart) return crtctrl.horizontal_blanking_start ;     
-			else if constexpr (_Index == HorizontalBlankingEnd  ) return crtctrl.horizontal_blanking_end_0_4
-						                                                     + crtctrl.horizontal_blanking_end_5 ;			
-			else if constexpr (_Index == VerticalTotal          ) return crtctrl.vertical_total_0_7 * 0x1u
-						                                                     + crtctrl.vertical_total_8 * 0x100u 
-						                                                     + crtctrl.vertical_total_9 * 0x200u ;
-			else if constexpr (_Index == VerticalDisplayEnd     ) return crtctrl.vertical_display_end_0_7 * 0x1u
-						                                                     + crtctrl.vertical_display_end_8 * 0x100u 
-					                                                       + crtctrl.vertical_display_end_9 * 0x200u ;		
-			else if constexpr (_Index == VerticalRetraceStart   ) return crtctrl.vertical_retrace_start_0_7 * 0x1u
-				 	                                                       + crtctrl.vertical_retrace_start_8 * 0x100u 
-				 	                                                       + crtctrl.vertical_retrace_start_9 * 0x200u ;			
-			else if constexpr (_Index == VerticalRetraceEnd     ) return crtctrl.vertical_retrace_end ;
-			else if constexpr (_Index == VerticalBlankingStart  ) return crtctrl.vertical_blanking_start_0_7 * 0x1u
-					                                                       + crtctrl.vertical_blanking_start_8 * 0x100u 
-					                                                       + crtctrl.vertical_blanking_start_9 * 0x200u ;		
-			else if constexpr (_Index == VerticalBlankingEnd    ) return crtctrl.vertical_blanking_end ;	
+			using enum ValueIndex;
+			     if constexpr (_Index == EightDotMode              ) return sequencer.eight_dot_mode ;
+			else if constexpr (_Index == DotClockRate              ) return sequencer.dot_clock_rate ;
+			else if constexpr (_Index == HorizontalTotal           ) return crtctrl.horizontal_total ;
+			else if constexpr (_Index == HorizontalDisplayEnd      ) return crtctrl.horizontal_display_end ;
+			else if constexpr (_Index == HorizontalRetraceStart    ) return crtctrl.horizontal_retrace_start ;      
+			else if constexpr (_Index == HorizontalRetraceEnd      ) return crtctrl.horizontal_retrace_end ;
+			else if constexpr (_Index == HorizontalBlankingStart   ) return crtctrl.horizontal_blanking_start ;     
+			else if constexpr (_Index == HorizontalBlankingEnd     ) return crtctrl.horizontal_blanking_end_0_4
+						                                                        + crtctrl.horizontal_blanking_end_5 ;			
+			else if constexpr (_Index == VerticalTotal             ) return crtctrl.vertical_total_0_7 * 0x1u
+						                                                        + crtctrl.vertical_total_8 * 0x100u 
+						                                                        + crtctrl.vertical_total_9 * 0x200u ;
+			else if constexpr (_Index == VerticalDisplayEnd        ) return crtctrl.vertical_display_end_0_7 * 0x1u
+						                                                        + crtctrl.vertical_display_end_8 * 0x100u 
+					                                                          + crtctrl.vertical_display_end_9 * 0x200u ;		
+			else if constexpr (_Index == VerticalRetraceStart      ) return crtctrl.vertical_retrace_start_0_7 * 0x1u
+				 	                                                          + crtctrl.vertical_retrace_start_8 * 0x100u 
+				 	                                                          + crtctrl.vertical_retrace_start_9 * 0x200u ;			
+			else if constexpr (_Index == VerticalRetraceEnd        ) return crtctrl.vertical_retrace_end ;
+			else if constexpr (_Index == VerticalBlankingStart     ) return crtctrl.vertical_blanking_start_0_7 * 0x1u
+					                                                          + crtctrl.vertical_blanking_start_8 * 0x100u 
+					                                                          + crtctrl.vertical_blanking_start_9 * 0x200u ;		
+			else if constexpr (_Index == VerticalBlankingEnd       ) return crtctrl.vertical_blanking_end ;	
+
+			else if constexpr (_Index == DrvHorizontalTotalChars) 
+			{				
+				auto const ht = GetValue<HorizontalTotal>();
+				auto const dc = GetValue<DotClockRate>();
+				return (ht + 5u) << dc;
+			}
+      else if constexpr (_Index == DrvHorizontalVisibleChars)
+      {
+        return GetValue<HorizontalDisplayEnd>() + 1u;
+      }
+      else if constexpr (_Index == DrvHorizontalTotal)
+			{
+        auto const cw = GetValue<DrvCharacterWidth>();
+        auto const ht = GetValue<DrvHorizontalTotalChars>();
+        return cw*ht;
+			}
+      else if constexpr (_Index == DrvHorizontalVisible)
+      {
+        auto const cw = GetValue<DrvCharacterWidth>();
+        auto const ht = GetValue<DrvHorizontalVisibleChars>();
+        return cw * ht;
+      }
+      else if constexpr (_Index == DrvHorizontalRetraceStartChars)
+      {
+        return GetValue<HorizontalRetraceStart>();
+      }
+      else if constexpr (_Index == DrvHorizontalRetraceStart)
+      {
+        auto const cw = GetValue<DrvCharacterWidth>();
+        return cw*GetValue<DrvHorizontalRetraceStartChars>();
+      }
+      else if constexpr (_Index == DrvHorizontalRetraceEndChars)
+      {
+        auto const s = GetValue<HorizontalRetraceStart>();
+        auto const e = GetValue<HorizontalRetraceEnd>();
+        return s + F(e - s, 0x20u);
+      }
+      else if constexpr (_Index == DrvHorizontalRetraceEnd)
+      {
+        auto const cw = GetValue<DrvCharacterWidth>();
+        return cw*GetValue<DrvHorizontalRetraceEndChars>();
+      }
+      else if constexpr (_Index == DrvHorizontalBlankingStartChars)
+      {
+        return GetValue<HorizontalBlankingStart>();
+      }
+      else if constexpr (_Index == DrvHorizontalBlankingStart)
+      {
+        auto const cw = GetValue<DrvCharacterWidth>();
+        return cw*GetValue<DrvHorizontalBlankingStartChars>();
+      }
+      else if constexpr (_Index == DrvHorizontalBlankingEndChars)
+      {
+        auto const s = GetValue<HorizontalBlankingStart>(); 
+        auto const e = GetValue<HorizontalBlankingEnd>();
+        return s + ((s - e) & 0x3Fu);
+      }
+      else if constexpr (_Index == DrvHorizontalBlankingEnd)
+      {
+        auto const cw = GetValue<DrvCharacterWidth>();
+        return cw*GetValue<DrvHorizontalBlankingEndChars>();
+      }
+      else if constexpr (_Index == DrvVerticalTotal)
+			{
+				return GetValue<VerticalTotal>() + 2u;
+			}
+			else if constexpr (_Index == DrvVerticalVisible)
+			{
+				return GetValue<VerticalDisplayEnd>() + 1u;
+			}
+			else if constexpr (_Index == DrvCharacterWidth) 
+			{
+				return 1u * !GetValue<EightDotMode>() + 8u;
+			}
+			else if constexpr (_Index == DrvCharacterHeight) 
+			{	
+				return GetValue<MaximumScanline>() + 1u;
+			}
+			else if constexpr (_Index == DrvVerticalRetraceStart) 
+			{
+				return GetValue<VerticalRetraceStart>();
+			}      
+			else if constexpr (_Index == DrvVerticalRetraceEnd) 
+			{
+				auto const s = GetValue<VerticalRetraceStart>();
+				auto const e = GetValue<VerticalRetraceEnd>();
+				return s + F(e - s, 0x10u);
+			}
+			else if constexpr (_Index == DrvVerticalBlankingStart)
+			{
+				auto const s = GetValue<VerticalBlankingStart>();
+				return s ? s + 1u : s;
+			}
+			else if constexpr (_Index == DrvVerticalBlankingEnd)					 
+			{
+				auto const s = GetValue<VerticalBlankingStart>();
+				auto const e = GetValue<VerticalBlankingEnd>();
+				return 1u + (s ? F((e & 0x7fu) - (s + 1u), 0x80u) + (s + 1u) : e & 0x7fu);
+			}
+
 			else return 0u;			
 		}
 
@@ -401,19 +506,35 @@ namespace core
 		#define Fmt(X) std::format("  > {:.<35}: {}\n"      , #X, GetValue<ValueIndex::X>())
 			logger::debug(logger::deflog, "video state : \n{}\n",
 				std::string()
-				+ Fmt(DrvHorzontalTotal)
-				+ Fmt(DrvVerticalTotal)
-				+ Fmt(DrvHorizontalVisible)
+        + Fmt(DrvHorizontalVisible)
+        + Fmt(DrvHorizontalBlankingStart)
+        + Fmt(DrvHorizontalRetraceStart)
+        + Fmt(DrvHorizontalRetraceEnd)
+        + Fmt(DrvHorizontalBlankingEnd)
+        + Fmt(DrvHorizontalTotal)
+
+				+ Fmt(DrvHorizontalVisibleChars)
+        + Fmt(DrvHorizontalBlankingStartChars)
+        + Fmt(DrvHorizontalRetraceStartChars)
+        + Fmt(DrvHorizontalRetraceEndChars)
+        + Fmt(DrvHorizontalBlankingEndChars)
+        + Fmt(DrvHorizontalTotalChars)
+
 				+ Fmt(DrvVerticalVisible)
+				+ Fmt(DrvVerticalBlankingStart)
+				+ Fmt(DrvVerticalRetraceStart)
+				+ Fmt(DrvVerticalRetraceEnd)
+				+ Fmt(DrvVerticalBlankingEnd)
+				+ Fmt(DrvVerticalTotal)
+
 				+ Fmt(DrvCharacterWidth)
 				+ Fmt(DrvCharacterHeight)
-
-				+ Fmt(HorizontalTotal)
 				+ Fmt(HorizontalDisplayEnd)
 				+ Fmt(HorizontalRetraceStart)
 				+ Fmt(HorizontalBlankingStart)
 				+ Fmt(HorizontalBlankingEnd)
 				+ Fmt(HorizontalRetraceEnd)
+				+ Fmt(HorizontalTotal)
 
 				+ Fmt(VerticalTotal)
 				+ Fmt(VerticalDisplayEnd)
