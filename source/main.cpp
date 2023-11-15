@@ -26,6 +26,7 @@
 #include <chrono>
 #include <cstdio>
 #include <format>
+#include <print>
 #include <chrono>
 
 static inline auto MakeConfiguration() -> core::Configuration 
@@ -70,7 +71,29 @@ int main(int argc, char** argv) try
 	current_path(path(argv[0])
 		.parent_path()
 		.parent_path());
-#if 1
+
+  waitable_timer wt;
+  volatile std::uint64_t test = 0;
+  auto const period = duration_cast<filetime_clock::duration>(1s / (70.0*449.0));
+  for(auto i = 0u; i < 10u; i += 1u)
+  {
+    std::uint64_t ticks = 0;
+    auto next_time = filetime_clock::now() + period;
+    const auto t0 = high_resolution_clock::now();
+    while (high_resolution_clock::now() - t0 < 10s)
+    {
+      wt.set(next_time);
+      next_time += period;
+      ticks += 1u;
+      for(auto q = 0ull; q < 80000ull; q += 1ull)
+        test += 1u;
+      wt.wait();
+    }
+    std::print("Ticks: {} ({}) * ({})\n", ticks, ticks / 4490.0, ticks / 700.0);
+  }
+  std::print("Test: {}\n", (uint64_t)test);
+  __debugbreak();
+#if 0
 	using std::chrono::steady_clock;
 
 	using core::Machine;

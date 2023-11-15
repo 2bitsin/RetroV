@@ -102,9 +102,15 @@ namespace core
 			VerticalBlankingStart,
 			VerticalBlankingEnd,
 
+      MasterClockSelect,
 			MaximumScanline,
 			DotClockRate,
 			EightDotMode,
+      DoubleWordAddressing,
+      AddressClockDivideByFour,
+      AddressClockDivideByTwo,
+      ScanlineClockDivideByTwo, 
+      DoubleScanning
 		};
 
 		constexpr inline VgaState() noexcept 
@@ -176,8 +182,6 @@ namespace core
 			case Port_VgaCrtIndex:
 				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
 				crtctrl.index = data_v & 0x1Fu;
-				while (crtctrl.index >= std::size(crtctrl.data))
-					crtctrl.index -= std::size(crtctrl.data);
 				return ERROR_SUCCESS;
 
 			case Port_MdaCrtData:
@@ -188,9 +192,6 @@ namespace core
 						crtctrl.data[crtctrl.index] = data_v;
 					}
 				}
-				crtctrl.index += 1u;
-				while (crtctrl.index >= std::size(crtctrl.data))
-					crtctrl.index -= std::size(crtctrl.data);
 				return ERROR_SUCCESS;
 
 				/***********************
@@ -198,15 +199,11 @@ namespace core
 				 ***********************/
 			case Port_SequencerIndex:
 				sequencer.index = data_v & 0x7u;
-				while (sequencer.index >= std::size(sequencer.data))
-					sequencer.index -= std::size(sequencer.data);
 				return ERROR_SUCCESS;
 
 			case Port_SequencerData:
-				sequencer.data[sequencer.index] = data_v;
-				sequencer.index += 1u;
-				while (sequencer.index >= std::size(sequencer.data))
-					sequencer.index -= std::size(sequencer.data);
+        if (sequencer.index < std::size(sequencer.data))
+				  sequencer.data[sequencer.index] = data_v;
 				return ERROR_SUCCESS;
 
 				/*********************************
@@ -214,14 +211,10 @@ namespace core
 				 *********************************/
 			case Port_GraphicsCtrlIndex:
 				graphics.index = data_v & 0x0Fu;
-				while (graphics.index >= std::size(graphics.data))
-					graphics.index -= std::size(graphics.data);
 				return ERROR_SUCCESS;
 			case Port_GraphicsCtrlData:
-				graphics.data[graphics.index] = data_v;
-				graphics.index += 1u;
-				while (graphics.index >= std::size(graphics.data))
-					graphics.index -= std::size(graphics.data);
+        if (graphics.index < std::size(graphics.data))
+				  graphics.data[graphics.index] = data_v;
 				return ERROR_SUCCESS;
 
 				/***********************
@@ -295,10 +288,9 @@ namespace core
 			case Port_VgaCrtData:
 			case Port_MdaCrtData:
 				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
-				tmp_v = crtctrl.data[crtctrl.index];
-				crtctrl.index += 1u;
-				while (crtctrl.index >= std::size(crtctrl.data))
-					crtctrl.index -= std::size(crtctrl.data);
+        tmp_v = 0xffu;
+        if (crtctrl.index < std::size(crtctrl.data))
+				  tmp_v = crtctrl.data[crtctrl.index];  
 				return { ERROR_SUCCESS, tmp_v };
 
 			case Port_MdaInputStatus:
@@ -314,10 +306,9 @@ namespace core
 				return { ERROR_SUCCESS, sequencer.index };
 
 			case Port_SequencerData:
-				tmp_v = sequencer.data[sequencer.index];
-				sequencer.index += 1u;
-				while (sequencer.index >= std::size(sequencer.data))
-					sequencer.index -= std::size(sequencer.data);
+        tmp_v = 0xffu;
+        if (sequencer.index < std::size(sequencer.data))
+				  tmp_v = sequencer.data[sequencer.index];
 				return { ERROR_SUCCESS, tmp_v };
 
 				/**************************
@@ -327,10 +318,9 @@ namespace core
 				return { ERROR_SUCCESS, graphics.index };
 
 			case Port_GraphicsCtrlData:
-				tmp_v = graphics.data[graphics.index];
-				graphics.index += 1u;
-				while (graphics.index >= std::size(graphics.data))
-					graphics.index -= std::size(graphics.data);
+        tmp_v = 0xffu;
+        if (graphics.index < std::size(graphics.data))  
+          tmp_v = graphics.data[graphics.index];
 				return { ERROR_SUCCESS, tmp_v };
 
 				/***********************
@@ -342,7 +332,7 @@ namespace core
 			case Port_Attribute1:
 				if (attrib.index < std::size(attrib.data))
 					return { ERROR_SUCCESS, attrib.data[attrib.index] };
-				return { ERROR_SUCCESS, 0x00u };
+				return { ERROR_SUCCESS, 0xffu };
 
 				/*********************************
 				 *	MISC OUTPUT & FEATURE CONTROL
@@ -371,6 +361,8 @@ namespace core
 			using enum ValueIndex;
 			     if constexpr (_Index == EightDotMode              ) return sequencer.eight_dot_mode ;
 			else if constexpr (_Index == DotClockRate              ) return sequencer.dot_clock_rate ;
+      else if constexpr (_Index == MasterClockSelect         ) return miscellanious.clock_select;
+      else if constexpr (_Index == MaximumScanline           ) return crtctrl.maximum_scan_line ;
 			else if constexpr (_Index == HorizontalTotal           ) return crtctrl.horizontal_total ;
 			else if constexpr (_Index == HorizontalDisplayEnd      ) return crtctrl.horizontal_display_end ;
 			else if constexpr (_Index == HorizontalRetraceStart    ) return crtctrl.horizontal_retrace_start ;      
@@ -393,155 +385,57 @@ namespace core
 					                                                          + crtctrl.vertical_blanking_start_9 * 0x200u ;		
 			else if constexpr (_Index == VerticalBlankingEnd       ) return crtctrl.vertical_blanking_end ;	
 
-			else if constexpr (_Index == DrvHorizontalTotalChars) 
-			{				
-				auto const ht = GetValue<HorizontalTotal>();
-				auto const dc = GetValue<DotClockRate>();
-				return (ht + 5u) << dc;
-			}
-      else if constexpr (_Index == DrvHorizontalVisibleChars)
-      {
-        return GetValue<HorizontalDisplayEnd>() + 1u;
-      }
-      else if constexpr (_Index == DrvHorizontalTotal)
-			{
-        auto const cw = GetValue<DrvCharacterWidth>();
-        auto const ht = GetValue<DrvHorizontalTotalChars>();
-        return cw*ht;
-			}
-      else if constexpr (_Index == DrvHorizontalVisible)
-      {
-        auto const cw = GetValue<DrvCharacterWidth>();
-        auto const ht = GetValue<DrvHorizontalVisibleChars>();
-        return cw * ht;
-      }
-      else if constexpr (_Index == DrvHorizontalRetraceStartChars)
-      {
-        return GetValue<HorizontalRetraceStart>();
-      }
-      else if constexpr (_Index == DrvHorizontalRetraceStart)
-      {
-        auto const cw = GetValue<DrvCharacterWidth>();
-        return cw*GetValue<DrvHorizontalRetraceStartChars>();
-      }
-      else if constexpr (_Index == DrvHorizontalRetraceEndChars)
-      {
-        auto const s = GetValue<HorizontalRetraceStart>();
-        auto const e = GetValue<HorizontalRetraceEnd>();
-        return s + F(e - s, 0x20u);
-      }
-      else if constexpr (_Index == DrvHorizontalRetraceEnd)
-      {
-        auto const cw = GetValue<DrvCharacterWidth>();
-        return cw*GetValue<DrvHorizontalRetraceEndChars>();
-      }
-      else if constexpr (_Index == DrvHorizontalBlankingStartChars)
-      {
-        return GetValue<HorizontalBlankingStart>();
-      }
-      else if constexpr (_Index == DrvHorizontalBlankingStart)
-      {
-        auto const cw = GetValue<DrvCharacterWidth>();
-        return cw*GetValue<DrvHorizontalBlankingStartChars>();
-      }
-      else if constexpr (_Index == DrvHorizontalBlankingEndChars)
-      {
-        auto const s = GetValue<HorizontalBlankingStart>(); 
-        auto const e = GetValue<HorizontalBlankingEnd>();
-        return s + ((s - e) & 0x3Fu);
-      }
-      else if constexpr (_Index == DrvHorizontalBlankingEnd)
-      {
-        auto const cw = GetValue<DrvCharacterWidth>();
-        return cw*GetValue<DrvHorizontalBlankingEndChars>();
-      }
-      else if constexpr (_Index == DrvVerticalTotal)
-			{
-				return GetValue<VerticalTotal>() + 2u;
-			}
-			else if constexpr (_Index == DrvVerticalVisible)
-			{
-				return GetValue<VerticalDisplayEnd>() + 1u;
-			}
-			else if constexpr (_Index == DrvCharacterWidth) 
-			{
-				return 1u * !GetValue<EightDotMode>() + 8u;
-			}
-			else if constexpr (_Index == DrvCharacterHeight) 
-			{	
-				return GetValue<MaximumScanline>() + 1u;
-			}
-			else if constexpr (_Index == DrvVerticalRetraceStart) 
-			{
-				return GetValue<VerticalRetraceStart>();
-			}      
-			else if constexpr (_Index == DrvVerticalRetraceEnd) 
-			{
-				auto const s = GetValue<VerticalRetraceStart>();
-				auto const e = GetValue<VerticalRetraceEnd>();
-				return s + F(e - s, 0x10u);
-			}
-			else if constexpr (_Index == DrvVerticalBlankingStart)
-			{
-				auto const s = GetValue<VerticalBlankingStart>();
-				return s ? s + 1u : s;
-			}
-			else if constexpr (_Index == DrvVerticalBlankingEnd)					 
-			{
-				auto const s = GetValue<VerticalBlankingStart>();
-				auto const e = GetValue<VerticalBlankingEnd>();
-				return 1u + (s ? F((e & 0x7fu) - (s + 1u), 0x80u) + (s + 1u) : e & 0x7fu);
-			}
+			else if constexpr (_Index == DrvHorizontalTotalChars   ) return (GetValue<HorizontalTotal>() + 5u) << GetValue<DotClockRate>();
+      else if constexpr (_Index == DrvHorizontalVisibleChars ) return (GetValue<HorizontalDisplayEnd>() + 1u) << GetValue<DotClockRate>();
+      else if constexpr (_Index == DrvVerticalTotal          ) return GetValue<VerticalTotal>() + 2u;
+      else if constexpr (_Index == DrvVerticalVisible        ) return GetValue<VerticalDisplayEnd>() + 1u;
+      else if constexpr (_Index == DrvCharacterWidth         ) return 8u+!GetValue<EightDotMode>();
+      else if constexpr (_Index == DrvCharacterHeight        ) return GetValue<MaximumScanline>() + 1u;
+      else if constexpr (_Index == DrvHorizontalTotal        ) return GetValue<DrvCharacterWidth>() * GetValue<DrvHorizontalTotalChars>();
+      else if constexpr (_Index == DrvHorizontalVisible      ) return GetValue<DrvCharacterWidth>() * GetValue<DrvHorizontalVisibleChars>();
 
-			else return 0u;			
+      else {
+        //static_assert(sizeof(_Index)==0, "invalid value index"); 
+        return 0u;
+      }
+			
 		}
-
-
 
 		auto Log() const -> void
 		{
 			using namespace std::string_literals;
 			using utils::logger;
 
-		#define Fmt(X) std::format("  > {:.<35}: {}\n"      , #X, GetValue<ValueIndex::X>())
+		#define Fmt(X)  std::format("  > {:.<35}: {}\n", #X, GetValue<ValueIndex::X>())
 			logger::debug(logger::deflog, "video state : \n{}\n",
 				std::string()
-        + Fmt(DrvHorizontalVisible)
-        + Fmt(DrvHorizontalBlankingStart)
-        + Fmt(DrvHorizontalRetraceStart)
-        + Fmt(DrvHorizontalRetraceEnd)
-        + Fmt(DrvHorizontalBlankingEnd)
-        + Fmt(DrvHorizontalTotal)
 
-				+ Fmt(DrvHorizontalVisibleChars)
-        + Fmt(DrvHorizontalBlankingStartChars)
-        + Fmt(DrvHorizontalRetraceStartChars)
-        + Fmt(DrvHorizontalRetraceEndChars)
-        + Fmt(DrvHorizontalBlankingEndChars)
+        
         + Fmt(DrvHorizontalTotalChars)
-
-				+ Fmt(DrvVerticalVisible)
-				+ Fmt(DrvVerticalBlankingStart)
-				+ Fmt(DrvVerticalRetraceStart)
-				+ Fmt(DrvVerticalRetraceEnd)
-				+ Fmt(DrvVerticalBlankingEnd)
+				+ Fmt(DrvHorizontalVisibleChars)
+        + Fmt(DrvHorizontalTotal)
+        + Fmt(DrvHorizontalVisible)
 				+ Fmt(DrvVerticalTotal)
-
+				+ Fmt(DrvVerticalVisible)
 				+ Fmt(DrvCharacterWidth)
 				+ Fmt(DrvCharacterHeight)
+
 				+ Fmt(HorizontalDisplayEnd)
 				+ Fmt(HorizontalRetraceStart)
 				+ Fmt(HorizontalBlankingStart)
 				+ Fmt(HorizontalBlankingEnd)
 				+ Fmt(HorizontalRetraceEnd)
 				+ Fmt(HorizontalTotal)
-
 				+ Fmt(VerticalTotal)
 				+ Fmt(VerticalDisplayEnd)
 				+ Fmt(VerticalRetraceStart)
 				+ Fmt(VerticalBlankingStart)
 				+ Fmt(VerticalBlankingEnd)
 				+ Fmt(VerticalRetraceEnd)
+        + Fmt(MaximumScanline)
+        + Fmt(DotClockRate) 
+        + Fmt(EightDotMode)
+
 			);
 		#undef Fmt
 		}
@@ -797,250 +691,3 @@ namespace core
 	};
 #pragma pack(pop)	
 }
-
-/*
-inline auto VgaState::CharacterWidth() const -> uint8_t
-{
-	return sequencer.clocking_mode & 0x1u ? 8u : 9u;
-}
-
-inline auto VgaState::CharacterHeight() const -> uint8_t
-{
-	return (crtctrl.maximum_scan_line & 0x1F) + 1u;
-}
-
-inline auto VgaState::ScanlineDouble() const -> bool
-{
-	return bool(crtctrl.maximum_scan_line & 0x80u);
-}
-
-inline auto VgaState::ScanlineClockDivide() const -> bool
-{
-	return bool(crtctrl.crt_mode_control & 0x04u);
-}
-
-inline auto VgaState::MemoryClockDivide() const -> bool
-{
-	return bool(crtctrl.crt_mode_control & 0x08u);
-}
-
-inline auto VgaState::ScreenDisable() const -> bool
-{
-	return bool(sequencer.clocking_mode & 0x20u);
-}
-
-inline auto VgaState::ShiftFour() const -> bool
-{
-	return bool(sequencer.clocking_mode & 0x10u);
-}
-
-inline auto VgaState::DotClockDivide() const -> bool
-{
-	return bool(sequencer.clocking_mode & 0x08u);
-}
-
-inline auto VgaState::ShiftLoadRate() const -> bool
-{
-	return bool(sequencer.clocking_mode & 0x04u);
-}
-
-inline auto VgaState::MasterClockDivide() const -> bool
-{
-	return bool(sequencer.character_map_select & 0x08u);
-}
-
-inline auto VgaState::ByteAddressMode() const -> bool
-{
-	return bool(crtctrl.crt_mode_control & 0x40u);
-}
-
-inline auto VgaState::OddEventDisable() const -> bool
-{
-	return bool(sequencer.memory_mode & 0x04u);
-}
-
-inline auto VgaState::ChainOddEven() const -> bool
-{
-	return bool(graphics.miscellaneous & 0x02u);
-}
-
-inline auto VgaState::ChainFour() const -> bool
-{
-	return bool(sequencer.memory_mode & 0x08u);
-}
-
-inline auto VgaState::GraphicsMode() const -> bool
-{
-	return bool(graphics.miscellaneous & 0x01u);
-}
-
-inline auto VgaState::MemoryMapSelect() const -> utils::region32_type
-{
-	switch ((graphics.miscellaneous >> 2u) & 0x3u)
-	{
-	case 0x0: return { 0xA0000u, 0x20000u };
-	case 0x1: return { 0xA0000u, 0x10000u };
-	case 0x2: return { 0xB0000u, 0x08000u };
-	default:
-	case 0x3: return { 0xB8000u, 0x08000u };
-	}
-
-}
-
-inline auto VgaState::CharsetA() const -> utils::region32_type
-{
-	const uint8_t value_v
-	{ ((sequencer.character_map_select >> 2u) & 0x3u)
-	+ ((sequencer.character_map_select >> 5u) & 0x1u) };
-
-	switch (value_v & 0x7u)
-	{
-	default:
-	case 0b000: return { 0x0000u, 0x2000u };
-	case 0b001: return { 0x4000u, 0x2000u };
-	case 0b010: return { 0x8000u, 0x2000u };
-	case 0b011: return { 0xC000u, 0x2000u };
-	case 0b100: return { 0x2000u, 0x2000u };
-	case 0b101: return { 0x6000u, 0x2000u };
-	case 0b110: return { 0xA000u, 0x2000u };
-	case 0b111: return { 0xE000u, 0x2000u };
-	}
-}
-
-inline auto VgaState::CharsetB() const -> utils::region32_type
-{
-	const uint8_t value_v
-	{ ((sequencer.character_map_select >> 0u) & 0x3u)
-	+ ((sequencer.character_map_select >> 4u) & 0x1u) };
-
-	switch (value_v & 0x7u)
-	{
-	default:
-	case 0b000: return { 0x0000u, 0x2000u };
-	case 0b001: return { 0x4000u, 0x2000u };
-	case 0b010: return { 0x8000u, 0x2000u };
-	case 0b011: return { 0xC000u, 0x2000u };
-	case 0b100: return { 0x2000u, 0x2000u };
-	case 0b101: return { 0x6000u, 0x2000u };
-	case 0b110: return { 0xA000u, 0x2000u };
-	case 0b111: return { 0xE000u, 0x2000u };
-	}
-}
-
-inline auto VgaState::MasterClockRate() const -> uint64_t
-{
-	switch ((misc_output & 0xCu) >> 2u)
-	{
-	default:
-	case 0x0: return 25175000ull;
-	case 0x1: return 28322000ull;
-	case 0x2: return 31500000ull;
-	case 0x3: return 40000000ull;
-	}
-}
-
-inline auto VgaState::HorizontalTotal() const -> uint16_t
-{
-	return CharacterWidth() * (crtctrl.horizontal_total + 5u);
-}
-
-inline auto VgaState::HorizontalDisplayEnd() const -> uint16_t
-{
-	return CharacterWidth() * (crtctrl.horizontal_display_end + 1u);
-}
-
-inline auto VgaState::HorizontalRetraceStart() const -> uint16_t
-{
-	return CharacterWidth() * crtctrl.horizontal_retrace_start;
-}
-
-inline auto VgaState::HorizontalRetraceEnd() const -> uint16_t
-{
-	auto const lsb_v = crtctrl.horizontal_retrace_end & 0x1Fu;
-	auto const counter_v = lsb_v + (HorizontalRetraceStart() & ~0x1Fu);
-	if (counter_v > HorizontalTotal())
-		return counter_v;
-	return lsb_v;
-}
-
-inline auto VgaState::HorizontalBlankingStart() const -> uint16_t
-{
-	return CharacterWidth() * crtctrl.horizontal_blanking_start;
-}
-
-inline auto VgaState::HorizontalBlankingEnd() const -> uint16_t
-{
-	auto const lsb_v = (
-		((crtctrl.horizontal_blanking_end & 0x1Fu) >> 0u) +
-		((crtctrl.horizontal_retrace_end & 0x80u) >> 2u));
-	auto const counter_v = lsb_v + (HorizontalBlankingStart() & ~0x1Fu);
-	if (counter_v > HorizontalTotal())
-		return counter_v;
-	return lsb_v;
-}
-
-inline auto VgaState::VerticalTotal() const -> uint16_t
-{
-	return crtctrl.vertical_total
-		+ 0x100u * (crtctrl.overflow & 0x01u)
-		+ 0x010u * (crtctrl.overflow & 0x20u)
-		;
-}
-
-inline auto VgaState::VerticalDisplayEnd() const -> uint16_t
-{
-	return crtctrl.vertical_blanking_end
-		+ 0x80u * (crtctrl.overflow & 0x02u)
-		+ 0x08u * (crtctrl.overflow & 0x40u)
-		;
-}
-
-inline auto VgaState::VerticalRetraceStart() const -> uint16_t
-{
-	return crtctrl.vertical_retrace_start
-		+ 0x40u * (crtctrl.overflow & 0x04u)
-		+ 0x04u * (crtctrl.overflow & 0x80u)
-		;
-}
-
-inline auto VgaState::VerticalRetraceEnd() const -> uint16_t
-{
-	auto const lsb_v = crtctrl.vertical_retrace_end & 0x0Fu;
-	auto counter_v = lsb_v + (VerticalRetraceStart() & ~0x0Fu);
-	if (counter_v > VerticalTotal())
-		return counter_v;
-	return lsb_v;
-}
-
-inline auto VgaState::VerticalBlankingStart() const -> uint16_t
-{
-	return crtctrl.vertical_blanking_start
-		+ (crtctrl.maximum_scan_line & 0x20u) * 0x10u
-		+ (crtctrl.overflow & 0x08u) * 0x20u
-		;
-}
-
-inline auto VgaState::VerticalBlankingEnd() const -> uint16_t
-{
-	auto const lsb_v = crtctrl.vertical_blanking_end & 0x7Fu;
-	auto counter_v = lsb_v + (VerticalBlankingStart() & ~0x7Fu);
-	if (counter_v > VerticalTotal())
-		return counter_v;
-	return lsb_v;
-}
-
-inline auto VgaState::DisplayEnableSkew() const -> uint8_t
-{
-	return (crtctrl.horizontal_blanking_end >> 5u) & 3u;
-}
-
-inline auto VgaState::HorizontalRetraceSkew() const -> uint8_t
-{
-	return (crtctrl.horizontal_retrace_end >> 5u) & 3u;
-}
-
-inline auto VgaState::CursorSkew() const -> uint8_t
-{
-	return (crtctrl.cursor_end >> 5u) & 3u;
-}
-*/

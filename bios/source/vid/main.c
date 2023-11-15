@@ -23,6 +23,8 @@ void __far __cdecl __loadds Main()
   write_log_string("RevBIOS VGA build: " __DATE__ " " __TIME__ "\n");
   ivt_set(0x6D, &int0x10);
   ivt_set(0x10, &jmp_int0x10);
+  set_video_mode(0x01, 0);
+  set_video_mode(0x03, 0);
   set_video_mode(0x0d, 0);
   set_video_mode(0x0e, 0);
 	set_video_mode(0x13, 0);
