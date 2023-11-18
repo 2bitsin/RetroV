@@ -7,8 +7,6 @@
 
 #include <utils/logger.hpp>
 
-#include <win32/windows.hpp>
-
 namespace core
 {
 
@@ -61,7 +59,7 @@ namespace core
 
 
 #pragma pack(push, 1)
-	struct VgaState
+	struct VGARegisters
 	{
 		enum class ValueIndex : std::uint16_t {
 
@@ -113,41 +111,32 @@ namespace core
       DoubleScanning
 		};
 
-		constexpr inline VgaState() noexcept 
+		constexpr inline VGARegisters() noexcept 
 		{
-			crtctrl.index = 0;
-			for(auto& value_v: crtctrl.data) 
-				value_v = 0x00u;
+			for (auto& value_v: crtctrl.data  ) value_v = 0x00u;
+			for (auto& value_v: sequencer.data) value_v = 0x00u;
+			for (auto& value_v: graphics.data ) value_v = 0x00u;			
+			for (auto& value_v: attrib.data   ) value_v = 0x00u;
+      for (auto& value_v: ramdac.color  ) value_v = 0x00u;
 
-			sequencer.index = 0;
-			for(auto& value_v: sequencer.data) 
-				value_v = 0x00u;
-
-			graphics.index = 0;
-			for(auto& value_v: graphics.data) 
-				value_v = 0x00u;
-			
-			attrib.index_and_pas = 0;
-			for(auto& value_v: attrib.data) 
-				value_v = 0x00u;
-
-			ramdac.latch = 0;
-			ramdac.index = 0;
-			ramdac.flags = 0;
-			ramdac.mask = 0;
-			for(auto& value_v: ramdac.color) 
-				value_v = 0x00u;
-
-			miscellanious.value = 0x00u;
-			miscellanious.io_address_select = 1u;
-			miscellanious.ram_access_enable = 1u;
-			miscellanious.sync_polarity = SyncPolarity_400;
-			miscellanious.clock_select = ClockSelect_28MHz;
+      crtctrl.index                   = 0x00u;
+      sequencer.index                 = 0x00u;
+      graphics.index                  = 0x00u;
+      attrib.index_and_pas            = 0x00u;
+      ramdac.latch                    = 0x00u;
+			ramdac.index                    = 0x00u;
+			ramdac.flags                    = 0x00u;
+			ramdac.mask                     = 0x00u;
+			miscellanious.value             = 0x00u;
+			miscellanious.io_address_select = 0x01u;
+			miscellanious.ram_access_enable = 0x01u;
+			miscellanious.sync_polarity     = SyncPolarity_400;
+			miscellanious.clock_select      = ClockSelect_28MHz;
 
 			feature_control = 0x00u;
 		}
 
-		constexpr inline auto IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) noexcept -> std::int32_t 
+		constexpr inline auto IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) noexcept -> void 
 		{
 			switch (port_v)
 			{
@@ -156,24 +145,24 @@ namespace core
 				 ***********************/
 			case Port_DacPixelMask:
 				ramdac.mask = data_v;
-				return ERROR_SUCCESS;
+				return;
 
 			case Port_DacIndexWrite:
 				ramdac.index = data_v * 3u;
 				ramdac.latch = 0x3u;
-				return ERROR_SUCCESS;
+				return;
 
 			case Port_DacIndexRead:
 				ramdac.index = data_v * 3u;
 				ramdac.latch = 0x0u;
-				return ERROR_SUCCESS;
+				return;
 
 			case Port_DacDataWrite:
 				ramdac.color[ramdac.index] = data_v & 0x3Fu;
 				ramdac.index += 1u;
 				while (ramdac.index >= 0x300u)
 					ramdac.index -= 0x300u;
-				return ERROR_SUCCESS;
+				return;
 
 				/***********************
 				 *	CRT CONTROLLER
@@ -182,7 +171,7 @@ namespace core
 			case Port_VgaCrtIndex:
 				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
 				crtctrl.index = data_v & 0x1Fu;
-				return ERROR_SUCCESS;
+				return;
 
 			case Port_MdaCrtData:
 			case Port_VgaCrtData:
@@ -192,30 +181,30 @@ namespace core
 						crtctrl.data[crtctrl.index] = data_v;
 					}
 				}
-				return ERROR_SUCCESS;
+				return;
 
 				/***********************
 				 *	SEQUENCER
 				 ***********************/
 			case Port_SequencerIndex:
 				sequencer.index = data_v & 0x7u;
-				return ERROR_SUCCESS;
+				return;
 
 			case Port_SequencerData:
         if (sequencer.index < std::size(sequencer.data))
 				  sequencer.data[sequencer.index] = data_v;
-				return ERROR_SUCCESS;
+				return;
 
 				/*********************************
 				 *	GRAHPICS CONTROLLER
 				 *********************************/
 			case Port_GraphicsCtrlIndex:
 				graphics.index = data_v & 0x0Fu;
-				return ERROR_SUCCESS;
+				return;
 			case Port_GraphicsCtrlData:
         if (graphics.index < std::size(graphics.data))
 				  graphics.data[graphics.index] = data_v;
-				return ERROR_SUCCESS;
+				return;
 
 				/***********************
 				 *	ATTRIBUTE CONTROLLER
@@ -230,33 +219,33 @@ namespace core
 					if (attrib.index < std::size(attrib.data))
 						attrib.data[attrib.index] = data_v;
 				}
-				return ERROR_SUCCESS;
+				return ;
 
 			case Port_Attribute1:
-				return ERROR_SUCCESS;
+				return ;
 
 				/*********************************
 				 *	MISC OUTPUT & FEATURE CONTROL
 				 *********************************/
 			case Port_MiscOutputWrite:
 				miscellanious.value = data_v;
-				return ERROR_SUCCESS;
+				return ;
 
 			case Port_MdaFeatureControl:
 			case Port_VgaFeatureControl:
 				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
 				feature_control = data_v;
-				return ERROR_SUCCESS;
+				return ;
 
 			default:
 				break;
 			}
 			
-			return ERROR_SUCCESS;
+			return ;
 		}
 
 		
-		constexpr inline auto IoPortFetch(std::uint16_t port_v) noexcept -> std::tuple<std::int32_t, std::uint8_t> 
+		constexpr inline auto IoPortFetch(std::uint16_t port_v) noexcept -> std::uint8_t
 		{
 			uint8_t tmp_v{ 0 };
 			switch (port_v)
@@ -265,17 +254,17 @@ namespace core
 				 *	RAM DAC
 				 *******************/
 			case Port_DacPixelMask:
-				return { ERROR_SUCCESS, ramdac.mask };
+				return ramdac.mask;
 
 			case Port_DacDataRead:
 				tmp_v = ramdac.color[ramdac.index];
 				ramdac.index += 1u;
 				while (ramdac.index >= 0x300u)
 					ramdac.index -= 0x300u;
-				return { ERROR_SUCCESS, tmp_v };
+				return tmp_v;
 
 			case Port_DacStateRead:
-				return { ERROR_SUCCESS, ramdac.latch };
+				return ramdac.latch;
 
 				/***********************
 				 *	CRT CONTROLLER
@@ -283,7 +272,7 @@ namespace core
 			case Port_MdaCrtIndex:
 			case Port_VgaCrtIndex:
 				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
-				return { ERROR_SUCCESS, crtctrl.index };
+				return crtctrl.index;
 
 			case Port_VgaCrtData:
 			case Port_MdaCrtData:
@@ -291,66 +280,66 @@ namespace core
         tmp_v = 0xffu;
         if (crtctrl.index < std::size(crtctrl.data))
 				  tmp_v = crtctrl.data[crtctrl.index];  
-				return { ERROR_SUCCESS, tmp_v };
+				return tmp_v;
 
 			case Port_MdaInputStatus:
 			case Port_VgaInputStatus:
 				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
 				attrib.latch = false;
-				return { ERROR_SUCCESS, 0x00 };
+				return 0x00u;
 
 				/***********************
 				 *	SEQUENCER
 				 ***********************/
 			case Port_SequencerIndex:
-				return { ERROR_SUCCESS, sequencer.index };
+				return sequencer.index;
 
 			case Port_SequencerData:
         tmp_v = 0xffu;
         if (sequencer.index < std::size(sequencer.data))
 				  tmp_v = sequencer.data[sequencer.index];
-				return { ERROR_SUCCESS, tmp_v };
+				return tmp_v;
 
 				/**************************
 				 *	GRAPHICS CONTROLLER
 				 **************************/
 			case Port_GraphicsCtrlIndex:
-				return { ERROR_SUCCESS, graphics.index };
+				return graphics.index;
 
 			case Port_GraphicsCtrlData:
         tmp_v = 0xffu;
         if (graphics.index < std::size(graphics.data))  
           tmp_v = graphics.data[graphics.index];
-				return { ERROR_SUCCESS, tmp_v };
+				return tmp_v;
 
 				/***********************
 				 *	ATTRIBUTE CONTROLLER
 				 ***********************/
 			case Port_Attribute0:
-				return { ERROR_SUCCESS, attrib.index_and_pas };
+				return attrib.index_and_pas;
 
 			case Port_Attribute1:
 				if (attrib.index < std::size(attrib.data))
-					return { ERROR_SUCCESS, attrib.data[attrib.index] };
-				return { ERROR_SUCCESS, 0xffu };
+					return attrib.data[attrib.index];
+				return 0xffu;
 
 				/*********************************
 				 *	MISC OUTPUT & FEATURE CONTROL
 				 *********************************/
 			case Port_MiscOutputRead:
-				return { ERROR_SUCCESS, miscellanious.value };
+				return miscellanious.value;
 
 			case Port_FeatureControlRead:
-				return { ERROR_SUCCESS, feature_control };
+				return feature_control;
 
 			case Port_InputStatus:
-				return { ERROR_SUCCESS, 0x00u };
+				return 0x00u;
 
 			default:
 				break;
 			}
 
-			return { ERROR_SUCCESS, 0xffu };
+			return 0xffu;
 		}
 
 		template <ValueIndex _Index>
@@ -692,4 +681,4 @@ namespace core
 #pragma pack(pop)	
 }
 
-static_assert(sizeof(core::VgaState) == 0x348u);
+static_assert(sizeof(core::VGARegisters) == 0x348u);

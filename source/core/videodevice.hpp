@@ -14,12 +14,13 @@
 #include <core/mapgparange.hpp>
 #include <core/romimage.hpp>
 #include <core/display.hpp>
-#include <core/videodevice/vgastate.hpp>
+#include <core/videodevice/vgaregisters.hpp>
 
 #include <utils/limited_span.hpp>
 #include <utils/smart_span.hpp>
 #include <utils/region.hpp>
 #include <utils/span.hpp>
+#include <utils/coqueue.hpp>
 
 #include <win32/chrono.hpp>
 #include <win32/mappedfile.hpp>
@@ -60,15 +61,19 @@ namespace core
 
 
 	private:
+    struct port_write_item {
+      std::uint32_t data;
+      std::uint32_t addr;
+    };
+    using port_write_queue = utils::coqueue<port_write_item>;
+
 		Machine& m_Machine;
 		std::optional<RomImage> m_BiosRom;
 		buffer_type m_VideoMemory;
-
-    std::shared_mutex m_State_mut;
-		VgaState m_State;    
-
+		VGARegisters m_VgaRegisters;
+    port_write_queue m_PortWriteQueue;
+    std::jthread m_RefreshTask;
     std::uint32_t m_Hcounter;
     std::uint32_t m_Vcounter;
-    std::jthread m_RefreshTask;
-	};
+  };
 }

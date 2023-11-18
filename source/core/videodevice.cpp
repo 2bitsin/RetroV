@@ -20,7 +20,7 @@
 #include <ranges>
 
 using core::VideoDevice;
-using core::VgaState;
+using core::VGARegisters;
 
 VideoDevice::VideoDevice(core::Machine& machine_v)
 	: m_Machine{ machine_v }
@@ -68,43 +68,14 @@ auto VideoDevice::Restart() -> void
 
 auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {	
-	if (data_v.size() > 1u)
-	{
-		std::int32_t status_v{ 0 };
-
-		if (data_v.size() > 0u) 
-			status_v = IoPortAccess(vcpu_v, is_write_v, port_v + 0u, data_v.subspan(0u, 1u)); 
-		if (status_v != ERROR_SUCCESS) 
-			return status_v;
-
-		if (data_v.size() > 1u) 
-			status_v = IoPortAccess(vcpu_v, is_write_v, port_v + 1u, data_v.subspan(1u, 1u)); 
-		if (status_v != ERROR_SUCCESS) 
-			return status_v;
-
-		if (data_v.size() > 2u) 
-			status_v = IoPortAccess(vcpu_v, is_write_v, port_v + 2u, data_v.subspan(2u, 1u)); 
-		if (status_v != ERROR_SUCCESS) 
-			return status_v;
-
-		if (data_v.size() > 3u) 
-			status_v = IoPortAccess(vcpu_v, is_write_v, port_v + 3u, data_v.subspan(3u, 1u)); 
-		if (status_v != ERROR_SUCCESS) 
-			return status_v;
-
-		return ERROR_SUCCESS;
-	}
-
-  std::unique_lock lock_v{ m_State_mut };
-	if (is_write_v) {
-		return m_State.IoPortWrite(port_v, data_v.as<std::uint8_t>());
+  if (is_write_v) {
+    m_PortWriteQueue.emplace(port_write_item{
+      .data = data_v.as<std::uint32_t>(),
+      .addr = port_v
+    });
   }
-	auto const [status_v, value_v] = m_State.IoPortFetch(port_v);
-  lock_v.unlock();
-	if (status_v != ERROR_SUCCESS) 
-		return status_v;  
-	data_v.write(value_v);
-	return ERROR_SUCCESS;
+
+  return ERROR_SUCCESS;
 }
 
 auto VideoDevice::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t
@@ -161,12 +132,7 @@ auto VideoDevice::RefreshTask(std::stop_token stopee_v) -> void
   { 
     waitable_timer timer_v;
     m_Hcounter = 0u;
-    m_Vcounter = 0u;
-    
-    std::shared_lock lock_v{ m_State_mut };
-    auto const state_v = m_State;
-    lock_v.unlock();
-    
+    m_Vcounter = 0u;    
     while (!stopee_v.stop_requested()) 
     {
       
