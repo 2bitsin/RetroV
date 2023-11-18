@@ -5,7 +5,10 @@
 #include <cstddef>
 #include <chrono>
 #include <future>
+#include <shared_mutex>
+#include <mutex>
 #include <list>
+
 
 #include <core/configuration.hpp>
 #include <core/mapgparange.hpp>
@@ -51,17 +54,21 @@ namespace core
 
 		auto ConfigureROM(core::Configuration const&) -> void;
 		auto ConfigureMemory(core::Configuration const&) -> void;
-
-		auto Refresh(std::stop_token stopee_v) -> void;
+		auto RefreshTask(std::stop_token stopee_v) -> void;
 
 	protected:
 
 
 	private:
 		Machine& m_Machine;
-
 		std::optional<RomImage> m_BiosRom;
-		buffer_type m_VideoMemory[2u];
-		VgaState m_State[2u];
+		buffer_type m_VideoMemory;
+
+    std::shared_mutex m_State_mut;
+		VgaState m_State;    
+
+    std::uint32_t m_Hcounter;
+    std::uint32_t m_Vcounter;
+    std::jthread m_RefreshTask;
 	};
 }

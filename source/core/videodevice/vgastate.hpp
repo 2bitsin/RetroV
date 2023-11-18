@@ -691,3 +691,5 @@ namespace core
 	};
 #pragma pack(pop)	
 }
+
+static_assert(sizeof(core::VgaState) == 0x348u);

@@ -42,10 +42,22 @@ auto VideoDevice::Initialize(Configuration const& config_v) -> void
 
 auto VideoDevice::Start() -> void
 {
+  if (m_RefreshTask.joinable())
+    return;
+  m_RefreshTask = std::jthread([this] (std::stop_token const& stopee_v) {
+    while (stopee_v.stop_requested()) {
+      RefreshTask(stopee_v);
+    }
+  });
 }
 
 auto VideoDevice::Stop() -> void
 {
+  if (m_RefreshTask.joinable())
+  {
+    m_RefreshTask.request_stop();
+    m_RefreshTask.join();
+  }
 }
 
 auto VideoDevice::Restart() -> void
@@ -83,11 +95,14 @@ auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::ui
 		return ERROR_SUCCESS;
 	}
 
-	if (is_write_v) 
-		return m_State[0u].IoPortWrite(port_v, data_v.as<std::uint8_t>());
-	auto const [status_v, value_v] = m_State[0u].IoPortFetch(port_v);
+  std::unique_lock lock_v{ m_State_mut };
+	if (is_write_v) {
+		return m_State.IoPortWrite(port_v, data_v.as<std::uint8_t>());
+  }
+	auto const [status_v, value_v] = m_State.IoPortFetch(port_v);
+  lock_v.unlock();
 	if (status_v != ERROR_SUCCESS) 
-		return status_v;
+		return status_v;  
 	data_v.write(value_v);
 	return ERROR_SUCCESS;
 }
@@ -108,9 +123,10 @@ auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& con
 
 	switch (context_v.Function) {
 	case HYPERCALL_VIDEO_BEGIN_UPDATE:
+    Stop();
 		return ERROR_SUCCESS;
 	case HYPERCALL_VIDEO_END_UPDATE:
-		m_State[0].Log();
+		Start();
 		return ERROR_SUCCESS;
 	}
 	return ERROR_SUCCESS;
@@ -132,34 +148,34 @@ auto VideoDevice::ConfigureMemory(core::Configuration const& config_v) -> void
 {
 	using namespace win32;
 	using namespace size_literals;
-	auto const size_bytes_v = config_v.GetPropertyUint64("video.memory.size.kilobytes")*1_KiB;
-	m_VideoMemory[0u] = VirtualAlloc_s(size_bytes_v, read_write, commit|reserve|write_watch, nullptr);
-	m_VideoMemory[1u] = VirtualAlloc_s(size_bytes_v, read_write, commit|reserve, nullptr);
+	auto const size_bytes_v = config_v.GetPropertyUint64("video.memory.size.kilobytes")*1_KiB;	
+	m_VideoMemory = VirtualAlloc_s(size_bytes_v, read_write, commit|reserve, nullptr);
 }
 
-auto VideoDevice::Refresh(std::stop_token stopee_v) -> void
-try
+auto VideoDevice::RefreshTask(std::stop_token stopee_v) -> void 
 {
-	using namespace win32;
-	using namespace std::chrono;
-	using namespace std::chrono_literals;
-	
-	auto& display_v = m_Machine.GetDisplay();
-	
-	auto const interval_v = duration_cast<duration_type>(
-		duration_cast<nanoseconds>(1s) / 60u);
-	auto next_frame_v = filetime_clock::now();
+  using namespace win32;
+  using namespace std::chrono;
+  using namespace std::chrono_literals;
+  try
+  { 
+    waitable_timer timer_v;
+    m_Hcounter = 0u;
+    m_Vcounter = 0u;
+    
+    std::shared_lock lock_v{ m_State_mut };
+    auto const state_v = m_State;
+    lock_v.unlock();
+    
+    while (!stopee_v.stop_requested()) 
+    {
+      
 
-	waitable_timer timer_v;	
-	while(!stopee_v.stop_requested())
-	{
-		next_frame_v += interval_v;
-		timer_v.set(next_frame_v);
-
-
-		timer_v.wait();		
-	}
+    }  	
+  }
+  catch (std::exception const& ex)
+  {
+    
+  }
 }
-catch (std::exception const& ex)
-{}
 
