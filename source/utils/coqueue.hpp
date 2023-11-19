@@ -2,12 +2,12 @@
 
 #include <optional>
 #include <atomic>
-      #include <mutex>
-#include <list>
+#include <mutex>
+#include <deque>
 
 namespace utils
 {
-	template <typename T, std::size_t SpinCount = 1u>
+	template <typename T, std::size_t Q = 0u>
 	struct coqueue
 	{
 
@@ -15,68 +15,65 @@ namespace utils
 		inline auto try_emplace(Args&&... args)
 		{
 			using namespace std;
-			unique_lock const lock_v{ m_mutex, 
-				try_to_lock };
+			unique_lock const lock_v{ m_mutex, try_to_lock };
 			if (!lock_v.owns_lock())
 				return false;
-			m_store.emplace_back(
-				forward<Args>(args)...);			
+			m_store.emplace_back(forward<Args>(args)...);			
 			return true;
 		}
 
-		template <typename... Q>
-		inline auto emplace(Q&&... args)
+		template <typename... U>
+		inline auto emplace(U&&... args)
 		{
 			using namespace std;
-			if constexpr (SpinCount > 0u) 
-			{
-				auto spins_left_v = SpinCount;
-				for (;spins_left_v > 0u; 
-					spins_left_v--)
+			if constexpr (Q > 0u) 
+			{				
+				for (auto spins_left_v = Q; spins_left_v > 0u; spins_left_v -= 1u)
 				{
-					if (!try_emplace(
-						forward<Q>(args)...))
+					if (!try_emplace(forward<U>(args)...))
 						continue;
 					return;				
 				}
 			}
 			unique_lock const lock_v{ m_mutex };
-			m_store.emplace_back(
-				forward<Q>(args)...);
+			m_store.emplace_back(forward<U>(args)...);
 		}
 
 		inline auto try_pop() -> std::optional<T>
 		{
 			using namespace std;
-			unique_lock const lock_v{ m_mutex, 
-				try_to_lock };
+			unique_lock const lock_v{ m_mutex, try_to_lock };
 			if (!lock_v.owns_lock())
 				return nullopt;
 			if (m_store.empty()) return nullopt;
-			auto const value_v = move(
-				m_store.front());
+			auto const value_v = move(m_store.front());
 			m_store.pop_front();
 			return value_v;
 		}
 
+    inline auto front() -> T
+    {
+      using namespace std;
+      unique_lock const lock_v{ m_mutex };
+      if (m_store.empty()) 
+        throw std::out_of_range{ "coqueue is empty" };      
+      return m_store.front();
+    }
+
 		inline auto pop() -> std::optional<T>
 		{
 			using namespace std;
-			if constexpr (SpinCount > 0u) 
-			{
-				auto spins_left_v = SpinCount;
-				for (;spins_left_v > 0u; 
-					spins_left_v--)
+			if constexpr (Q > 0u) 
+			{				
+				for (auto spins_left_v = Q; spins_left_v > 0u; spins_left_v -= 1u)
 				{
-					if (auto const value_v = try_pop();
-						value_v.has_value())
+					if (auto const value_v = try_pop(); value_v.has_value())
 						return value_v;
 				}
 			}
 			unique_lock const lock_v{ m_mutex };
 			if (m_store.empty()) return nullopt;
-			auto const value_v = move(
-				m_store.front());
+			auto const value_v = move(m_store.front());
 			m_store.pop_front();			
 			return value_v;
 		}
@@ -91,7 +88,7 @@ namespace utils
 
 	private:
 		mutable std::mutex m_mutex;
-		std::list<T> m_store;
+		std::deque<T> m_store;
 	};
 
 }

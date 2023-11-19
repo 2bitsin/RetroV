@@ -58,7 +58,28 @@ int main(int argc, char** argv) try
 		.parent_path());
 
 
-#if 1
+  core::videodevice::io_write_queue iowq;
+
+  iowq.push(0x200, 0x3D4u, 2u, 0xDEADBEEF);
+  iowq.push(0x201, 0x3D4u, 2u, 0xDEADBEEF);
+  iowq.push(0x202, 0x3D4u, 2u, 0xDEADBEEF);
+  iowq.push(0x203, 0x3D4u, 2u, 0xDEADBEEF);
+  iowq.push(0x300, 0x3D4u, 2u, 0xDEADBEEF);
+  iowq.push(0x301, 0x3D4u, 2u, 0xDEADBEEF);
+  iowq.push(0x302, 0x3D4u, 2u, 0xDEADBEEF);
+  iowq.push(0x303, 0x3D4u, 2u, 0xDEADBEEF);
+
+  while (auto what_v = iowq.pop_before(0x2FFu)) {
+    auto const [t, d, a, s] = *what_v;
+    std::print("time: {:08X} data: {:08X} addr: {:04X} size: {:04X}\n", t, d, a, s);
+  }
+  std::print("----0x300----\n");
+  while (auto what_v = iowq.pop_before(0x3ffu)) {
+    auto const [t, d, a, s] = *what_v;
+    std::print("time: {:08X} data: {:08X} addr: {:04X} size: {:04X}\n", t, d, a, s);
+  }
+  __debugbreak();
+#if 0
 	using std::chrono::steady_clock;
 
 	using core::Machine;

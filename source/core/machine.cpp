@@ -147,15 +147,18 @@ auto Machine::ResumeAllProcessors() -> void
 
 auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {
-#define MAP_RANGE(lhs_v, rhs_v, dst_v) if(port_v >= lhs_v && port_v <= rhs_v) \
+#define MAP_RANGE_REL(lhs_v, rhs_v, dst_v) if(port_v >= lhs_v && port_v <= rhs_v) \
 	return dst_v.IoPortAccess(vcpu_v, is_write_v, port_v - lhs_v, data_v)
+#define MAP_RANGE_ABS(lhs_v, rhs_v, dst_v) if(port_v >= lhs_v && port_v <= rhs_v) \
+	return dst_v.IoPortAccess(vcpu_v, is_write_v, port_v, data_v)
 
-	MAP_RANGE(0x020u, 0x021u, m_LegacyPic.Master());
-	MAP_RANGE(0x0A0u, 0x0A1u, m_LegacyPic.Slave());
-	MAP_RANGE(0x0E8u, 0x0EAu, m_Debugger);	
-	MAP_RANGE(0x3B0u, 0x3DFu, m_VideoDevice);
+	MAP_RANGE_REL(0x020u, 0x021u, m_LegacyPic.Master());
+	MAP_RANGE_REL(0x0A0u, 0x0A1u, m_LegacyPic.Slave());
+	MAP_RANGE_REL(0x0E8u, 0x0EAu, m_Debugger);	
+	MAP_RANGE_ABS(0x3B0u, 0x3DFu, m_VideoDevice);
 
-#undef MAP_RANGE
+#undef MAP_RANGE_REL
+#undef MAP_RANGE_ABS
 	__debugbreak();
 	return 0;
 }

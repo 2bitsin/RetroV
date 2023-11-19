@@ -2,6 +2,8 @@
 #include <core/machine.hpp>
 #include <core/processor.hpp>
 
+#include <win32/waitabletimer.hpp>
+
 #include <utils/logger.hpp>
 #include <utils/algorithm.hpp>
 #include <utils/validate.hpp>
@@ -10,9 +12,6 @@
 #include <utils/lambda.hpp>
 #include <utils/paths.hpp>
 
-#include <win32/whvcapabilities.hpp>
-#include <win32/waitabletimer.hpp>
-
 #include <bios/vmcall.h>
 
 #include <algorithm>
@@ -20,7 +19,6 @@
 #include <ranges>
 
 using core::VideoDevice;
-using core::VGARegisters;
 
 VideoDevice::VideoDevice(core::Machine& machine_v)
 	: m_Machine{ machine_v }
@@ -69,10 +67,6 @@ auto VideoDevice::Restart() -> void
 auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {	
   if (is_write_v) {
-    m_PortWriteQueue.emplace(port_write_item{
-      .data = data_v.as<std::uint32_t>(),
-      .addr = port_v
-    });
   }
 
   return ERROR_SUCCESS;
@@ -125,23 +119,14 @@ auto VideoDevice::ConfigureMemory(core::Configuration const& config_v) -> void
 
 auto VideoDevice::RefreshTask(std::stop_token stopee_v) -> void 
 {
-  using namespace win32;
-  using namespace std::chrono;
   using namespace std::chrono_literals;
-  try
-  { 
-    waitable_timer timer_v;
-    m_Hcounter = 0u;
-    m_Vcounter = 0u;    
-    while (!stopee_v.stop_requested()) 
-    {
-      
+  using namespace std::chrono;
+  using namespace win32;
 
-    }  	
-  }
-  catch (std::exception const& ex)
-  {
-    
-  }
+}
+
+auto VideoDevice::FrameTime() const -> std::uint32_t
+{
+  return 0u;
 }
 

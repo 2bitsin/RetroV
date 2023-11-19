@@ -7,59 +7,13 @@
 
 #include <utils/logger.hpp>
 
-namespace core
+#include <core/videodevice/vgaconsts.hpp>
+
+namespace core::videodevice
 {
 
-	namespace detail
-	{
-		template <std::uint16_t _Base = 0x3B0u>
-		static inline constexpr auto port_vga_io(std::uint16_t value_v)
-			-> std::uint16_t
-		{
-			if (value_v < _Base)
-				throw std::out_of_range{ "port value is out of range" };
-			return value_v - _Base;
-		}
-	}
-
-	static inline constexpr const auto Port_MdaCrtIndex					= detail::port_vga_io(0x3B4u);
-	static inline constexpr const auto Port_MdaCrtData					= detail::port_vga_io(0x3B5u);
-	static inline constexpr const auto Port_MdaInputStatus			= detail::port_vga_io(0x3BAu);
-	static inline constexpr const auto Port_MdaFeatureControl		= detail::port_vga_io(0x3BAu);
-	static inline constexpr const auto Port_Attribute0					= detail::port_vga_io(0x3C0u);
-	static inline constexpr const auto Port_Attribute1					= detail::port_vga_io(0x3C1u);
-	static inline constexpr const auto Port_InputStatus					= detail::port_vga_io(0x3C2u);
-	static inline constexpr const auto Port_MiscOutputWrite			= detail::port_vga_io(0x3C2u);
-	static inline constexpr const auto Port_SequencerIndex			= detail::port_vga_io(0x3C4u);
-	static inline constexpr const auto Port_SequencerData				= detail::port_vga_io(0x3C5u);
-	static inline constexpr const auto Port_DacPixelMask				= detail::port_vga_io(0x3C6u);
-	static inline constexpr const auto Port_DacStateRead				= detail::port_vga_io(0x3C7u);
-	static inline constexpr const auto Port_DacIndexRead				= detail::port_vga_io(0x3C7u);
-	static inline constexpr const auto Port_DacIndexWrite				= detail::port_vga_io(0x3C8u);
-	static inline constexpr const auto Port_DacDataRead					= detail::port_vga_io(0x3C9u);
-	static inline constexpr const auto Port_DacDataWrite				= detail::port_vga_io(0x3C9u);
-	static inline constexpr const auto Port_FeatureControlRead	= detail::port_vga_io(0x3CAu);
-	static inline constexpr const auto Port_MiscOutputRead			= detail::port_vga_io(0x3CCu);
-	static inline constexpr const auto Port_GraphicsCtrlIndex		= detail::port_vga_io(0x3CEu);
-	static inline constexpr const auto Port_GraphicsCtrlData		= detail::port_vga_io(0x3CFu);
-	static inline constexpr const auto Port_VgaCrtIndex					= detail::port_vga_io(0x3D4u);
-	static inline constexpr const auto Port_VgaCrtData					= detail::port_vga_io(0x3D5u);
-	static inline constexpr const auto Port_VgaInputStatus			= detail::port_vga_io(0x3DAu);
-	static inline constexpr const auto Port_VgaFeatureControl		= detail::port_vga_io(0x3DAu);
-
-	static inline constexpr const auto SyncPolarity_350					= 0b10u;	
-	static inline constexpr const auto SyncPolarity_400					= 0b01u;
-	static inline constexpr const auto SyncPolarity_480					= 0b11u;
-
-	static inline constexpr const auto ClockSelect_25MHz				= 0b00u;
-	static inline constexpr const auto ClockSelect_28MHz				= 0b01u;
-	// Custom
-	static inline constexpr const auto ClockSelect_31MHz				= 0b10u;
-	static inline constexpr const auto ClockSelect_40MHz				= 0b11u;
-
-
 #pragma pack(push, 1)
-	struct VGARegisters
+	struct alignas(0x400u) VGARegisters
 	{
 		enum class ValueIndex : std::uint16_t {
 
@@ -119,25 +73,38 @@ namespace core
 			for (auto& value_v: attrib.data   ) value_v = 0x00u;
       for (auto& value_v: ramdac.color  ) value_v = 0x00u;
 
-      crtctrl.index                   = 0x00u;
-      sequencer.index                 = 0x00u;
-      graphics.index                  = 0x00u;
-      attrib.index_and_pas            = 0x00u;
-      ramdac.latch                    = 0x00u;
-			ramdac.index                    = 0x00u;
-			ramdac.flags                    = 0x00u;
-			ramdac.mask                     = 0x00u;
-			miscellanious.value             = 0x00u;
-			miscellanious.io_address_select = 0x01u;
-			miscellanious.ram_access_enable = 0x01u;
-			miscellanious.sync_polarity     = SyncPolarity_400;
-			miscellanious.clock_select      = ClockSelect_28MHz;
+      crtctrl.index          = 0x00u;
+      sequencer.index        = 0x00u;
+      graphics.index         = 0x00u;
+      attrib.index_and_pas   = 0x00u;
+      ramdac.latch           = 0x00u;
+			ramdac.index           = 0x00u;
+			ramdac.flags           = 0x00u;
+			ramdac.mask            = 0x00u;
+			misc.value             = 0x00u;
+			misc.io_addr_3dx       = 0x01u;
+			misc.ram_access_enable = 0x01u;
+			misc.sync_polarity     = SyncPolarity_400;
+			misc.clock_select      = ClockSelect_28MHz;
 
 			feature_control = 0x00u;
 		}
 
 		constexpr inline auto IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) noexcept -> void 
 		{
+      auto const port_crt_data  = misc.io_addr_3dx 
+                                ? Port_VgaCrtData        
+                                : Port_MdaCrtData ;
+      auto const port_crt_index = misc.io_addr_3dx 
+                                ? Port_VgaCrtIndex       
+                                : Port_MdaCrtIndex ;
+      auto const port_status    = misc.io_addr_3dx 
+                                ? Port_VgaInputStatus
+                                : Port_MdaInputStatus ;
+      auto const port_control   = misc.io_addr_3dx 
+                                ? Port_VgaFeatureControl 
+                                : Port_MdaFeatureControl ;
+
 			switch (port_v)
 			{
 				/***********************
@@ -169,17 +136,18 @@ namespace core
 				 ***********************/
 			case Port_MdaCrtIndex:
 			case Port_VgaCrtIndex:
-				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
+				if (port_v != port_crt_index) break;
 				crtctrl.index = data_v & 0x1Fu;
 				return;
 
 			case Port_MdaCrtData:
 			case Port_VgaCrtData:
-				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
-				if (crtctrl.index < std::size(crtctrl.data)) {
-					if (!(crtctrl.data[0x11u] & 0x80u) || crtctrl.index > 0x07u) {
-						crtctrl.data[crtctrl.index] = data_v;
-					}
+				if (port_v != port_crt_data) break;
+				if (crtctrl.index < std::size(crtctrl.data) && (
+            !(crtctrl.data[0x11u] & 0x80u) 
+            ||crtctrl.index > 0x07u)) 
+        {
+  				crtctrl.data[crtctrl.index] = data_v;
 				}
 				return;
 
@@ -213,8 +181,7 @@ namespace core
 				if (!attrib.latch) {
 					attrib.latch = !attrib.latch;
 					attrib.index_and_pas = data_v & 0x3Fu;
-				}
-				else {
+				} else {
 					attrib.latch = !attrib.latch;
 					if (attrib.index < std::size(attrib.data))
 						attrib.data[attrib.index] = data_v;
@@ -228,12 +195,12 @@ namespace core
 				 *	MISC OUTPUT & FEATURE CONTROL
 				 *********************************/
 			case Port_MiscOutputWrite:
-				miscellanious.value = data_v;
+				misc.value = data_v;
 				return ;
 
 			case Port_MdaFeatureControl:
 			case Port_VgaFeatureControl:
-				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
+				if (port_v != port_control) break;
 				feature_control = data_v;
 				return ;
 
@@ -248,6 +215,19 @@ namespace core
 		constexpr inline auto IoPortFetch(std::uint16_t port_v) noexcept -> std::uint8_t
 		{
 			uint8_t tmp_v{ 0 };
+      auto const port_crt_data  = misc.io_addr_3dx 
+                                ? Port_VgaCrtData        
+                                : Port_MdaCrtData ;
+      auto const port_crt_index = misc.io_addr_3dx 
+                                ? Port_VgaCrtIndex       
+                                : Port_MdaCrtIndex ;
+      auto const port_status    = misc.io_addr_3dx 
+                                ? Port_VgaInputStatus
+                                : Port_MdaInputStatus ;
+      auto const port_control   = misc.io_addr_3dx 
+                                ? Port_VgaFeatureControl 
+                                : Port_MdaFeatureControl ;
+        
 			switch (port_v)
 			{
 				/***********************
@@ -271,12 +251,14 @@ namespace core
 				 ***********************/
 			case Port_MdaCrtIndex:
 			case Port_VgaCrtIndex:
-				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
-				return crtctrl.index;
+				if (port_v != port_crt_index)
+          break;
+				return crtctrl.index;        
 
-			case Port_VgaCrtData:
 			case Port_MdaCrtData:
-				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
+			case Port_VgaCrtData:
+				if (port_v != port_crt_data)
+          break;
         tmp_v = 0xffu;
         if (crtctrl.index < std::size(crtctrl.data))
 				  tmp_v = crtctrl.data[crtctrl.index];  
@@ -284,7 +266,8 @@ namespace core
 
 			case Port_MdaInputStatus:
 			case Port_VgaInputStatus:
-				if ((port_v < detail::port_vga_io(0x3D0u)) == bool(miscellanious.io_address_select)) break;
+				if (port_v != port_status)
+          break;
 				attrib.latch = false;
 				return 0x00u;
 
@@ -327,7 +310,7 @@ namespace core
 				 *	MISC OUTPUT & FEATURE CONTROL
 				 *********************************/
 			case Port_MiscOutputRead:
-				return miscellanious.value;
+				return misc.value;
 
 			case Port_FeatureControlRead:
 				return feature_control;
@@ -350,7 +333,7 @@ namespace core
 			using enum ValueIndex;
 			     if constexpr (_Index == EightDotMode              ) return sequencer.eight_dot_mode ;
 			else if constexpr (_Index == DotClockRate              ) return sequencer.dot_clock_rate ;
-      else if constexpr (_Index == MasterClockSelect         ) return miscellanious.clock_select;
+      else if constexpr (_Index == MasterClockSelect         ) return misc.clock_select;
       else if constexpr (_Index == MaximumScanline           ) return crtctrl.maximum_scan_line ;
 			else if constexpr (_Index == HorizontalTotal           ) return crtctrl.horizontal_total ;
 			else if constexpr (_Index == HorizontalDisplayEnd      ) return crtctrl.horizontal_display_end ;
@@ -386,47 +369,7 @@ namespace core
       else {
         //static_assert(sizeof(_Index)==0, "invalid value index"); 
         return 0u;
-      }
-			
-		}
-
-		auto Log() const -> void
-		{
-			using namespace std::string_literals;
-			using utils::logger;
-
-		#define Fmt(X)  std::format("  > {:.<35}: {}\n", #X, GetValue<ValueIndex::X>())
-			logger::debug(logger::deflog, "video state : \n{}\n",
-				std::string()
-
-        
-        + Fmt(DrvHorizontalTotalChars)
-				+ Fmt(DrvHorizontalVisibleChars)
-        + Fmt(DrvHorizontalTotal)
-        + Fmt(DrvHorizontalVisible)
-				+ Fmt(DrvVerticalTotal)
-				+ Fmt(DrvVerticalVisible)
-				+ Fmt(DrvCharacterWidth)
-				+ Fmt(DrvCharacterHeight)
-
-				+ Fmt(HorizontalDisplayEnd)
-				+ Fmt(HorizontalRetraceStart)
-				+ Fmt(HorizontalBlankingStart)
-				+ Fmt(HorizontalBlankingEnd)
-				+ Fmt(HorizontalRetraceEnd)
-				+ Fmt(HorizontalTotal)
-				+ Fmt(VerticalTotal)
-				+ Fmt(VerticalDisplayEnd)
-				+ Fmt(VerticalRetraceStart)
-				+ Fmt(VerticalBlankingStart)
-				+ Fmt(VerticalBlankingEnd)
-				+ Fmt(VerticalRetraceEnd)
-        + Fmt(MaximumScanline)
-        + Fmt(DotClockRate) 
-        + Fmt(EightDotMode)
-
-			);
-		#undef Fmt
+      }			
 		}
 
 		struct
@@ -667,18 +610,17 @@ namespace core
 		union {
 			uint8_t value:8;
 			struct {				
-				uint8_t io_address_select:1;
+				uint8_t io_addr_3dx:1;
 				uint8_t ram_access_enable:1;
 				uint8_t clock_select:2;
 				uint8_t _0:1;
 				uint8_t odd_even_page_select:1;
 				uint8_t sync_polarity:2;
 			};
-		} miscellanious;
+		} misc;
 		uint8_t feature_control:8;
 
 	};
 #pragma pack(pop)	
+  static_assert(sizeof(VGARegisters) == 0x400u);
 }
-
-static_assert(sizeof(core::VGARegisters) == 0x348u);

@@ -14,7 +14,10 @@
 #include <core/mapgparange.hpp>
 #include <core/romimage.hpp>
 #include <core/display.hpp>
+
 #include <core/videodevice/vgaregisters.hpp>
+#include <core/videodevice/vgarenderer.hpp>
+#include <core/videodevice/iowritequeue.hpp>
 
 #include <utils/limited_span.hpp>
 #include <utils/smart_span.hpp>
@@ -33,11 +36,16 @@ namespace core
 	struct Processor;
 	struct HypercallContext;
 
+  
+
 	struct VideoDevice
 	{
 		using duration_type = win32::filetime_clock::duration;
 		using buffer_type = win32::unique_span<std::byte>;
 		using region_type = utils::region64_type;
+
+    using VGARegisters = videodevice::VGARegisters;
+    using VGARenderer = videodevice::VGARenderer;
 
 		VideoDevice(Machine& machine_v);
 		~VideoDevice();
@@ -55,25 +63,38 @@ namespace core
 
 		auto ConfigureROM(core::Configuration const&) -> void;
 		auto ConfigureMemory(core::Configuration const&) -> void;
+
 		auto RefreshTask(std::stop_token stopee_v) -> void;
+
+    auto FrameTime() const -> std::uint32_t;
+
 
 	protected:
 
 
 	private:
-    struct port_write_item {
-      std::uint32_t data;
-      std::uint32_t addr;
+
+    #pragma pack(push, 1)
+    struct port_write_item 
+    { 
+      std::uint32_t time;
+      std::uint32_t data; 
+      std::uint16_t addr;
+      std::uint16_t size;
     };
+    #pragma pack(pop)
+
     using port_write_queue = utils::coqueue<port_write_item>;
 
 		Machine& m_Machine;
 		std::optional<RomImage> m_BiosRom;
+
 		buffer_type m_VideoMemory;
+
 		VGARegisters m_VgaRegisters;
+    VGARenderer m_VgaRenderer;
+
     port_write_queue m_PortWriteQueue;
     std::jthread m_RefreshTask;
-    std::uint32_t m_Hcounter;
-    std::uint32_t m_Vcounter;
   };
 }
