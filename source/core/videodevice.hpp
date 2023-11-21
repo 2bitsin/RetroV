@@ -15,6 +15,7 @@
 #include <core/romimage.hpp>
 #include <core/display.hpp>
 
+#include <core/videodevice/vgaioconsts.hpp>
 #include <core/videodevice/vgaregisters.hpp>
 #include <core/videodevice/vgarenderer.hpp>
 #include <core/videodevice/iowritequeue.hpp>
@@ -40,6 +41,7 @@ namespace core
 
 	struct VideoDevice
 	{
+    using io_write_queue = videodevice::io_write_queue;
 		using duration_type = win32::filetime_clock::duration;
 		using buffer_type = win32::unique_span<std::byte>;
 		using region_type = utils::region64_type;
@@ -66,25 +68,19 @@ namespace core
 
 		auto RefreshTask(std::stop_token stopee_v) -> void;
 
-    auto FrameTime() const -> std::uint32_t;
-
+    auto SetClockFrequency(std::uint32_t value_v) -> void;
+    auto ResetFrameTimer() -> void;
+    auto RelativeFrameTime() const -> std::uint32_t;
+    auto WaitRenderUntil(std::uint32_t time_v) -> std::int32_t;
+    auto IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v, std::size_t size_v) -> std::uint32_t;
 
 	protected:
 
 
 	private:
 
-    #pragma pack(push, 1)
-    struct port_write_item 
-    { 
-      std::uint32_t time;
-      std::uint32_t data; 
-      std::uint16_t addr;
-      std::uint16_t size;
-    };
-    #pragma pack(pop)
 
-    using port_write_queue = utils::coqueue<port_write_item>;
+
 
 		Machine& m_Machine;
 		std::optional<RomImage> m_BiosRom;
@@ -94,7 +90,9 @@ namespace core
 		VGARegisters m_VgaRegisters;
     VGARenderer m_VgaRenderer;
 
-    port_write_queue m_PortWriteQueue;
+    io_write_queue m_IoWriteQueue;
     std::jthread m_RefreshTask;
+
+    
   };
 }

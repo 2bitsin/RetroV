@@ -66,9 +66,17 @@ auto VideoDevice::Restart() -> void
 
 auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
 {	
+  auto const time_v = RelativeFrameTime();
   if (is_write_v) {
+    m_IoWriteQueue.push(time_v, port_v, data_v.size(), 
+      data_v.as<uint32_t>(), vcpu_v.GetIndex());
+    return ERROR_SUCCESS;
   }
 
+  auto const result_v = WaitRenderUntil(time_v);
+  if (result_v != ERROR_SUCCESS)
+    return result_v;
+  auto const value_v = IoPortFetch(vcpu_v, port_v, data_v.size());
   return ERROR_SUCCESS;
 }
 
@@ -125,8 +133,32 @@ auto VideoDevice::RefreshTask(std::stop_token stopee_v) -> void
 
 }
 
-auto VideoDevice::FrameTime() const -> std::uint32_t
+auto VideoDevice::SetClockFrequency(std::uint32_t value_v) -> void
 {
-  return 0u;
+  using namespace std::chrono;
+  using namespace std::chrono_literals;
+
+  
+  
+}
+
+auto VideoDevice::ResetFrameTimer() -> void
+{
+
+}
+
+auto VideoDevice::RelativeFrameTime() const -> std::uint32_t
+{
+  return 0;
+}
+
+auto VideoDevice::WaitRenderUntil(std::uint32_t time_v) -> std::int32_t
+{
+  return std::int32_t();
+}
+
+auto VideoDevice::IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v, std::size_t size_v) -> std::uint32_t
+{
+  return std::uint32_t();
 }
 

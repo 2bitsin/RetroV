@@ -10,6 +10,7 @@
 #include <win32/waitabletimer.hpp>
 
 #include <core/machine.hpp>
+#include <core/videodevice/videoclock.hpp>
 
 #include <utils/smart_span.hpp>
 #include <utils/literals.hpp>
@@ -57,27 +58,21 @@ int main(int argc, char** argv) try
 		.parent_path()
 		.parent_path());
 
+  core::videodevice::video_timer vtimer_v{ 25'144'000u, 800u, 449u };
+  win32::waitable_timer wtimer_v{ };
 
-  core::videodevice::io_write_queue iowq;
-
-  iowq.push(0x200, 0x3D4u, 2u, 0xDEADBEEF);
-  iowq.push(0x201, 0x3D4u, 2u, 0xDEADBEEF);
-  iowq.push(0x202, 0x3D4u, 2u, 0xDEADBEEF);
-  iowq.push(0x203, 0x3D4u, 2u, 0xDEADBEEF);
-  iowq.push(0x300, 0x3D4u, 2u, 0xDEADBEEF);
-  iowq.push(0x301, 0x3D4u, 2u, 0xDEADBEEF);
-  iowq.push(0x302, 0x3D4u, 2u, 0xDEADBEEF);
-  iowq.push(0x303, 0x3D4u, 2u, 0xDEADBEEF);
-
-  while (auto what_v = iowq.pop_before(0x2FFu)) {
-    auto const [t, d, a, s] = *what_v;
-    std::print("time: {:08X} data: {:08X} addr: {:04X} size: {:04X}\n", t, d, a, s);
+  std::uint64_t counter_v{  0u };
+  auto t0 = high_resolution_clock::now();
+  vtimer_v.reset();  
+  while(counter_v < 70u*2u) {  
+    auto t = vtimer_v.next_scanline_time();
+    wtimer_v.set(t);
+    counter_v += 1u;
+    wtimer_v.wait();
   }
-  std::print("----0x300----\n");
-  while (auto what_v = iowq.pop_before(0x3ffu)) {
-    auto const [t, d, a, s] = *what_v;
-    std::print("time: {:08X} data: {:08X} addr: {:04X} size: {:04X}\n", t, d, a, s);
-  }
+  auto dt = high_resolution_clock::now() - t0;
+
+  std::cout << "dt = " << duration_cast<nanoseconds>(dt).count()*1e-9 << " s\n";
   __debugbreak();
 #if 0
 	using std::chrono::steady_clock;

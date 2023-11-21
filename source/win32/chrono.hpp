@@ -2,6 +2,7 @@
 
 #include <win32/windows.hpp>
 
+#include <cstdint>
 #include <chrono>
 
 namespace win32
@@ -18,4 +19,23 @@ namespace win32
 		static auto to_filetime(time_point const& tp) noexcept -> FILETIME;
 		static auto from_filetime(FILETIME const& ft) noexcept -> time_point;
 	};
+
+  static inline auto query_performance_counter() -> std::uint64_t {
+    LARGE_INTEGER value_v;
+    if (::QueryPerformanceCounter(&value_v) == FALSE) {
+      throw std::system_error{ static_cast<int>(::GetLastError()),
+        std::system_category() };
+    }
+    return value_v.QuadPart;
+  }
+
+  static inline auto query_performance_frequency() -> std::uint64_t {
+    LARGE_INTEGER value_v;
+    if (::QueryPerformanceFrequency(&value_v) == FALSE) {
+      throw std::system_error{ static_cast<int>(::GetLastError()),
+        std::system_category() };
+    }
+    return value_v.QuadPart;
+  }
+
 }

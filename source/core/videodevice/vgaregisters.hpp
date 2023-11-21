@@ -7,7 +7,7 @@
 
 #include <utils/logger.hpp>
 
-#include <core/videodevice/vgaconsts.hpp>
+#include <core/videodevice/vgaioconsts.hpp>
 
 namespace core::videodevice
 {

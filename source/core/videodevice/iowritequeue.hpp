@@ -19,25 +19,28 @@ namespace core::videodevice
       (std::uint32_t time_v
         , std::uint32_t data_v
         , std::uint16_t size_v
-        , std::uint16_t port_v)
+        , std::uint16_t port_v
+        , std::uint32_t vcpu_v = 0u)
         : time{ time_v }
         , data{ data_v }
         , size{ size_v }
         , port{ port_v }
+        , vcpu{ vcpu_v }
       {}
       std::uint32_t time;
       std::uint32_t data;
       std::uint16_t size;
       std::uint16_t port;
+      std::uint32_t vcpu;
     };
   #pragma pack(pop)
 
 
     inline io_write_queue() = default;
 
-    inline auto push(uint32_t time_v, uint16_t port_v, uint16_t size_v, uint32_t data_v) -> void {
+    inline auto push(uint32_t time_v, uint16_t port_v, uint16_t size_v, uint32_t data_v, uint32_t vcpu_v = 0u) -> void {
       std::lock_guard const lock_v{ m_Mutex };
-      m_Queue.emplace_back(time_v, data_v, size_v, port_v);
+      m_Queue.emplace_back(time_v, data_v, size_v, port_v, vcpu_v);
     }
 
     inline auto pop_before(uint32_t time_v = std::numeric_limits<uint32_t>::max()) 
