@@ -180,4 +180,16 @@ namespace utils
 		return result_v;
 	}	
 
+
+  template <typename T, typename U>
+  requires (std::is_integral_v<T> && std::is_integral_v<U>)
+  auto prev_integer_multiple(T value, U divisor) -> T {
+    return (value / divisor) * divisor;
+  }
+
+  template <typename T, typename U>
+  requires (std::is_integral_v<T> && std::is_integral_v<U>)
+  auto next_integer_multiple(T value, U divisor) -> T {    
+    return ((value + divisor - 1) / divisor) * divisor;
+  }
 }

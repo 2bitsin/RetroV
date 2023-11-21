@@ -64,7 +64,7 @@ int main(int argc, char** argv) try
   std::uint64_t counter_v{  0u };
   auto t0 = high_resolution_clock::now();
   vtimer_v.reset();  
-  while(counter_v < 70u*2u) {  
+  while(counter_v < 70u*10u) {  
     auto t = vtimer_v.next_scanline_time();
     wtimer_v.set(t);
     counter_v += 1u;
