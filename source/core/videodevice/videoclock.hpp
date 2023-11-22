@@ -24,22 +24,27 @@ namespace core::videodevice
       std::uint64_t htotal_v, std::uint64_t vtotal_v) -> void 
     {
       using namespace win32;
-      auto const pfreq_v = query_performance_frequency() * 1.0;
       m_clock_freq = clockf_v;
       m_hori_total = htotal_v;
       m_vert_total = vtotal_v;
     }
 
+    inline auto base() -> win32::filetime_clock::time_point {
+      return m_base_ftime;
+    }
+
     inline auto reset () -> void {
       using namespace win32;
-      m_base_ftime = filetime_clock::now();
-      m_base_ticks = query_performance_counter() * 0x100u;
+      m_base_ftime = filetime_clock::now();      
     }
 
     inline auto time_since_reset() const -> double {
       using namespace win32;
-      return (query_performance_counter() - m_base_ticks)
-        /query_performance_frequency();      
+      using namespace std::chrono;        
+      using seconds_d = duration<double>;
+      auto const dt100ns_v = filetime_clock::now() - m_base_ftime;
+      auto dts_v = duration_cast<seconds_d>(dt100ns_v).count();
+      return dts_v;
     }
 
     inline auto current_clock() const -> std::uint64_t {      
@@ -64,9 +69,10 @@ namespace core::videodevice
       using namespace utils;
       using duration = filetime_clock::duration;
 
-      auto const next_clock_v = next_integer_multiple(current_clock(), m_hori_total);
-      return m_base_ftime + nanoseconds{ static_cast<uint64_t>(
-         next_clock_v*1e9 / m_clock_freq) };
+      auto const curr_clock_v = current_clock();
+      auto const next_clock_v = next_integer_multiple(curr_clock_v, m_hori_total);
+      duration const next_100nano_v { static_cast<uint64_t>(next_clock_v * 1e7 / m_clock_freq) };
+      return m_base_ftime + next_100nano_v;
     }
 
     inline auto next_frame_time() -> win32::filetime_clock::time_point {
@@ -75,9 +81,10 @@ namespace core::videodevice
       using namespace utils;
       using duration = filetime_clock::duration;
 
-      auto const next_clock_v = next_integer_multiple(current_clock(), m_hori_total*m_vert_total);
-      return m_base_ftime + nanoseconds{ static_cast<uint64_t>(
-         next_clock_v * 1e9 / m_clock_freq) };
+      auto const curr_clock_v = current_clock();  
+      auto const next_clock_v = next_integer_multiple(curr_clock_v, m_hori_total*m_vert_total);
+      duration const next_100nano_v { static_cast<uint64_t>(next_clock_v * 1e7 / m_clock_freq) };
+      return m_base_ftime + next_100nano_v;
     }
 
   private:

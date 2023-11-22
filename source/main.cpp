@@ -61,18 +61,28 @@ int main(int argc, char** argv) try
   core::videodevice::video_timer vtimer_v{ 25'144'000u, 800u, 449u };
   win32::waitable_timer wtimer_v{ };
 
-  std::uint64_t counter_v{  0u };
-  auto t0 = high_resolution_clock::now();
-  vtimer_v.reset();  
-  while(counter_v < 70u*10u) {  
-    auto t = vtimer_v.next_scanline_time();
-    wtimer_v.set(t);
-    counter_v += 1u;
-    wtimer_v.wait();
-  }
-  auto dt = high_resolution_clock::now() - t0;
+  std::vector<double> timelog_v;
+  timelog_v.reserve(100000u);
 
-  std::cout << "dt = " << duration_cast<nanoseconds>(dt).count()*1e-9 << " s\n";
+  volatile std::uint64_t counter_v{ 0u };
+  auto t0 = high_resolution_clock::now();  
+  vtimer_v.reset();    
+  while(high_resolution_clock::now() - t0 < 10s) {
+    auto t = vtimer_v.next_frame_time();
+    timelog_v.emplace_back((t-vtimer_v.base()).count() / 142857.0);
+    wtimer_v.set(t);
+    wtimer_v.wait();
+    counter_v += 1u;
+  }
+  auto t1 = high_resolution_clock::now();
+
+#define L(X) std::cout << #X << ": " << X << "\n";
+
+  L(vtimer_v.current_frame());
+  
+  std::cout << "counter: " << counter_v << "\n";
+  std::cout << "time: " << (t1 - t0) << "\n";
+  std::cout << "lines per second: " << counter_v / duration_cast<duration<double>>(t1 - t0).count() << "\n";
   __debugbreak();
 #if 0
 	using std::chrono::steady_clock;
