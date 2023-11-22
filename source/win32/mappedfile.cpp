@@ -55,9 +55,9 @@ MappedFile::MappedFile(
 	if (INVALID_HANDLE_VALUE == mapp_handle_v.get())
 		error::throw_last_error();
 
-	auto const [fileoff_hi_v, fileoff_lo_v] = utils::integral_split_msw<std::uint32_t>(round_regn_v.base());
+	auto const [fileoff_hi_v, fileoff_lo_v] = utils::integral_split_msw<std::uint32_t>(round_regn_v.last_sync_time());
 
-	auto const mapoffset_v = regn_v.base() - round_regn_v.base();
+	auto const mapoffset_v = regn_v.last_sync_time() - round_regn_v.last_sync_time();
 
 	m_MapPtr = (std::byte*)::MapViewOfFile(mapp_handle_v.get(), m_prot_v, fileoff_hi_v, fileoff_lo_v, round_regn_v.size());
 

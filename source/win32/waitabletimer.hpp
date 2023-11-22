@@ -30,7 +30,7 @@ namespace win32
 		static inline constexpr const auto manual_reset_flag = 1u;
 		static inline constexpr const auto high_resolution_flag = 2u;
 
-		waitable_timer(std::uint32_t flags_v = 0u);
+		waitable_timer(std::uint32_t flags_v = high_resolution_flag);
 		~waitable_timer() = default;
 
 		waitable_timer(const waitable_timer&) = delete;

@@ -31,11 +31,11 @@ RomImage::RomImage(partition_type& partition_v,
 		m_Image.Data().data(),
 		(!(flags_v & kTopAligned)
 			? target_region_v.first(m_Image.Size())
-			: target_region_v.last(m_Image.Size())).base(),
+			: target_region_v.last(m_Image.Size())).last_sync_time(),
 		std::min(target_region_v.size(),
 			m_Image.Data().size()),
 		image_path_v,
-		source_region_v.base(),
+		source_region_v.last_sync_time(),
 		m_Image.Data().size()
 	);
 }
@@ -63,11 +63,11 @@ RomImage::RomImage(partition_type& partition_v,
 		m_Image.Data().data(),
 		(!(flags_v & kTopAligned)
 			? target_region_v.first(m_Image.Size())
-			: target_region_v.last(m_Image.Size())).base(),
+			: target_region_v.last(m_Image.Size())).last_sync_time(),
 		std::min(target_region_v.size(),
 			m_Image.Data().size()), 
 		image_path_v, 
-		source_region_v.base(), 
+		source_region_v.last_sync_time(), 
 		m_Image.Data().size()
 	);
 }

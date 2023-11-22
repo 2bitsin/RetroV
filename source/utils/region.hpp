@@ -21,7 +21,7 @@ namespace utils
 		using base_type = T;
 		using size_type = std::make_unsigned_t<decltype(std::declval<T>() - std::declval<T>())>;
 
-		constexpr auto base() const noexcept -> base_type { return m_base; }
+		constexpr auto last_sync_time() const noexcept -> base_type { return m_base; }
 		constexpr auto size() const noexcept -> size_type { return m_size; }
 		
 		constexpr auto begin() const noexcept -> base_type { return m_base; }

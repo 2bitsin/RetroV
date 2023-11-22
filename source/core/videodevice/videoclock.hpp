@@ -12,88 +12,97 @@ namespace core::videodevice
 {
   struct video_timer
   {
-    using ftime_type = win32::filetime_clock::time_point;
+    using duration = win32::filetime_clock::duration;
+    using time_point = win32::filetime_clock::time_point;
+    using dseconds = std::chrono::duration<double>;
+    using waitable = win32::waitable_timer;
 
-    inline video_timer(std::uint64_t ckfreq_v, std::uint32_t htotal_v, std::uint32_t vtotal_v)
+    inline video_timer(uint64_t ckfreq_v, uint32_t htotal_v, uint32_t vtotal_v)
+      : m_last_sync_time   { win32::filetime_clock::now() }
+      , m_clock_frequency  { ckfreq_v }
+      , m_horizontal_total { htotal_v }
+      , m_vertical_total   { vtotal_v }
+      , m_waitable_timer   {          }
+    {}
+
+    inline auto set_clock_freq(uint64_t clockf_v, uint64_t htotal_v, uint64_t vtotal_v) 
+      -> void 
     {
-      set_clock_freq(ckfreq_v, htotal_v, vtotal_v);
-      reset();
+      m_clock_frequency = clockf_v;
+      m_horizontal_total = htotal_v;
+      m_vertical_total = vtotal_v;
+      sync_clock();
     }
 
-    inline auto set_clock_freq(std::uint64_t clockf_v, 
-      std::uint64_t htotal_v, std::uint64_t vtotal_v) -> void 
-    {
+    inline auto last_sync_time() const noexcept -> time_point {
+      return m_last_sync_time;
+    }
+
+    inline auto sync_clock () -> void {
       using namespace win32;
-      m_clock_freq = clockf_v;
-      m_hori_total = htotal_v;
-      m_vert_total = vtotal_v;
+      m_last_sync_time = filetime_clock::now();      
     }
 
-    inline auto base() -> win32::filetime_clock::time_point {
-      return m_base_ftime;
-    }
-
-    inline auto reset () -> void {
-      using namespace win32;
-      m_base_ftime = filetime_clock::now();      
-    }
-
-    inline auto time_since_reset() const -> double {
+    inline auto time_since_sync() const -> dseconds {
       using namespace win32;
       using namespace std::chrono;        
-      using seconds_d = duration<double>;
-      auto const dt100ns_v = filetime_clock::now() - m_base_ftime;
-      auto dts_v = duration_cast<seconds_d>(dt100ns_v).count();
-      return dts_v;
+      return dseconds{ (filetime_clock::now() - last_sync_time()).count() * 1e-7 };
     }
 
-    inline auto current_clock() const -> std::uint64_t {      
-      return static_cast<uint64_t>(time_since_reset() * m_clock_freq);
+    inline auto current_clock() const -> uint64_t {      
+      return static_cast<uint64_t>(time_since_sync().count() * m_clock_frequency);
     }
 
-    inline auto current_dotclock() const -> std::uint32_t {      
-      return current_clock() % m_hori_total;
+    inline auto current_dotclock() const -> uint64_t {      
+      return current_clock() % m_horizontal_total;
     }
 
-    inline auto current_scanline() const -> std::uint32_t {
-      return (current_clock() / m_hori_total) % m_vert_total;
+    inline auto current_scanline() const -> uint64_t {
+      return (current_clock() / m_horizontal_total) % m_vertical_total;
     }
 
-    inline auto current_frame() const -> std::uint32_t {
-      return current_clock() / (m_hori_total * m_vert_total);
+    inline auto current_frame() const -> uint64_t {
+      return current_clock() / (m_horizontal_total * m_vertical_total);
     }
 
-    inline auto next_sline_time() -> win32::filetime_clock::time_point {
-      using namespace std::chrono;
-      using namespace win32; 
-      using namespace utils;
-      using duration = filetime_clock::duration;
-
-      auto const curr_clock_v = current_clock();
-      auto const next_clock_v = next_integer_multiple(curr_clock_v, m_hori_total);
-      duration const next_100nano_v { static_cast<uint64_t>(next_clock_v * 1e7 / m_clock_freq) };
-      return m_base_ftime + next_100nano_v;
+    inline auto calculate_dotclock(uint64_t dotclock_v) const noexcept -> time_point {
+      duration const offset100ns_v{ static_cast<uint64_t>(
+        (dotclock_v * 1e7) / m_clock_frequency) };
+      return last_sync_time() + offset100ns_v;
     }
 
-    inline auto next_frame_time() -> win32::filetime_clock::time_point {
-      using namespace std::chrono;
-      using namespace win32;
-      using namespace utils;
-      using duration = filetime_clock::duration;
-
-      auto const curr_clock_v = current_clock();  
-      auto const next_clock_v = next_integer_multiple(curr_clock_v, m_hori_total*m_vert_total);
-      duration const next_100nano_v { static_cast<uint64_t>(next_clock_v * 1e7 / m_clock_freq) };
-      return m_base_ftime + next_100nano_v;
+    inline auto calculate_sline_clock(uint64_t sline_v) const noexcept -> time_point {
+      return calculate_dotclock(sline_v * m_horizontal_total);
     }
+
+    inline auto calculate_frame_clock(uint64_t frame_v) const noexcept -> time_point {
+      return calculate_sline_clock(frame_v * m_vertical_total);
+    }
+
+    inline auto wait_until_dotclock(uint64_t clock_v) -> bool {
+      auto time_v = calculate_dotclock(clock_v);
+      if (time_v <= win32::filetime_clock::now() + duration{ 1 })
+        return false;
+      m_waitable_timer.set(time_v);
+      m_waitable_timer.wait();
+      return true;
+    }
+
+    inline auto wait_until_sline(uint64_t sline_v) -> bool {
+      return wait_until_dotclock(sline_v * m_horizontal_total);
+    }
+
+    inline auto wait_until_frame(uint64_t frame_v) -> bool {
+      return wait_until_sline(frame_v * m_vertical_total);
+    }
+    
 
   private:
-    std::uint32_t m_clock_freq { 0u };
-    std::uint32_t m_hori_total { 0u };
-    std::uint32_t m_vert_total { 0u };
-    
-    std::uint64_t m_base_ticks { 0u };
-    ftime_type    m_base_ftime {};
+    time_point m_last_sync_time {    };
+    uint64_t m_clock_frequency  { 0u };
+    uint32_t m_horizontal_total { 0u };
+    uint32_t m_vertical_total   { 0u };    
+    waitable m_waitable_timer   {    };
   };
 
 }

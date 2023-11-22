@@ -42,7 +42,7 @@ namespace utils
 
 		std::unordered_map<std::string_view, std::filesystem::path> variables_v{
 			{ "@bin"sv, bin_path_v },
-			{ "@base"sv, base_path_v },
+			{ "@last_sync_time"sv, base_path_v },
 			{ "@roms"sv, base_path_v / "ROMs"},
 			{ "@vendor"sv, std::filesystem::path{
 				(win32::WHvCapabilities::IsVendorAMD() ? "AMD" :

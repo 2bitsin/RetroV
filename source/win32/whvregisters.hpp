@@ -144,7 +144,7 @@ namespace win32::regs
 			WHV_REGISTER_VALUE value; \
 			struct \
 			{ \
-				uint64_t base; \
+				uint64_t last_sync_time; \
 				uint32_t limit; \
 				uint16_t selector; \
 				union \
@@ -187,7 +187,7 @@ namespace win32::regs
 			{ \
 				uint16_t pad[3]; \
 				uint16_t limit; \
-				uint64_t base; \
+				uint64_t last_sync_time; \
 			} l##dtr; \
 		}; \
 	}; \

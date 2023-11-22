@@ -59,30 +59,21 @@ int main(int argc, char** argv) try
 		.parent_path());
 
   core::videodevice::video_timer vtimer_v{ 25'144'000u, 800u, 449u };
-  win32::waitable_timer wtimer_v{ };
 
-  std::vector<double> timelog_v;
-  timelog_v.reserve(100000u);
-
-  volatile std::uint64_t counter_v{ 0u };
+  std::uint64_t counter_v{ 0u };
+  std::uint32_t misses_v{ 0u };
+  vtimer_v.sync_clock();    
   auto t0 = high_resolution_clock::now();  
-  vtimer_v.reset();    
   while(high_resolution_clock::now() - t0 < 10s) {
-    auto t = vtimer_v.next_frame_time();
-    timelog_v.emplace_back((t-vtimer_v.base()).count() / 142857.0);
-    wtimer_v.set(t);
-    wtimer_v.wait();
     counter_v += 1u;
+    misses_v += !vtimer_v.wait_until_sline(counter_v);
   }
   auto t1 = high_resolution_clock::now();
-
-#define L(X) std::cout << #X << ": " << X << "\n";
-
-  L(vtimer_v.current_frame());
   
-  std::cout << "counter: " << counter_v << "\n";
-  std::cout << "time: " << (t1 - t0) << "\n";
-  std::cout << "lines per second: " << counter_v / duration_cast<duration<double>>(t1 - t0).count() << "\n";
+  std::print("waits  : {}\n", (uint64_t)counter_v);
+  std::print("misses : {}\n", (uint64_t)misses_v);
+  std::print("deltat : {} s\n", duration_cast<nanoseconds>(t1 - t0).count()/1e9);
+  std::print("ctpsec : {}\n", (counter_v*1e9) / duration_cast<nanoseconds>(t1 - t0).count());
   __debugbreak();
 #if 0
 	using std::chrono::steady_clock;

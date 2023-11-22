@@ -49,9 +49,9 @@ auto MapGpaRange::Enable() -> void {
 	if (!m_Enabled) {
 		auto const size_v = std::min(m_Region.size(), m_View.size());
 	#ifndef NDEBUG
-		s_log.MapGpaRange(m_View.data(), m_Region.base(), size_v, m_Flags);
+		s_log.MapGpaRange(m_View.data(), m_Region.last_sync_time(), size_v, m_Flags);
 	#endif
-		WIN32_ERROR_ASSERT(m_Partition->MapGpaRange(m_View.data(), m_Region.base(), size_v, m_Flags));
+		WIN32_ERROR_ASSERT(m_Partition->MapGpaRange(m_View.data(), m_Region.last_sync_time(), size_v, m_Flags));
 		m_Enabled = true;	
 	}
 }
@@ -71,9 +71,9 @@ auto MapGpaRange::Disable() -> void {
 	if (m_Enabled) {
 		auto const size_v = std::min(m_Region.size(), m_View.size());
 	#ifndef NDEBUG
-		s_log.UnmapGpaRange(m_Region.base(), size_v);
+		s_log.UnmapGpaRange(m_Region.last_sync_time(), size_v);
 	#endif
-		WIN32_ERROR_ASSERT(m_Partition->UnmapGpaRange(m_Region.base(), size_v));
+		WIN32_ERROR_ASSERT(m_Partition->UnmapGpaRange(m_Region.last_sync_time(), size_v));
 		m_Enabled = false;
 	}
 }
