@@ -19,9 +19,11 @@
 #include <utils/paths.hpp>
 #include <utils/pattern.hpp>
 
+#include <condition_variable>
 #include <string_view>
 #include <filesystem>
 #include <iostream>
+#include <future>
 #include <string>
 #include <format>
 #include <chrono>
@@ -58,10 +60,39 @@ int main(int argc, char** argv) try
 		.parent_path()
 		.parent_path());
 
+  waitable_timer wtimer_v{ waitable_timer::high_resolution_flag };
+  std::binary_semaphore sem_v{ 0 };
+  auto const wakeup_v = std::async(std::launch::async, [&]() {
+    sem_v.acquire();
+    std::this_thread::sleep_for(5s);
+    wtimer_v.cancel_wait();
+  });
+  auto t0 = high_resolution_clock::now();
+  wtimer_v.set(filetime_clock::now() + 10s);
+  sem_v.release();
+  auto const result_v = wtimer_v.wait();
+  auto t1 = high_resolution_clock::now();
+  auto dt = duration_cast<microseconds>(t1-t0).count() * 1e-6;
+
+  std::print("dT -> {:0.4f} s\n", dt);
+  switch (result_v)
+  {
+  case waitable_timer::wait_timedout: std::print("wait_timedout\n"); break;
+  case waitable_timer::wait_failed: std::print("wait_failed\n"); break;
+  case waitable_timer::timer_elapsed: std::print("timer_elapsed\n"); break;
+  case waitable_timer::wait_cancelled: std::print("wait_cancelled\n"); break;
+  default: std::print("unknown\n"); break;
+  }
+
+  __debugbreak();
+#if 0
   core::videodevice::video_timer vtimer_v{ 25'144'000u, 800u, 449u };
 
   std::uint64_t counter_v{ 0u };
   std::uint32_t misses_v{ 0u };
+
+  std::condition_variable cv;
+
   vtimer_v.sync_clock();    
   auto t0 = high_resolution_clock::now();  
   while(high_resolution_clock::now() - t0 < 10s) {
@@ -75,6 +106,8 @@ int main(int argc, char** argv) try
   std::print("deltat : {} s\n", duration_cast<nanoseconds>(t1 - t0).count()/1e9);
   std::print("ctpsec : {}\n", (counter_v*1e9) / duration_cast<nanoseconds>(t1 - t0).count());
   __debugbreak();
+#endif
+
 #if 0
 	using std::chrono::steady_clock;
 

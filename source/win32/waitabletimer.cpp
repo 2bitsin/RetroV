@@ -4,27 +4,36 @@
 using win32::waitable_timer;
 
 waitable_timer::waitable_timer(std::uint32_t flags_v)
-	: m_handle 
+	: m_timer 
 	{	::CreateWaitableTimerExW(nullptr, nullptr, 
 			(flags_v&high_resolution_flag?CREATE_WAITABLE_TIMER_HIGH_RESOLUTION:0)|
 			(flags_v&manual_reset_flag?CREATE_WAITABLE_TIMER_MANUAL_RESET:0),
 		TIMER_ALL_ACCESS) }
+  , m_event
+  { ::CreateEventW(nullptr, FALSE, FALSE, nullptr) }
+
 {
-	if (INVALID_HANDLE_VALUE==m_handle.get() || !m_handle)
-		error::throw_last_error();
+	if (INVALID_HANDLE_VALUE==m_timer.get() || !m_timer) error::throw_last_error();
+  if (INVALID_HANDLE_VALUE==m_event.get() || !m_event) error::throw_last_error();
 }
 
-auto win32::waitable_timer::wait(milliseconds timeout_v, bool alertable_v) const -> bool 
+auto win32::waitable_timer::wait(milliseconds timeout_v, bool alertable_v) const -> wait_status 
 {
+  void* handles_v[] = { m_timer.get(), m_event.get() };
+  auto const wait_result_v = ::WaitForMultipleObjectsEx(
+    2u, handles_v, FALSE, timeout_v.count(), 
+    alertable_v ? TRUE : FALSE);
+
 	while(true)
-	switch(::WaitForSingleObjectEx(m_handle.get(), timeout_v.count(), 
-		alertable_v ? TRUE : FALSE))
+	switch(wait_result_v)
 	{
 	case WAIT_ABANDONED:
 	case WAIT_TIMEOUT:
-		return false;
+		return wait_timedout;
 	case WAIT_OBJECT_0:
-		return true;
+		return timer_elapsed;
+  case WAIT_OBJECT_0+1:
+    return wait_cancelled;
 	case WAIT_IO_COMPLETION:
 		continue;
 	default:
@@ -34,27 +43,33 @@ auto win32::waitable_timer::wait(milliseconds timeout_v, bool alertable_v) const
 	}
 }
 
-auto waitable_timer::wait(bool alertable_v) const -> bool
+auto waitable_timer::wait(bool alertable_v) const -> wait_status
 {
 	return wait(milliseconds(INFINITE), alertable_v);
 }
 
 auto waitable_timer::abort() const -> void
 {
-	if(!::CancelWaitableTimer(m_handle.get()))
+	if(!::CancelWaitableTimer(m_timer.get()))
 		error::throw_last_error();
 }
 
 auto waitable_timer::reset() const -> void
 {
-	if(!::ResetEvent(m_handle.get()))
+	if(!::ResetEvent(m_timer.get()))
 		error::throw_last_error();
 }
 
+auto waitable_timer::cancel_wait() const -> void
+{
+  if(!::SetEvent(m_event.get()))
+    error::throw_last_error();
+}
+
 auto waitable_timer::set_raw(PTIMERAPCROUTINE callback_v, void* argument_v, duration duetime_v, milliseconds period_v) -> void {
-	assert(INVALID_HANDLE_VALUE != m_handle.get() && m_handle);
+	assert(INVALID_HANDLE_VALUE != m_timer.get() && m_timer);
 	LARGE_INTEGER duetime_lint{ .QuadPart = -duetime_v.count() };
-	if (SetWaitableTimer(m_handle.get(), &duetime_lint,
+	if (SetWaitableTimer(m_timer.get(), &duetime_lint,
 		period_v.count(), callback_v, argument_v, FALSE))
 		return;
 	error::throw_last_error();
@@ -62,9 +77,9 @@ auto waitable_timer::set_raw(PTIMERAPCROUTINE callback_v, void* argument_v, dura
 
 auto win32::waitable_timer::set_raw(PTIMERAPCROUTINE callback_v, void* argument_v, time_point duetime_v, milliseconds period_v) -> void
 {
-	assert(INVALID_HANDLE_VALUE != m_handle.get() && m_handle);
+	assert(INVALID_HANDLE_VALUE != m_timer.get() && m_timer);
 	LARGE_INTEGER duetime_lint{ .QuadPart = duetime_v.time_since_epoch().count() };
-	if (SetWaitableTimer(m_handle.get(), &duetime_lint,
+	if (SetWaitableTimer(m_timer.get(), &duetime_lint,
 		period_v.count(), callback_v, argument_v, FALSE))
 		return;
 	error::throw_last_error();

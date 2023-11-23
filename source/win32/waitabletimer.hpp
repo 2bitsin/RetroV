@@ -14,6 +14,14 @@ namespace win32
 
 	struct waitable_timer
 	{
+    enum wait_status 
+    {
+      wait_timedout = -1,
+      wait_failed = 0,
+      timer_elapsed = 1,
+      wait_cancelled = 2
+    };
+
 		struct close_handle
 		{
 			auto operator () (void* handle_v) noexcept -> void {				
@@ -79,17 +87,19 @@ namespace win32
 			return *this;
 		}
 
-		auto wait(milliseconds timeout_v, bool alertable_v=true) const -> bool;
-		auto wait(bool alertable_v=true) const -> bool;
+		auto wait(milliseconds timeout_v, bool alertable_v=true) const -> wait_status;
+		auto wait(bool alertable_v=true) const -> wait_status;
 		auto abort() const -> void;
 		auto reset() const -> void;
+    auto cancel_wait() const -> void;
 
 	private:
 		auto set_raw(PTIMERAPCROUTINE callback_v, void* argument_v, duration duetime_v, milliseconds period_v = milliseconds::zero()) -> void;
 		auto set_raw(PTIMERAPCROUTINE callback_v, void* argument_v, time_point duetime_v, milliseconds period_v = milliseconds::zero()) -> void;
 
 	private:
-		unique_handle m_handle;
+		unique_handle m_timer;
+    unique_handle m_event;
 		std::function<void(time_point)> m_callee;
 	};
 }
