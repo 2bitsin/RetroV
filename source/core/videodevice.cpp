@@ -3,6 +3,7 @@
 #include <core/processor.hpp>
 
 #include <win32/waitabletimer.hpp>
+#include <win32/async.hpp>
 
 #include <utils/logger.hpp>
 #include <utils/algorithm.hpp>
@@ -46,6 +47,7 @@ auto VideoDevice::Start() -> void
     while (stopee_v.stop_requested()) {
       RefreshTask(stopee_v);
     }
+    win32::drain_apc_queue();
   });
 }
 
@@ -64,7 +66,7 @@ auto VideoDevice::Restart() -> void
 	Start();
 }
 
-auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
+auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> int32_t
 {	
   auto const time_v = RelativeFrameTime();
   if (is_write_v) {
@@ -80,14 +82,14 @@ auto VideoDevice::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::ui
   return ERROR_SUCCESS;
 }
 
-auto VideoDevice::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t
+auto VideoDevice::MemoryAccess(Processor const& vcpu_v, bool is_write_v, uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> int32_t
 {
 	if (addr_v < 0xA0000u || addr_v >= 0xC0000u)
 		__debugbreak();
 	return ERROR_SUCCESS;
 }
 
-auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& context_v) -> std::int32_t
+auto VideoDevice::Hypercall(Processor const& vcpu_v, HypercallContext const& context_v) -> int32_t
 {	
 	using namespace win32::regs;
 
@@ -121,8 +123,10 @@ auto VideoDevice::ConfigureMemory(core::Configuration const& config_v) -> void
 {
 	using namespace win32;
 	using namespace size_literals;
-	auto const size_bytes_v = config_v.GetPropertyUint64("video.memory.size.kilobytes")*1_KiB;	
-	m_VideoMemory = VirtualAlloc_s(size_bytes_v, read_write, commit|reserve, nullptr);
+	auto const size_bytes_v = std::max<size_t>(config_v.GetPropertyUint64("video.memory.size.kilobytes"), 256u)*1_KiB;	
+	m_VideoMemory[0] = VirtualAlloc_s(size_bytes_v, read_write, commit | reserve, nullptr);
+  m_VideoMemory[1] = VirtualAlloc_s(size_bytes_v, read_write, commit | reserve, nullptr);
+  m_DirtyVramMask  = VirtualAlloc_s(size_bytes_v, read_write, commit | reserve, nullptr);
 }
 
 auto VideoDevice::RefreshTask(std::stop_token stopee_v) -> void 
@@ -133,7 +137,7 @@ auto VideoDevice::RefreshTask(std::stop_token stopee_v) -> void
 
 }
 
-auto VideoDevice::SetClockFrequency(std::uint32_t value_v) -> void
+auto VideoDevice::SetClockFrequency(uint32_t value_v) -> void
 {
   using namespace std::chrono;
   using namespace std::chrono_literals;
@@ -147,18 +151,60 @@ auto VideoDevice::ResetFrameTimer() -> void
 
 }
 
-auto VideoDevice::RelativeFrameTime() const -> std::uint32_t
+auto VideoDevice::RelativeFrameTime() const -> uint32_t
 {
   return 0;
 }
 
-auto VideoDevice::WaitRenderUntil(std::uint32_t time_v) -> std::int32_t
+auto VideoDevice::WaitRenderUntil(uint32_t time_v) -> int32_t
 {
-  return std::int32_t();
+  return int32_t();
 }
 
-auto VideoDevice::IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v, std::size_t size_v) -> std::uint32_t
+auto VideoDevice::IoPortFetch(Processor const& vcpu_v, uint16_t port_v, size_t size_v) -> uint32_t
 {
-  return std::uint32_t();
+  return uint32_t();
+}
+
+auto VideoDevice::HostFetch(VGARegisters const& state_v, uint32_t addr_v, uint8_t size_v) -> uint32_t
+{ 
+  uint32_t data_v{ 0u };
+  switch (size_v) 
+  {
+  default: throw std::invalid_argument("Invalid size");    
+  case 4u: size_v -= 1u; data_v = (data_v << 8u) | (HostFetchByte(state_v, addr_v + size_v) & 0xFF); [[fallthrough]];
+  case 3u: size_v -= 1u; data_v = (data_v << 8u) | (HostFetchByte(state_v, addr_v + size_v) & 0xFF); [[fallthrough]];
+  case 2u: size_v -= 1u; data_v = (data_v << 8u) | (HostFetchByte(state_v, addr_v + size_v) & 0xFF); [[fallthrough]];
+  case 1u: size_v -= 1u; data_v = (data_v << 8u) | (HostFetchByte(state_v, addr_v + size_v) & 0xFF); break; 
+  }    
+  return data_v;
+}
+
+auto VideoDevice::HostFetchByte(VGARegisters const& state_v, uint32_t addr_v) -> uint8_t
+{
+  using enum VGARegisters::ValueIndex;
+
+  if (state_v.GetValue<ReadModeSelect>()) {
+    __debugbreak();
+    throw std::runtime_error("ReadModeSelect not implemented");
+  }
+}
+
+auto VideoDevice::HostWrite(bool is_ahead_v, VGARegisters const& state_v, uint32_t addr_v, uint32_t data_v, uint8_t size_v) -> void
+{
+  switch (size_v)
+  {
+  default: throw std::invalid_argument("Invalid size");
+  case 4u: HostWriteByte(is_ahead_v, state_v, addr_v, data_v & 0xFFu); addr_v += 1u; data_v >>= 8u; [[fallthrough]];
+  case 3u: HostWriteByte(is_ahead_v, state_v, addr_v, data_v & 0xFFu); addr_v += 1u; data_v >>= 8u; [[fallthrough]];
+  case 2u: HostWriteByte(is_ahead_v, state_v, addr_v, data_v & 0xFFu); addr_v += 1u; data_v >>= 8u; [[fallthrough]];
+  case 1u: HostWriteByte(is_ahead_v, state_v, addr_v, data_v & 0xFFu); addr_v += 1u; data_v >>= 8u; break;
+  }
+}
+
+auto VideoDevice::HostWriteByte(bool is_ahead_v, VGARegisters const& state_v, uint32_t addr_v, uint8_t value_v) -> void
+{
+  using 
+  auto const read_mode_v = state_v.GetValue<
 }
 

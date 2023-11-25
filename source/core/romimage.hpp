@@ -21,17 +21,17 @@ namespace core
 		struct validate 
 		{
 			inline constexpr validate(
-				std::size_t granularity_v, 
-				std::size_t min_size_v, 
-				std::size_t max_size_v)
+				size_t granularity_v, 
+				size_t min_size_v, 
+				size_t max_size_v)
 				: granularity{ granularity_v }
 				, min_size{ min_size_v }
 				, max_size{ max_size_v }
 			{}
 
-			std::size_t const granularity{ 0x1000u };
-			std::size_t const min_size{ 0x00000000000001ull };
-			std::size_t const max_size{ 0x10000000000000ull };
+			size_t const granularity{ 0x1000u };
+			size_t const min_size{ 0x00000000000001ull };
+			size_t const max_size{ 0x10000000000000ull };
 		};
 		
 		static inline constexpr auto kTopAligned = 0x1u;
@@ -40,13 +40,13 @@ namespace core
 			validate const& validate_v,
 			std::filesystem::path const& image_path_v, 
 			region_type target_region_v,
-			std::uint32_t flags_v = 0u,
+			uint32_t flags_v = 0u,
 			region_type source_region_v = {});
 			
 		RomImage(partition_type& partition_v,
 			std::filesystem::path const& image_path_v, 
 			region_type target_region_v,
-			std::uint32_t flags_v = 0u,
+			uint32_t flags_v = 0u,
 			region_type source_region_v = {});
 
 		~RomImage() = default;
@@ -61,7 +61,7 @@ namespace core
 		auto Disable() -> void;
 		auto Remap(region_type target_region_v) -> void;
 
-		auto Patch(std::size_t offset_v, std::span<std::byte const> bytes_v) -> void;
+		auto Patch(size_t offset_v, std::span<std::byte const> bytes_v) -> void;
 	private:
 		mapped_type m_Image;
 		MapGpaRange m_Mapping;

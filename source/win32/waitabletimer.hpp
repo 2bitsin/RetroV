@@ -19,7 +19,8 @@ namespace win32
       wait_timedout = -1,
       wait_failed = 0,
       timer_elapsed = 1,
-      wait_cancelled = 2
+      wait_cancelled = 2,
+      wait_cancelled_by_apc = 3
     };
 
 		struct close_handle
@@ -38,7 +39,10 @@ namespace win32
 		static inline constexpr const auto manual_reset_flag = 1u;
 		static inline constexpr const auto high_resolution_flag = 2u;
 
-		waitable_timer(std::uint32_t flags_v = high_resolution_flag);
+    static inline constexpr const auto wait_alertable = 1u;
+    static inline constexpr const auto wait_cancel_after_apc = 2u;
+
+		waitable_timer(uint32_t flags_v = high_resolution_flag);
 		~waitable_timer() = default;
 
 		waitable_timer(const waitable_timer&) = delete;
@@ -69,7 +73,7 @@ namespace win32
 				auto const filetime_v = filetime_clock::from_filetime({ time_v... });
 				assert(nullptr != this_v);
 				static_cast<waitable_timer*>(this_v)->m_callee(filetime_v);
-				};
+			};
 			m_callee = std::forward<Callee>(callee);
 			set_raw(proxyfun_s, this, duetime_v, period_v);
 			return *this;
@@ -87,8 +91,8 @@ namespace win32
 			return *this;
 		}
 
-		auto wait(milliseconds timeout_v, bool alertable_v=true) const -> wait_status;
-		auto wait(bool alertable_v=true) const -> wait_status;
+		auto wait(milliseconds timeout_v, uint32_t falgs_v=0u) const -> wait_status;
+		auto wait(uint32_t flags_v=0u) const -> wait_status;
 		auto abort() const -> void;
 		auto reset() const -> void;
     auto cancel_wait() const -> void;

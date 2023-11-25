@@ -20,36 +20,36 @@ namespace win32
 
 		template <typename ObjectT>
 		concept Has_IoPortAccess = requires(ObjectT&& object_v, 
-			bool is_write_v, std::uint16_t addr_v, utils::limited_span<std::byte, 4u> data_v)
+			bool is_write_v, uint16_t addr_v, utils::limited_span<std::byte, 4u> data_v)
 		{		
-			{ object_v.IoPortAccess(is_write_v, addr_v, data_v) } -> std::same_as<std::int32_t>;
+			{ object_v.IoPortAccess(is_write_v, addr_v, data_v) } -> std::same_as<int32_t>;
 		};
 
 		template <typename ObjectT>
 		concept Has_MemoryAccess = requires(ObjectT&& object_v, 
-			bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v)
+			bool is_write_v, uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v)
 		{		
-			{ object_v.MemoryAccess(is_write_v, addr_v, data_v) } -> std::same_as<std::int32_t>;
+			{ object_v.MemoryAccess(is_write_v, addr_v, data_v) } -> std::same_as<int32_t>;
 		};
 
 		template <typename ObjectT>
 		concept Has_GetRegisters = requires(ObjectT&& object_v, std::span<WHV_REGISTER_NAME const> names_v, 
 			std::span<WHV_REGISTER_VALUE> values_v)
 		{		
-			{ object_v.GetRegisters(names_v, values_v) } -> std::same_as<std::int32_t>;
+			{ object_v.GetRegisters(names_v, values_v) } -> std::same_as<int32_t>;
 		};
 
 		template <typename ObjectT>
 		concept Has_SetRegisters = requires(ObjectT&& object_v, std::span<WHV_REGISTER_NAME const> names_v, 
 			std::span<WHV_REGISTER_VALUE const> values_v)
 		{		
-			{ object_v.SetRegisters(names_v, values_v) } -> std::same_as<std::int32_t>;
+			{ object_v.SetRegisters(names_v, values_v) } -> std::same_as<int32_t>;
 		};
 
 		template <typename ObjectT>
-		concept Has_TranslateGvaPage = requires(ObjectT&& object_v, std::uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v)
+		concept Has_TranslateGvaPage = requires(ObjectT&& object_v, uint64_t virtaddr_v, WHV_TRANSLATE_GVA_FLAGS flags_v)
 		{		
-			{ object_v.TranslateGva(virtaddr_v, flags_v) } -> std::same_as<std::tuple<std::int32_t, WHV_TRANSLATE_GVA_RESULT_CODE, std::uint64_t>>;
+			{ object_v.TranslateGva(virtaddr_v, flags_v) } -> std::same_as<std::tuple<int32_t, WHV_TRANSLATE_GVA_RESULT_CODE, uint64_t>>;
 		};
 
 	}
@@ -75,7 +75,7 @@ namespace win32
 
 		template <typename ObjectT>
 		auto TryIoEmulation(ObjectT& object_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) const noexcept 
-			-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>
+			-> std::tuple<int32_t, WHV_EMULATOR_STATUS>
 		{
 			InvocationContext callbacks_v;
 			MakeInvocationContext(object_v, callbacks_v);
@@ -84,7 +84,7 @@ namespace win32
 
 		template <typename ObjectT>
 		auto TryMmioEmulation(ObjectT& object_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_MEMORY_ACCESS_CONTEXT const& mmctx_v) const noexcept 
-			-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>
+			-> std::tuple<int32_t, WHV_EMULATOR_STATUS>
 		{
 			InvocationContext callbacks_v;
 			MakeInvocationContext(object_v, callbacks_v);
@@ -94,9 +94,9 @@ namespace win32
 	protected:
 
 		auto TryIoEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_X64_IO_PORT_ACCESS_CONTEXT const& ioctx_v) const noexcept 
-			-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>;
+			-> std::tuple<int32_t, WHV_EMULATOR_STATUS>;
 		auto TryMmioEmulation(void* context_v, WHV_VP_EXIT_CONTEXT const& vpctx_v, WHV_MEMORY_ACCESS_CONTEXT const& mmctx_v) const noexcept 
-			-> std::tuple<std::int32_t, WHV_EMULATOR_STATUS>;
+			-> std::tuple<int32_t, WHV_EMULATOR_STATUS>;
 		struct InvocationContext
 		{
 			void* ObjectPointer;
@@ -121,7 +121,7 @@ namespace win32
 						return E_INVALIDARG;
 					return static_cast<T*>(context_v)->IoPortAccess(
 						(bool)access_v->Direction, 
-						(std::uint16_t)access_v->Port,						
+						(uint16_t)access_v->Port,						
 						utils::as_static_mutable_bytes(access_v->Data)
 							.first(access_v->AccessSize));
 				};
@@ -137,7 +137,7 @@ namespace win32
 						return E_INVALIDARG;
 					auto status_v = static_cast<T*>(context_v)->MemoryAccess(
 						(bool)access_v->Direction,
-						(std::uint64_t)access_v->GpaAddress,
+						(uint64_t)access_v->GpaAddress,
 						utils::as_static_mutable_bytes(access_v->Data)
 							.first(access_v->AccessSize));
 					return status_v;

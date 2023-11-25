@@ -13,8 +13,8 @@ namespace utils
 	auto module_filename() -> std::filesystem::path 
 	{
 		std::wstring buffer_v(MAX_PATH, '\0');
-		std::uint32_t result_v{ 0u };
-		std::int32_t win32_error_v{ 0 };
+		uint32_t result_v{ 0u };
+		int32_t win32_error_v{ 0 };
 	repeat_again:
 		result_v = ::GetModuleFileNameW(nullptr, buffer_v.data(), buffer_v.size());
 

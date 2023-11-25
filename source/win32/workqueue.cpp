@@ -134,7 +134,7 @@ auto WorkTimer::Cancel() -> void {
 	}
 }
 
-auto WorkTimer::SubmitTo(WorkQueue& queue_v, FILETIME expire_v, std::uint32_t period_millisec_v) -> void
+auto WorkTimer::SubmitTo(WorkQueue& queue_v, FILETIME expire_v, uint32_t period_millisec_v) -> void
 {
 	if (nullptr != m_handle) {
 		::CloseThreadpoolTimer(m_handle);
@@ -167,12 +167,12 @@ auto WorkTimer::SubmitTo(WorkQueue& queue_v, time_point_type expire_v, duration_
 auto WorkTimer::SubmitTo(WorkQueue& queue_v, duration_100ns expire_v, duration_100ns period_v) -> void
 {
 	using namespace std::chrono;
-	auto const expire_100nanos_v = -duration_cast<duration<std::uint64_t, std::ratio<1, 10000000>>>(expire_v).count();
+	auto const expire_100nanos_v = -duration_cast<duration<uint64_t, std::ratio<1, 10000000>>>(expire_v).count();
 	auto const period_millisec_v = duration_cast<milliseconds>(period_v).count();
 	if (period_millisec_v > 0xFFFFFFFFu) throw std::invalid_argument("period");
 	FILETIME expire_filetime_v{
-		.dwLowDateTime = (std::uint32_t)(expire_100nanos_v & 0xFFFFFFFFu),
-		.dwHighDateTime = (std::uint32_t)(expire_100nanos_v >> 32)
+		.dwLowDateTime = (uint32_t)(expire_100nanos_v & 0xFFFFFFFFu),
+		.dwHighDateTime = (uint32_t)(expire_100nanos_v >> 32)
 	};
 	return SubmitTo(queue_v, expire_filetime_v, period_millisec_v & 0xFFFFFFFFu);
 }

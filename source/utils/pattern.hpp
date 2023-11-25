@@ -35,10 +35,10 @@ namespace utils
 		}
 	}
 
-	template <typename T, std::size_t N>
+	template <typename T, size_t N>
 	struct pattern
 	{
-		constexpr inline auto size() const noexcept -> std::size_t { return N; }
+		constexpr inline auto size() const noexcept -> size_t { return N; }
 
 		template <typename... V>
 		requires (std::is_trivially_constructible_v<T, V> 
@@ -53,23 +53,23 @@ namespace utils
 				value[i] = init_v[i];
 		}
 
-		constexpr auto operator [] (std::size_t index_v) const -> T {
+		constexpr auto operator [] (size_t index_v) const -> T {
 			return value[index_v];
 		}
 
-		template <typename Q, std::size_t N>
+		template <typename Q, size_t N>
 		requires (std::three_way_comparable_with<T, Q>)
 		friend inline constexpr auto operator <=> (pattern const& lhs_v, std::span<Q const> rhs_v)noexcept -> std::strong_ordering {
 			return detail::compare(lhs_v, rhs_v);		
 		}
 
-		template <typename Q, std::size_t N>
+		template <typename Q, size_t N>
 		requires (std::three_way_comparable_with<T, Q>)
 		friend inline constexpr auto operator <=> (std::span<Q const> lhs_v, pattern const& rhs_v)noexcept -> std::strong_ordering {
 			return detail::compare(lhs_v, rhs_v);
 		}
 
-		template <typename Q, std::size_t M>
+		template <typename Q, size_t M>
 		requires (std::three_way_comparable_with<T, Q>)		
 		friend inline constexpr auto operator <=> (pattern<T, N> const& lhs_v, pattern<Q, M> const& rhs_v)noexcept -> std::strong_ordering  {
 			return detail::compare(lhs_v, rhs_v);

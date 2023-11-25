@@ -30,18 +30,18 @@ namespace core
 
 	struct HypercallContext
 	{	union
-		{	std::uint32_t Function;
+		{	uint32_t Function;
 			struct
-			{	std::uint32_t Minor : 8;
-				std::uint32_t Major : 8;
-				std::uint32_t _0 : 16;
+			{	uint32_t Minor : 8;
+				uint32_t Major : 8;
+				uint32_t _0 : 16;
 			};
 		};
 		union
-		{	std::uint32_t Flags;
+		{	uint32_t Flags;
 			struct
-			{	std::uint32_t RaxUsed : 1;
-				std::uint32_t _1 : 31;
+			{	uint32_t RaxUsed : 1;
+				uint32_t _1 : 31;
 			};
 		};
 		WHV_HYPERCALL_CONTEXT Hypercall;
@@ -51,17 +51,17 @@ namespace core
 	struct Processor: 
 		public win32::WHvProcessor
 	{
-		using exit_result_type = std::tuple<std::int32_t, WHV_RUN_VP_EXIT_CONTEXT>;
+		using exit_result_type = std::tuple<int32_t, WHV_RUN_VP_EXIT_CONTEXT>;
 		using exit_future_type = std::shared_future<exit_result_type>;
 		using interjection_type = std::function<void(Processor const&)>;
 
-		Processor(Machine& machine_v, std::uint32_t vcpuindex_v);
+		Processor(Machine& machine_v, uint32_t vcpuindex_v);
 		~Processor();
 
-		auto IoPortAccess(bool is_write_v, std::uint16_t addr_v, utils::limited_span<std::byte, 4u> data_v) const -> std::int32_t;
-		auto MemoryAccess(bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) const -> std::int32_t;
+		auto IoPortAccess(bool is_write_v, uint16_t addr_v, utils::limited_span<std::byte, 4u> data_v) const -> int32_t;
+		auto MemoryAccess(bool is_write_v, uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) const -> int32_t;
 
-		auto TranslateAddress(std::uint64_t vaddress_v, core::Access access_v) const -> std::tuple<std::int32_t, std::uint64_t>;
+		auto TranslateAddress(uint64_t vaddress_v, core::Access access_v) const -> std::tuple<int32_t, uint64_t>;
 
 		auto RunToExit(std::stop_token stoppee_v) -> exit_result_type;
 		auto Start() -> exit_future_type;
@@ -71,7 +71,7 @@ namespace core
 
 		auto Interject(interjection_type what_v) -> void;
 
-		auto GetRuntime() const -> std::tuple<std::int32_t, std::uint64_t>;
+		auto GetRuntime() const -> std::tuple<int32_t, uint64_t>;
 		auto LastExitTime() const -> win32::filetime_clock::time_point;
 		auto CurrentTime() const -> win32::filetime_clock::time_point;
 
@@ -84,10 +84,10 @@ namespace core
 		using WHvProcessor::MemoryWrite;
 
 	protected:		
-		auto AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& context_v) const -> std::int32_t;
+		auto AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& context_v) const -> int32_t;
 
-		auto HypercallDispatch(WHV_RUN_VP_EXIT_CONTEXT const& context_v) const -> std::int32_t;
-		auto HypercallFunction(WHV_RUN_VP_EXIT_CONTEXT const& context_v, HypercallContext& output_v) const -> std::int32_t;
+		auto HypercallDispatch(WHV_RUN_VP_EXIT_CONTEXT const& context_v) const -> int32_t;
+		auto HypercallFunction(WHV_RUN_VP_EXIT_CONTEXT const& context_v, HypercallContext& output_v) const -> int32_t;
 
  		static auto Emulator () -> win32::WHvEmulator&;
 	private:

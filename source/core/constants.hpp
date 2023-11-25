@@ -11,7 +11,7 @@ namespace core
 	{
 	using namespace size_literals;
 
-	static inline constexpr std::size_t kPageSize = 4_KiB;
+	static inline constexpr size_t kPageSize = 4_KiB;
 	static inline constexpr const auto kLastAddress = 0xFFFFFFFFFFFFFFFFull;
 	static inline constexpr const auto kPageLimit = (kLastAddress >> 12u) + 1u;
 

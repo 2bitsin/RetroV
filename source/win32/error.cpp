@@ -7,12 +7,12 @@
 
 using win32::error;
 
-auto error::last_error() -> std::int32_t
+auto error::last_error() -> int32_t
 {
 	return ::GetLastError();
 }
 
-auto error::to_string(std::int32_t result) -> std::string
+auto error::to_string(int32_t result) -> std::string
 {
 	auto buffer_v{ (char*)nullptr };
 	auto length_v{ ::FormatMessageA(
@@ -23,14 +23,14 @@ auto error::to_string(std::int32_t result) -> std::string
 	return string_v;
 }
 
-auto error::__assert__(std::int32_t errvalue_v, std::source_location location_v, std::string_view code_v) -> void
+auto error::__assert__(int32_t errvalue_v, std::source_location location_v, std::string_view code_v) -> void
 {
 	if (errvalue_v != ERROR_SUCCESS) {		
 		throw error(errvalue_v, code_v, std::move(location_v));
 	}
 }
 
-auto error::__notify__(std::int32_t errvalue_v, std::source_location location_v, std::string_view code_line) -> void
+auto error::__notify__(int32_t errvalue_v, std::source_location location_v, std::string_view code_line) -> void
 {
 	using utils::logger;
 	if (errvalue_v != ERROR_SUCCESS) {
@@ -45,7 +45,7 @@ auto error::throw_last_error(std::source_location location_v) -> void
 }
 
 using namespace std::string_literals;
-error::error(std::int32_t errvalue_v, std::string_view code_v, std::source_location location_v)
+error::error(int32_t errvalue_v, std::string_view code_v, std::source_location location_v)
 	: std::runtime_error(std::format("{}:{}:{}: {}",  		
 		location_v.file_name(), 
 		location_v.line(), 

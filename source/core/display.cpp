@@ -18,7 +18,7 @@ Display::Display(Machine& machine_v)
 Display::~Display() 
 {}
 
-auto Display::Initialize(std::uint16_t width_v, std::uint16_t height_v) -> void
+auto Display::Initialize(uint16_t width_v, uint16_t height_v) -> void
 {
 	if (nullptr != m_Window) {		
 		::SDL_SetWindowSize(m_Window.get(), width_v*2, height_v*2);
@@ -30,15 +30,15 @@ auto Display::Initialize(std::uint16_t width_v, std::uint16_t height_v) -> void
 	}
 }
 
-auto Display::GetWindowSize() const -> std::tuple<std::int32_t, std::int32_t> {
-	std::int32_t width_v=0, height_v=0;
+auto Display::GetWindowSize() const -> std::tuple<int32_t, int32_t> {
+	int32_t width_v=0, height_v=0;
 	if (nullptr == m_Window.get())
 		throw std::runtime_error{ __func__ };
 	::SDL_GetWindowSize(m_Window.get(), &width_v, &height_v);
 	return { width_v, height_v };
 }
 
-auto Display::AcquireSurface(std::uint16_t width_v, std::uint16_t height_v) -> surface_tmp 
+auto Display::AcquireSurface(uint16_t width_v, uint16_t height_v) -> surface_tmp 
 {
 	std::lock_guard lock_v{ x_SurfaceCache };
 retry:

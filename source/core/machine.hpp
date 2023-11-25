@@ -44,9 +44,9 @@ namespace core
 
 		auto RunMain() -> void;
 		
-		auto SetIRQ(std::uint16_t state_v) -> void;
+		auto SetIRQ(uint16_t state_v) -> void;
 		
-		auto GetProcessor(std::uint32_t vcpuindex_v) -> Processor& { (void)vcpuindex_v; return m_Processor; }
+		auto GetProcessor(uint32_t vcpuindex_v) -> Processor& { (void)vcpuindex_v; return m_Processor; }
 		auto GetPartition() -> win32::WHvPartition& { return m_Partition; }
 		auto GetDisplay() -> Display& { return m_Display; }
 		auto GetMemory() -> Memory& { return m_Memory; }
@@ -58,9 +58,9 @@ namespace core
 		friend Processor;
 		friend Debugger;		
 
-		auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
-		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t;
-		auto Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
+		auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> int32_t;
+		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> int32_t;
+		auto Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> int32_t;
 	
 		auto ConfigurePartition(Configuration const&) -> void;
 		auto ConfigureMemory(Configuration const&) -> void;

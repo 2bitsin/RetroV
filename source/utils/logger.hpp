@@ -14,7 +14,7 @@ namespace utils
 {
 	namespace detail
 	{
-		template<typename Ctype, std::size_t Size>
+		template<typename Ctype, size_t Size>
 		struct cxstr {
 
 			consteval cxstr(Ctype const (&value_v)[Size]) noexcept {

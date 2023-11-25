@@ -9,7 +9,7 @@ namespace win32
 {
 	struct filetime_clock
 	{
-		using rep = std::int64_t;
+		using rep = int64_t;
 		using period = std::ratio<1, 10000000>;
 		using duration = std::chrono::duration<rep, period>;
 		using time_point = std::chrono::time_point<filetime_clock>;
@@ -20,7 +20,7 @@ namespace win32
 		static auto from_filetime(FILETIME const& ft) noexcept -> time_point;
 	};
 
-  static inline auto query_performance_counter() -> std::uint64_t {
+  static inline auto query_performance_counter() -> uint64_t {
     LARGE_INTEGER value_v;
     if (::QueryPerformanceCounter(&value_v) == FALSE) {
       throw std::system_error{ static_cast<int>(::GetLastError()),
@@ -29,7 +29,7 @@ namespace win32
     return value_v.QuadPart;
   }
 
-  static inline auto query_performance_frequency() -> std::uint64_t {
+  static inline auto query_performance_frequency() -> uint64_t {
     LARGE_INTEGER value_v;
     if (::QueryPerformanceFrequency(&value_v) == FALSE) {
       throw std::system_error{ static_cast<int>(::GetLastError()),

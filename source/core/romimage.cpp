@@ -11,7 +11,7 @@ RomImage::RomImage(partition_type& partition_v,
 	validate const& validate_v, 
 	std::filesystem::path const& image_path_v, 
 	region_type target_region_v,
-	std::uint32_t flags_v,
+	uint32_t flags_v,
 	region_type source_region_v)
 	: m_Image{
 			utils::validate_binary(image_path_v, validate_v.granularity, validate_v.min_size, validate_v.max_size), 
@@ -43,7 +43,7 @@ RomImage::RomImage(partition_type& partition_v,
 RomImage::RomImage(partition_type& partition_v,
 	std::filesystem::path const& image_path_v, 
 	region_type target_region_v,
-	std::uint32_t flags_v,
+	uint32_t flags_v,
 	region_type source_region_v)
 	: m_Image   {
 			utils::build_path(image_path_v), 
@@ -88,7 +88,7 @@ auto RomImage::Remap(region_type target_region_v) -> void
 	return m_Mapping.Remap(target_region_v, kAccessReadOnly);	
 }
 
-auto RomImage::Patch(std::size_t offset_v, std::span<std::byte const> bytes_v) -> void
+auto RomImage::Patch(size_t offset_v, std::span<std::byte const> bytes_v) -> void
 {
 	auto data_v = m_Image.Data();
 	auto size_v = std::min(bytes_v.size(), 

@@ -49,12 +49,12 @@ void TEST_fuzz_test_interval_map()
 
 	std::random_device rdrand{};
 	std::mt19937_64 rng (rdrand());
-	std::uniform_int_distribution<std::uint64_t> rand(0u, max_value);
+	std::uniform_int_distribution<uint64_t> rand(0u, max_value);
 
-	interval_map<std::uint64_t, std::uint64_t> testmap_v(X);
-	control_map<std::uint64_t, std::uint64_t> control_v(max_value, X);
+	interval_map<uint64_t, uint64_t> testmap_v(X);
+	control_map<uint64_t, uint64_t> control_v(max_value, X);
 
-	std::uint64_t number_of_tests = 0u;
+	uint64_t number_of_tests = 0u;
 	while(number_of_tests < 10000u)
 	{		
 		for (auto i = 0u; i < 10u; ++i) {
@@ -110,7 +110,7 @@ void TEST_interval_map_pointers() {
 	auto hello2_v = std::make_unique<universe_hello>();
 	auto hello3_v = std::make_unique<galaxy_hello>();
 
-	interval_map<std::uint64_t, ihello const*> testmap_v(hello1_v.get());
+	interval_map<uint64_t, ihello const*> testmap_v(hello1_v.get());
 
 	testmap_v.insert({ 5u, 10u}, hello1_v.get());
 	testmap_v.insert({10u, 30u}, hello2_v.get());
@@ -129,7 +129,7 @@ void TEST_interval_map_pointers() {
 void TEST_interval_map() {
 
 	using utils::interval_map;
-	interval_map<std::uint64_t, std::uint8_t> testmap_v(0x00u);
+	interval_map<uint64_t, uint8_t> testmap_v(0x00u);
 
 	testmap_v.insert({  5u, 10u }, 0x10u);
 	testmap_v.insert({ 10u, 30u }, 0x20u);

@@ -3,7 +3,7 @@
 
 using win32::WHvCapabilities;
 
-auto WHvCapabilities::Get(WHV_CAPABILITY_CODE code_v, void* buffer_v, std::uint32_t length_v) -> std::uint32_t
+auto WHvCapabilities::Get(WHV_CAPABILITY_CODE code_v, void* buffer_v, uint32_t length_v) -> uint32_t
 {
 	WIN32_ERROR_ASSERT(WHvGetCapability(code_v, buffer_v, length_v, &length_v));
 	return length_v;

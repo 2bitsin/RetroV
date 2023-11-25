@@ -19,7 +19,7 @@ using namespace size_literals;
 
 using core::Processor;
 
-Processor::Processor(Machine& machine_v, std::uint32_t vcpuindex_v)
+Processor::Processor(Machine& machine_v, uint32_t vcpuindex_v)
 	: WHvProcessor{ machine_v.GetPartition(), vcpuindex_v }
 	, m_Machine{ machine_v }
 	, m_Suspend{ 0u }
@@ -31,14 +31,14 @@ Processor::~Processor()
 	m_Suspend.release();
 }
 
-auto Processor::IoPortAccess(bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) const -> std::int32_t
+auto Processor::IoPortAccess(bool is_write_v, uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) const -> int32_t
 {
 	return m_Machine.IoPortAccess(*this, is_write_v, port_v, data_v);
 }
 
-auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) const -> std::int32_t
+auto Processor::MemoryAccess(bool is_write_v, uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) const -> int32_t
 {	
-	std::int32_t result_v{ ERROR_SUCCESS };
+	int32_t result_v{ ERROR_SUCCESS };
 	if (m_Machine.GetPartition().IsMapped(physaddr_v)) {
 		result_v = WHvProcessor::MemoryAccess(is_write_v, physaddr_v, data_v);
 		if (ERROR_SUCCESS==result_v)
@@ -51,7 +51,7 @@ auto Processor::MemoryAccess(bool is_write_v, std::uint64_t physaddr_v, utils::l
 	return ERROR_ACCESS_DENIED;
 }
 
-auto Processor::TranslateAddress(std::uint64_t vaddress_v, core::Access access_v) const -> std::tuple<std::int32_t, std::uint64_t>
+auto Processor::TranslateAddress(uint64_t vaddress_v, core::Access access_v) const -> std::tuple<int32_t, uint64_t>
 {
 	if (!PagingEnabled()) return { ERROR_SUCCESS, vaddress_v };	
 	using enum core::Access;
@@ -66,7 +66,7 @@ auto Processor::TranslateAddress(std::uint64_t vaddress_v, core::Access access_v
 	return { status_v, paddress_v };
 }
 
-auto Processor::HypercallDispatch(WHV_RUN_VP_EXIT_CONTEXT const& context_v) const -> std::int32_t
+auto Processor::HypercallDispatch(WHV_RUN_VP_EXIT_CONTEXT const& context_v) const -> int32_t
 {
 	HypercallContext hypercall_v{ };
 	auto status_v = HypercallFunction(context_v, 
@@ -224,7 +224,7 @@ auto Processor::Resume()  -> void
 	m_Suspend.release();
 }
 
-auto Processor::GetRuntime() const -> std::tuple<std::int32_t, std::uint64_t>
+auto Processor::GetRuntime() const -> std::tuple<int32_t, uint64_t>
 {
 	WHV_REGISTER_VALUE value_v{};
 	auto result_v = GetRegister(WHvRegisterVpRuntime, value_v);
@@ -264,13 +264,13 @@ auto Processor::PagingEnabled() const -> bool
 
 auto Processor::SetSingleStepMode(bool is_debug_v) -> void
 {
-	auto flags_v = GetRegister<std::uint64_t>(WHvX64RegisterRflags);
+	auto flags_v = GetRegister<uint64_t>(WHvX64RegisterRflags);
 	if (!is_debug_v) flags_v &= ~kTrapFlag;
 	else             flags_v |=  kTrapFlag;
 	WIN32_ERROR_ASSERT(SetRegister(WHvX64RegisterRflags, { .Reg64 = flags_v }));
 }
 
-auto Processor::AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& vpcontext_v) const -> std::int32_t
+auto Processor::AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& vpcontext_v) const -> int32_t
 {
 	return SetRegister(WHvX64RegisterRip, { 
 		.Reg64 = vpcontext_v.InstructionLength
@@ -278,7 +278,7 @@ auto Processor::AdvanceInstruction(WHV_VP_EXIT_CONTEXT const& vpcontext_v) const
 	});
 }
 
-auto Processor::HypercallFunction(WHV_RUN_VP_EXIT_CONTEXT const& context_v, HypercallContext& output_v) const -> std::int32_t
+auto Processor::HypercallFunction(WHV_RUN_VP_EXIT_CONTEXT const& context_v, HypercallContext& output_v) const -> int32_t
 {
 	auto const& vpcontext_v = context_v.VpContext;
 	auto const& hypercall_v = context_v.Hypercall;
@@ -288,7 +288,7 @@ auto Processor::HypercallFunction(WHV_RUN_VP_EXIT_CONTEXT const& context_v, Hype
 
 	output_v.VpContext = vpcontext_v;
 	output_v.Hypercall = hypercall_v;
-	output_v.Function = (std::uint16_t)hypercall_v.Rax;
+	output_v.Function = (uint16_t)hypercall_v.Rax;
 	output_v.RaxUsed = 1;
 
 	if (auto iaddress_v = vpcontext_v.Cs.Base + vpcontext_v.Rip; 

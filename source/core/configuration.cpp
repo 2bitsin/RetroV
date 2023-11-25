@@ -5,18 +5,18 @@ using namespace std::string_literals;
 
 using core::Configuration;
 
-auto Configuration::GetPropertyIint64(std::string_view key_v) const -> std::int64_t 
+auto Configuration::GetPropertyIint64(std::string_view key_v) const -> int64_t 
 {
-	std::size_t index_v{ 0 };
+	size_t index_v{ 0 };
 	auto const string_v = GetPropertyString(key_v);
 	auto const value_v = std::stoll(string_v, &index_v);
 	if (index_v > 0u) return value_v;
 	throw std::logic_error("Can't convert '"s + string_v + "' to integer"s);
 }
 
-auto Configuration::GetPropertyUint64(std::string_view key_v) const -> std::uint64_t
+auto Configuration::GetPropertyUint64(std::string_view key_v) const -> uint64_t
 {
-	std::size_t index_v{ 0 };
+	size_t index_v{ 0 };
 	auto const string_v = GetPropertyString(key_v);
 	auto const value_v = std::stoul(string_v, &index_v);
 	if (index_v > 0u) return value_v;
@@ -25,7 +25,7 @@ auto Configuration::GetPropertyUint64(std::string_view key_v) const -> std::uint
 
 auto Configuration::GetPropertyFloat64(std::string_view key_v) const -> utils::float64_t
 {
-	std::size_t index_v{ 0 };
+	size_t index_v{ 0 };
 	auto const string_v = GetPropertyString(key_v);
 	auto const value_v = std::stod(string_v, &index_v);
 	if (index_v > 0u) return value_v;
@@ -72,12 +72,12 @@ auto Configuration::SetProperty(std::string_view key_v, std::string_view value_v
 	m_data.emplace(std::string(key_v), std::string(value_v));
 }
 
-auto Configuration::SetProperty(std::string_view key_v, std::uint64_t value_v) -> void
+auto Configuration::SetProperty(std::string_view key_v, uint64_t value_v) -> void
 {
 	SetProperty(key_v, std::to_string(value_v));
 }
 
-auto Configuration::SetProperty(std::string_view key_v, std::int64_t value_v) -> void
+auto Configuration::SetProperty(std::string_view key_v, int64_t value_v) -> void
 {
 	SetProperty(key_v, std::to_string(value_v));
 }

@@ -38,28 +38,28 @@ namespace utils
 		surface_view(surface_view&&) = delete;
 		auto operator=(surface_view&&) -> surface_view& = delete;
 
-		inline auto operator [] (std::size_t index_v) -> std::span<T> {
+		inline auto operator [] (size_t index_v) -> std::span<T> {
 			if (m_surface == nullptr || index_v >= m_surface->h)
 				throw std::out_of_range("surface_view::operator[]");
-			auto line_addr_v = ((std::byte*)m_surface->pixels) + index_v * (std::uintptr_t)m_surface->pitch;
-			return std::span<T>((T*)line_addr_v, (std::uintptr_t)m_surface->pitch / sizeof(T));
+			auto line_addr_v = ((std::byte*)m_surface->pixels) + index_v * (uintptr_t)m_surface->pitch;
+			return std::span<T>((T*)line_addr_v, (uintptr_t)m_surface->pitch / sizeof(T));
 		}
 
-		inline auto operator [] (std::size_t index_v) const -> std::span<T> {
+		inline auto operator [] (size_t index_v) const -> std::span<T> {
 			if (m_surface == nullptr || index_v >= m_surface->h)
 				throw std::out_of_range("surface_view::operator[]");
-			auto line_addr_v = ((std::byte const*)m_surface->pixels) + index_v * (std::uintptr_t)m_surface->pitch;
-			return std::span<T const>((T const*)line_addr_v, (std::uintptr_t)m_surface->pitch / sizeof(T));
+			auto line_addr_v = ((std::byte const*)m_surface->pixels) + index_v * (uintptr_t)m_surface->pitch;
+			return std::span<T const>((T const*)line_addr_v, (uintptr_t)m_surface->pitch / sizeof(T));
 		}
 
-		inline auto operator [] (std::tuple<std::uint32_t, std::uint32_t> const& index_v) -> T& {
+		inline auto operator [] (std::tuple<uint32_t, uint32_t> const& index_v) -> T& {
 			auto const [yy, xx] = index_v;
 			if (m_surface == nullptr || yy >= m_surface->h || xx >= m_surface->w)
 				throw std::out_of_range("surface_view::operator[]");
 			return ((*this)[yy])[xx];
 		}
 
-		inline auto operator [] (std::tuple<std::uint32_t, std::uint32_t> const& index_v) const -> T& {
+		inline auto operator [] (std::tuple<uint32_t, uint32_t> const& index_v) const -> T& {
 			auto const [yy, xx] = index_v;
 			if (m_surface == nullptr || yy >= m_surface->h || xx >= m_surface->w)
 				throw std::out_of_range("surface_view::operator[]");

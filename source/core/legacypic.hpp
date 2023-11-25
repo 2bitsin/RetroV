@@ -20,7 +20,7 @@ namespace core
 
 			friend LegacyPic;
 
-			auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t {
+			auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> int32_t {
 				return m_ActualPic.IoPortAccess(vcpu_v, m_Which, is_write_v, port_v, data_v);
 			}
 		
@@ -36,28 +36,28 @@ namespace core
 
 		friend Proxy;
 
-		LegacyPic (Machine& machine_v, std::uint32_t bsp_index_v);
+		LegacyPic (Machine& machine_v, uint32_t bsp_index_v);
 		
 		auto Initialize() -> void;	
 		auto Reset() -> void;
 		auto InterruptWindow() -> void;
-		auto SetIRQ(std::uint8_t state_v) -> void;
+		auto SetIRQ(uint8_t state_v) -> void;
 
 		auto Master() -> Proxy& { return m_Master; }
 		auto Slave() -> Proxy& { return m_Slave; }
 
 
 	protected:
-		auto IoPortAccess(Processor const& vcpu_v, MasterOrSlave select_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
+		auto IoPortAccess(Processor const& vcpu_v, MasterOrSlave select_v, bool is_write_v, uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> int32_t;
 
 	private:
 		Proxy m_Master;
 		Proxy m_Slave;
 
 		std::mutex m_lock;	
-		std::uint16_t m_last_irr { 0u };
-		std::uint16_t m_irr { 0u };
-		std::uint16_t m_isr { 0u };
+		uint16_t m_last_irr { 0u };
+		uint16_t m_irr { 0u };
+		uint16_t m_isr { 0u };
 
 		Machine& m_Machine;
 		Processor& m_Processor;

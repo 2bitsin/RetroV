@@ -53,9 +53,9 @@ namespace core
 		Display(Machine& machine_v);
 		~Display();
 			
-		auto Initialize(std::uint16_t width_v = 640, std::uint16_t height_v = 400) -> void;
-		auto GetWindowSize() const->std::tuple<std::int32_t, std::int32_t>;
-		auto AcquireSurface(std::uint16_t width_v, std::uint16_t height_v) -> surface_tmp;		
+		auto Initialize(uint16_t width_v = 640, uint16_t height_v = 400) -> void;
+		auto GetWindowSize() const->std::tuple<int32_t, int32_t>;
+		auto AcquireSurface(uint16_t width_v, uint16_t height_v) -> surface_tmp;		
 		auto Present(surface_tmp surface_v) -> void;
 		auto FlushSurfaceCache() -> void;
 		auto WaitSync() -> void;

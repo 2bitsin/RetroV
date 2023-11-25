@@ -60,7 +60,7 @@ namespace capstone
 		{ return super::mnemonic; }
 
 		auto address () const noexcept 
-			-> std::uint64_t 
+			-> uint64_t 
 		{ return super::address; }
 
 		auto operands() const noexcept
@@ -84,7 +84,7 @@ namespace capstone
 		}
 
 		auto bytes() const noexcept 
-			-> std::span<std::uint8_t const>
+			-> std::span<uint8_t const>
 		{
 			return{ super::bytes, super::size };
 		}
@@ -157,7 +157,7 @@ namespace capstone
 
 	struct instance
 	{			
-		using sd_function = std::function<std::size_t (std::uint64_t, std::span<std::uint8_t const>)>;
+		using sd_function = std::function<size_t (uint64_t, std::span<uint8_t const>)>;
 
 		instance (::cs_arch arch, ::cs_mode mode, 
 			std::initializer_list<std::tuple<::cs_opt_type, size_t>> opts)
@@ -208,12 +208,12 @@ namespace capstone
 
 	  auto value () const noexcept { return m_value ; }
 
-		auto disasm(std::span<const std::byte> code, std::uint64_t last_sync_time = 0u, std::size_t count = 0u)
+		auto disasm(std::span<const std::byte> code, uint64_t last_sync_time = 0u, size_t count = 0u)
 			-> assembly
 		{
 			cs_insn* insn_ptr { nullptr };
 
-			const auto length = cs_disasm (value (), (std::uint8_t const*)code.data (), code.size (), last_sync_time, count, &insn_ptr);
+			const auto length = cs_disasm (value (), (uint8_t const*)code.data (), code.size (), last_sync_time, count, &insn_ptr);
 			if (length < 1) 
 			{
 				throw capstone::error (value(), "Unable to disassemble code.");
@@ -232,7 +232,7 @@ namespace capstone
 		}
 
 		template <typename F>
-		requires (std::is_invocable_r_v<std::size_t, F, std::uint64_t, std::span<std::uint8_t const>>)
+		requires (std::is_invocable_r_v<size_t, F, uint64_t, std::span<uint8_t const>>)
 		inline auto skipdata(std::string_view mnemonic_v, F&& callback_v) 
 		{
 			m_sdcallback = std::forward<F>(callback_v);
@@ -246,7 +246,7 @@ namespace capstone
 			};
 			
 			::cs_option(value(), CS_OPT_SKIPDATA, CS_OPT_ON);
-			::cs_option(value(), CS_OPT_SKIPDATA_SETUP, (std::size_t)&sd_v);
+			::cs_option(value(), CS_OPT_SKIPDATA_SETUP, (size_t)&sd_v);
 		}
 
 	private:

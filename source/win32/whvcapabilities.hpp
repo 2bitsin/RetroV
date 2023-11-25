@@ -16,7 +16,7 @@ namespace win32 {
 
 		static auto IsVendorAMD() -> bool;
 		static auto IsVendorIntel() -> bool;
-		static auto Get(WHV_CAPABILITY_CODE, void* buffer_v, std::uint32_t length_v) -> std::uint32_t;
+		static auto Get(WHV_CAPABILITY_CODE, void* buffer_v, uint32_t length_v) -> uint32_t;
 
 		template <typename T> requires (std::is_trivial_v<T>)
 		static inline auto Get(WHV_CAPABILITY_CODE code_v) -> T {

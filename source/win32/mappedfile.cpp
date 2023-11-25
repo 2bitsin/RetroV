@@ -48,14 +48,14 @@ MappedFile::MappedFile(
 
 	round_regn_v.clamp(regn_v.end());
 
-	auto const [size_hi_v, size_lo_v] = utils::integral_split_msw<std::uint32_t>(round_regn_v.end());
+	auto const [size_hi_v, size_lo_v] = utils::integral_split_msw<uint32_t>(round_regn_v.end());
 
 	unique_handle mapp_handle_v{ ::CreateFileMappingW(file_handle_v.get(), nullptr, prot_v, size_hi_v, size_lo_v, nullptr) };
 
 	if (INVALID_HANDLE_VALUE == mapp_handle_v.get())
 		error::throw_last_error();
 
-	auto const [fileoff_hi_v, fileoff_lo_v] = utils::integral_split_msw<std::uint32_t>(round_regn_v.last_sync_time());
+	auto const [fileoff_hi_v, fileoff_lo_v] = utils::integral_split_msw<uint32_t>(round_regn_v.last_sync_time());
 
 	auto const mapoffset_v = regn_v.last_sync_time() - round_regn_v.last_sync_time();
 
@@ -97,7 +97,7 @@ auto MappedFile::Data() const noexcept -> std::span<std::byte>
 	return m_Data;
 }
 
-auto MappedFile::Size() const noexcept -> std::size_t
+auto MappedFile::Size() const noexcept -> size_t
 {
 	return m_Data.size();
 }

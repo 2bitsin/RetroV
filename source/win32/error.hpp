@@ -10,30 +10,30 @@ namespace win32
 	struct error
 		: public std::runtime_error
 	{
-		error(std::int32_t errvalue_v = last_error(), std::string_view code_v = "",
+		error(int32_t errvalue_v = last_error(), std::string_view code_v = "",
 			std::source_location location_v = std::source_location::current());
 	
-		inline auto errvalue() const -> std::int32_t { return m_errvalue; }
+		inline auto errvalue() const -> int32_t { return m_errvalue; }
 		inline auto location() const -> std::source_location { return m_location; }
 		
-		static auto last_error() -> std::int32_t;
-		static auto to_string(std::int32_t value_v) -> std::string;
+		static auto last_error() -> int32_t;
+		static auto to_string(int32_t value_v) -> std::string;
 
-		static auto __assert__(std::int32_t errvalue_v, std::source_location location_v, std::string_view clode_line = "") -> void;
-		static auto __notify__(std::int32_t errvalue_v, std::source_location location_v, std::string_view clode_line = "") -> void;
+		static auto __assert__(int32_t errvalue_v, std::source_location location_v, std::string_view clode_line = "") -> void;
+		static auto __notify__(int32_t errvalue_v, std::source_location location_v, std::string_view clode_line = "") -> void;
 	
 		[[noreturn]] static auto throw_last_error (
 			std::source_location location_v = std::source_location::current()) -> void;
 
 	protected:
-		std::int32_t m_errvalue;
+		int32_t m_errvalue;
 		std::source_location m_location;
 	};	
 
 
 	struct error_deferred {
 
-		inline error_deferred (std::int32_t value_v = 0u, std::source_location sloc_v = 
+		inline error_deferred (int32_t value_v = 0u, std::source_location sloc_v = 
 			std::source_location::current())
 			: m_value(value_v)
 			, m_srcloc(sloc_v)
@@ -43,7 +43,7 @@ namespace win32
 			rethrow_error();
 		}
 
-		inline auto drop_error() -> std::int32_t {
+		inline auto drop_error() -> int32_t {
 			return std::exchange(m_value, 0);
 		}
 
@@ -54,12 +54,12 @@ namespace win32
 			}
 		}
 
-		inline auto get_error() const -> std::uint32_t {
+		inline auto get_error() const -> uint32_t {
 			return m_value;
 		}
 
 	private:
-		std::int32_t m_value;
+		int32_t m_value;
 		std::source_location m_srcloc;
 	};
 

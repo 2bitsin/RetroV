@@ -102,7 +102,7 @@ auto Machine::RunMain() -> void
 	}
 }
 
-auto Machine::SetIRQ(std::uint16_t state_v) -> void
+auto Machine::SetIRQ(uint16_t state_v) -> void
 {
 	s_log.IRQState(m_Processor.GetIndex(), state_v);
 	m_LegacyPic.SetIRQ(state_v);
@@ -145,7 +145,7 @@ auto Machine::ResumeAllProcessors() -> void
 }
 
 
-auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
+auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> int32_t
 {
 #define MAP_RANGE_REL(lhs_v, rhs_v, dst_v) if(port_v >= lhs_v && port_v <= rhs_v) \
 	return dst_v.IoPortAccess(vcpu_v, is_write_v, port_v - lhs_v, data_v)
@@ -164,7 +164,7 @@ auto Machine::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16
 }
 
 
-auto Machine::Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t
+auto Machine::Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> int32_t
 {		
 	switch (hypercall_v.Major)
 	{	  
@@ -176,14 +176,14 @@ auto Machine::Hypercall(Processor const& vcpu_v, HypercallContext const& hyperca
 	return ERROR_ACCESS_DENIED;
 }
 
-auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t
+auto Machine::MemoryAccess(Processor const& vcpu_v, bool is_write_v, uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) -> int32_t
 {	
 	using std::ranges::fill;
 /*
 	if (((~0xFFFull)&(physaddr_v + data_v.size())) != ((~0xFFFull)&physaddr_v))
 	{
-		std::uint64_t offset_v{ 0x1000ull - (physaddr_v&0xFFFull) };
-		std::int32_t status_v{ ERROR_SUCCESS };
+		uint64_t offset_v{ 0x1000ull - (physaddr_v&0xFFFull) };
+		int32_t status_v{ ERROR_SUCCESS };
 		status_v = MemoryAccess(vcpu_v, is_write_v, physaddr_v, data_v.first(offset_v));
 		if (status_v != ERROR_SUCCESS) return status_v;
 		return MemoryAccess(vcpu_v, is_write_v, physaddr_v+offset_v, data_v.subspan(offset_v));

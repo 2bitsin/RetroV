@@ -108,7 +108,7 @@ namespace win32
 
 	protected:
 		
-		auto SubmitTo(WorkQueue& queue_v, FILETIME expire_v, std::uint32_t period_millisec_v) -> void;
+		auto SubmitTo(WorkQueue& queue_v, FILETIME expire_v, uint32_t period_millisec_v) -> void;
 
 		static auto NTAPI EntryPoint(PTP_CALLBACK_INSTANCE instance_v, void* context_v, PTP_TIMER timer_v) -> void;
 	private:

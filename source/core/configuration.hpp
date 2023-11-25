@@ -12,15 +12,15 @@ namespace core
 {
 	struct Configuration
 	{
-		auto GetPropertyIint64(std::string_view) const ->std::int64_t;
-		auto GetPropertyUint64(std::string_view) const ->std::uint64_t;
+		auto GetPropertyIint64(std::string_view) const ->int64_t;
+		auto GetPropertyUint64(std::string_view) const ->uint64_t;
 		auto GetPropertyString(std::string_view) const -> std::string;
 		auto GetPropertyFloat64(std::string_view) const -> utils::float64_t;
 		auto GetPropertyObject(std::string_view) const -> Configuration;
 
 		auto SetProperty(std::string_view, std::string_view) -> void;
-		auto SetProperty(std::string_view, std::uint64_t) -> void;
-		auto SetProperty(std::string_view, std::int64_t) -> void;
+		auto SetProperty(std::string_view, uint64_t) -> void;
+		auto SetProperty(std::string_view, int64_t) -> void;
 		auto SetProperty(std::string_view, utils::float64_t) -> void;
 		auto SetProperty(std::string_view, Configuration) -> void;
 

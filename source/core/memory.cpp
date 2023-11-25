@@ -39,7 +39,7 @@ auto Memory::ConfigureMemory(Configuration const& config_v) -> void
 		{ utils::from_range, 0x000A0000u, 0x00100000u }
 	};
 
-	static constexpr alignas(kPageSize) auto default_page_s = utils::make_filled_array<std::uint8_t, kPageSize>(0xFFu);
+	static constexpr alignas(kPageSize) auto default_page_s = utils::make_filled_array<uint8_t, kPageSize>(0xFFu);
 
 	auto& partition_v = m_Machine.GetPartition();
 	WIN32_ERROR_ASSERT(partition_v.Reset());
@@ -86,12 +86,12 @@ auto Memory::ConfigureBiosROM(Configuration const& config_v) -> void
 }
 
 
-auto Memory::FetchMemory(core::Processor const& vcpu_v, std::uint64_t address_v, std::uint64_t length_v, std::vector<std::byte>& output_v) -> std::int32_t
+auto Memory::FetchMemory(core::Processor const& vcpu_v, uint64_t address_v, uint64_t length_v, std::vector<std::byte>& output_v) -> int32_t
 {
 	using std::tie;
 	
-	std::uint64_t page_v = address_v & ~0xFFFu;
-	std::uint64_t offs_v = address_v & 0xFFFu;
+	uint64_t page_v = address_v & ~0xFFFu;
+	uint64_t offs_v = address_v & 0xFFFu;
 	auto [status_v, xgpa_v] = vcpu_v.TranslateAddress(page_v, Access::kAccessFetch);
 	auto const zero_terminated_v = length_v == 0u;
 	// Force wrap around to max length
@@ -102,7 +102,7 @@ auto Memory::FetchMemory(core::Processor const& vcpu_v, std::uint64_t address_v,
 		length_v -= 1u;
 	}
 
-	std::size_t max_bytes_v{ 0 };
+	size_t max_bytes_v{ 0 };
 	std::byte tmpbuf_v[16u]{ std::byte(0) };
 
 	while (true)
@@ -138,7 +138,7 @@ Done:
 	return ERROR_SUCCESS;
 }
 
-auto Memory::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t
+auto Memory::MemoryAccess(Processor const& vcpu_v, bool is_write_v, uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v) -> int32_t
 {
 	/*************************************************************************
 	 *

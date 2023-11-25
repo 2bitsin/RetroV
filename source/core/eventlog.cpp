@@ -11,7 +11,7 @@ using core::EventLog;
 
 using utils::logger;
 
-using p = std::uintptr_t;
+using p = uintptr_t;
 
 static inline auto to_string(WHV_RUN_VP_EXIT_REASON reason_v) -> std::string_view {
 	switch (reason_v) 
@@ -59,13 +59,13 @@ auto EventLog::ResetMachine() const -> void
 	logger::debug(logger::deflog, "Resetting machine...");
 }
 
-auto EventLog::MapGpaRange(void* addr_v, std::uint64_t base_v, std::uint64_t size_v, Access access_v) const -> void
+auto EventLog::MapGpaRange(void* addr_v, uint64_t base_v, uint64_t size_v, Access access_v) const -> void
 {	
 	assert(addr_v != nullptr);
 	logger::debug(logger::deflog, "Mapping {:#018x} ... {:#018x} -> {:#018x} | {}", base_v, base_v + size_v, (p)addr_v, to_string(access_v));
 }
 
-auto EventLog::MapGpaRangeFromFile(void* addr_v, std::uint64_t base_v, std::uint64_t size_v, std::filesystem::path const& path_v, std::uint64_t offset_v, std::uint64_t length_v) const -> void
+auto EventLog::MapGpaRangeFromFile(void* addr_v, uint64_t base_v, uint64_t size_v, std::filesystem::path const& path_v, uint64_t offset_v, uint64_t length_v) const -> void
 {
 	assert(addr_v != nullptr);
 	std::string string_path_v = std::filesystem::relative(path_v).string();
@@ -75,17 +75,17 @@ auto EventLog::MapGpaRangeFromFile(void* addr_v, std::uint64_t base_v, std::uint
 		base_v, base_v+size_v, string_path_v, offset_v, length_v);
 }
 
-auto EventLog::UnmapGpaRange(std::uint64_t base_v, std::uint64_t size_v) const -> void
+auto EventLog::UnmapGpaRange(uint64_t base_v, uint64_t size_v) const -> void
 {
 	logger::debug(logger::deflog, "Unmapping {:#016x} ... {:#016x}", base_v, base_v + size_v);
 }
 
-auto EventLog::UnrealModeEnabled(std::uint32_t vcpu_index_v) const -> void
+auto EventLog::UnrealModeEnabled(uint32_t vcpu_index_v) const -> void
 {
 	logger::info(logger::deflog, "CPU[{}] flat real mode hack enabled!", vcpu_index_v);
 }
 
-auto EventLog::UnrealModeDisabled(std::uint32_t vcpu_index_v) const -> void
+auto EventLog::UnrealModeDisabled(uint32_t vcpu_index_v) const -> void
 {
 	logger::info(logger::deflog, "CPU[{}] flat real mode hack disabled!", vcpu_index_v);
 }
@@ -100,28 +100,28 @@ auto EventLog::EmitPostCode(utils::limited_span<std::byte, 4u> data_v) const -> 
 	}
 }
 
-auto EventLog::VCpuExited(std::uint32_t vcpu_index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_context_v) const -> void
+auto EventLog::VCpuExited(uint32_t vcpu_index_v, WHV_RUN_VP_EXIT_CONTEXT const& exit_context_v) const -> void
 {
 	auto const reason_v = to_string(exit_context_v.ExitReason);
 	logger::debug(logger::deflog, "CPU[{}] exited with reason '{}'", vcpu_index_v, reason_v);
 }
 
-auto EventLog::IRQState(std::uint32_t vcpu_index_v, std::uint16_t state_v) const -> void
+auto EventLog::IRQState(uint32_t vcpu_index_v, uint16_t state_v) const -> void
 {
 	logger::info(logger::deflog, "CPU[{}] raised IRQ [{}]", vcpu_index_v, utils::bitset_to_string(state_v));
 }
 
-auto EventLog::DebugTrap(std::uint32_t vcpu_index_v, std::uint64_t linaddr_v, std::uint16_t segsel_v, std::uint64_t offset_v) const -> void
+auto EventLog::DebugTrap(uint32_t vcpu_index_v, uint64_t linaddr_v, uint16_t segsel_v, uint64_t offset_v) const -> void
 {
 	logger::debug(logger::deflog, "CPU[{}] : DebuggerBreak at ({:08x}) with CS={:04x} IP={:08x}", vcpu_index_v, linaddr_v, segsel_v, offset_v);
 }
 
-auto EventLog::UnhandledException(std::uint32_t vcpuindex_v, const WHV_VP_EXCEPTION_CONTEXT& exception_v, const WHV_VP_EXIT_CONTEXT& context_v) const -> void
+auto EventLog::UnhandledException(uint32_t vcpuindex_v, const WHV_VP_EXCEPTION_CONTEXT& exception_v, const WHV_VP_EXIT_CONTEXT& context_v) const -> void
 {
 	logger::error(logger::deflog, "CPU[{}] raised exception: {:d}({:#04X}) at {:04X}:{:08X}.", vcpuindex_v, exception_v.ExceptionType, exception_v.ExceptionType, context_v.Cs.Selector, context_v.Rip);
 }
 
-auto EventLog::UnhandledMSR(std::uint32_t vcpu_index_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) const -> void
+auto EventLog::UnhandledMSR(uint32_t vcpu_index_v, WHV_VP_EXIT_CONTEXT const& context_v, WHV_X64_MSR_ACCESS_CONTEXT const& access_v) const -> void
 {
 	using utils::logger;
 	if (access_v.AccessInfo.IsWrite) {
@@ -132,7 +132,7 @@ auto EventLog::UnhandledMSR(std::uint32_t vcpu_index_v, WHV_VP_EXIT_CONTEXT cons
 	}
 }
 
-auto EventLog::EmulatorFailed(WHV_RUN_VP_EXIT_CONTEXT const& context_v, std::int32_t status_v, WHV_EMULATOR_STATUS emulator_status_v) const -> void
+auto EventLog::EmulatorFailed(WHV_RUN_VP_EXIT_CONTEXT const& context_v, int32_t status_v, WHV_EMULATOR_STATUS emulator_status_v) const -> void
 {
 	using namespace std::literals;
 	std::vector<std::string_view> failed_v;
@@ -160,7 +160,7 @@ auto EventLog::EmulatorFailed(WHV_RUN_VP_EXIT_CONTEXT const& context_v, std::int
 
 
 	
-	std::span<std::uint8_t const> data_v { };
+	std::span<uint8_t const> data_v { };
 	switch(context_v.ExitReason)
 	{
 	case WHvRunVpExitReasonMemoryAccess:

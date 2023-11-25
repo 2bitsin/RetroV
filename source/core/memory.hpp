@@ -24,8 +24,8 @@ namespace core
 		auto ConfigureMemory(Configuration const&) -> void;
 		auto ConfigureBiosROM(Configuration const&) -> void;
 
-		auto FetchMemory(core::Processor const& vcpu_v, std::uint64_t address_v, std::uint64_t length_v, std::vector<std::byte>& output_v)->std::int32_t;
-		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v)->std::int32_t;
+		auto FetchMemory(core::Processor const& vcpu_v, uint64_t address_v, uint64_t length_v, std::vector<std::byte>& output_v)->int32_t;
+		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, uint64_t physaddr_v, utils::limited_span<std::byte, 16u> data_v)->int32_t;
 
 	private:
 		Machine& m_Machine;

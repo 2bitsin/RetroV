@@ -18,7 +18,9 @@
 #include <core/videodevice/vgaioconsts.hpp>
 #include <core/videodevice/vgaregisters.hpp>
 #include <core/videodevice/vgarenderer.hpp>
+#include <core/videodevice/videoclock.hpp>
 #include <core/videodevice/iowritequeue.hpp>
+
 
 #include <utils/limited_span.hpp>
 #include <utils/smart_span.hpp>
@@ -49,6 +51,7 @@ namespace core
     using VGARegisters = videodevice::VGARegisters;
     using VGARenderer = videodevice::VGARenderer;
 
+
 		VideoDevice(Machine& machine_v);
 		~VideoDevice();
 
@@ -57,9 +60,9 @@ namespace core
 		auto Stop() -> void;
 		auto Restart() -> void;
 
-		auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t;
-		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> std::int32_t;
-		auto Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> std::int32_t;
+		auto IoPortAccess(Processor const& vcpu_v, bool is_write_v, uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> int32_t;
+		auto MemoryAccess(Processor const& vcpu_v, bool is_write_v, uint64_t addr_v, utils::limited_span<std::byte, 16u> data_v) -> int32_t;
+		auto Hypercall(Processor const& vcpu_v, HypercallContext const& hypercall_v) -> int32_t;
 
 	protected:
 
@@ -68,24 +71,26 @@ namespace core
 
 		auto RefreshTask(std::stop_token stopee_v) -> void;
 
-    auto SetClockFrequency(std::uint32_t value_v) -> void;
+    auto SetClockFrequency(uint32_t value_v) -> void;
     auto ResetFrameTimer() -> void;
-    auto RelativeFrameTime() const -> std::uint32_t;
-    auto WaitRenderUntil(std::uint32_t time_v) -> std::int32_t;
-    auto IoPortFetch(Processor const& vcpu_v, std::uint16_t port_v, std::size_t size_v) -> std::uint32_t;
+    auto RelativeFrameTime() const -> uint32_t;
+    auto WaitRenderUntil(uint32_t time_v) -> int32_t;
+    auto IoPortFetch(Processor const& vcpu_v, uint16_t port_v, size_t size_v) -> uint32_t;
 
-	protected:
+    auto HostFetch(VGARegisters const& state_v, uint32_t addr_v, uint8_t size_v) -> uint32_t;
+    auto HostFetchByte(VGARegisters const& state_v, uint32_t addr_v) -> uint8_t;
+    auto HostWrite(bool is_ahead_v, VGARegisters const& state_v, uint32_t addr_v, uint32_t value_v, uint8_t size_v) -> void;
+    auto HostWriteByte(bool is_ahead_v, VGARegisters const& state_v, uint32_t addr_v, uint8_t value_v) -> void;
 
-
+    auto VRamView(size_t buff_v, size_t plane_v) -> std::span<uint8_t>;
+    
 	private:
-
-
-
 
 		Machine& m_Machine;
 		std::optional<RomImage> m_BiosRom;
 
-		buffer_type m_VideoMemory;
+		buffer_type m_VideoMemory [2u];
+    buffer_type m_DirtyVramMask;
 
 		VGARegisters m_VgaRegisters;
     VGARenderer m_VgaRenderer;

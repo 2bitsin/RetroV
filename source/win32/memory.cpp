@@ -9,26 +9,26 @@
 
 using namespace win32;
 
-template <std::size_t Boundry = 8u>
-static inline auto is_aligned(std::uintptr_t address_v) noexcept -> bool
+template <size_t Boundry = 8u>
+static inline auto is_aligned(uintptr_t address_v) noexcept -> bool
 {
 	return (address_v % Boundry) == 0u;
 }
 
-template <std::size_t Boundry = 8u>
+template <size_t Boundry = 8u>
 static inline auto is_aligned(void const* address_v) noexcept -> bool
 {
-	return is_aligned<Boundry>((std::uintptr_t)address_v);
+	return is_aligned<Boundry>((uintptr_t)address_v);
 }
 
-template <std::size_t Boundry = 8u, typename... T>
+template <size_t Boundry = 8u, typename... T>
 static inline auto all_aligned(T&&... address_v) noexcept -> bool
 {
 	return (is_aligned<Boundry>(std::forward<T>(address_v)) && ...);
 }
 
 
-auto win32::VirtualAlloc(std::size_t size_v, page_prot prot_v,
+auto win32::VirtualAlloc(size_t size_v, page_prot prot_v,
 	alloc_flag flags_v, void* target_v) -> void*
 {
 	return ::VirtualAlloc(target_v, size_v, (DWORD)flags_v, (DWORD)prot_v);  
@@ -36,7 +36,7 @@ auto win32::VirtualAlloc(std::size_t size_v, page_prot prot_v,
 
 auto win32::CopyPagesUsingMask(std::span<std::byte> target_v, 
 	std::span<std::byte> source_v, 
-	std::span<std::uint64_t> mask_v) -> std::int32_t
+	std::span<uint64_t> mask_v) -> int32_t
 {
 	using namespace size_literals;
 	using std::exchange;
@@ -60,11 +60,11 @@ auto win32::CopyPagesUsingMask(std::span<std::byte> target_v,
 	if (pages_to_copy_v < 1u) 
 		return E_INVALIDARG;
 
-	std::uint64_t curr_bit_v = 0u;
-	std::uint64_t last_bit_v = 0u;
+	uint64_t curr_bit_v = 0u;
+	uint64_t last_bit_v = 0u;
 
-	std::size_t begoff_v = 0u;
-	std::size_t offset_v = 0u; 
+	size_t begoff_v = 0u;
+	size_t offset_v = 0u; 
 
 	while(offset_v < pages_to_copy_v)
 	{
@@ -112,10 +112,10 @@ auto win32::CopyPagesUsingMask(std::span<std::byte> target_v,
 #undef GetMappedFileName
 
 
-auto win32::GetMappedFileName(void const* address_v) -> std::variant<std::int32_t, std::filesystem::path>
+auto win32::GetMappedFileName(void const* address_v) -> std::variant<int32_t, std::filesystem::path>
 {
 	std::wstring buffer_v{  };
-	std::uint32_t length_v{ 0 } ;
+	uint32_t length_v{ 0 } ;
 	buffer_v.resize(buffer_v.capacity(), '\0');
 
 	while (true)
@@ -130,9 +130,9 @@ auto win32::GetMappedFileName(void const* address_v) -> std::variant<std::int32_
 	return std::filesystem::path(buffer_v);
 }
 
-auto win32::QueryDirtyPages(std::span<std::byte const> source_v, std::span<std::byte const*> dirty_list_v, bool reset_v) -> std::tuple<std::int32_t, std::uintptr_t, std::span<std::byte const*>>
+auto win32::QueryDirtyPages(std::span<std::byte const> source_v, std::span<std::byte const*> dirty_list_v, bool reset_v) -> std::tuple<int32_t, uintptr_t, std::span<std::byte const*>>
 {
-	std::uintptr_t dirty_count_v { dirty_list_v.size() };
+	uintptr_t dirty_count_v { dirty_list_v.size() };
 	unsigned long granularity_v { 0u };
 	auto result_v = ::GetWriteWatch(reset_v?WRITE_WATCH_FLAG_RESET:0, (void*)source_v.data(), source_v.size(), 
 		(void**)dirty_list_v.data(), &dirty_count_v, &granularity_v);
@@ -140,7 +140,7 @@ auto win32::QueryDirtyPages(std::span<std::byte const> source_v, std::span<std::
 	return { S_OK, granularity_v, dirty_list_v.first(dirty_count_v) };
 }
 
-auto win32::VirtualFree(void* address_v, std::size_t size_v, 
+auto win32::VirtualFree(void* address_v, size_t size_v, 
 	free_flag flags_v) -> bool
 { 
 	if (free_flag::release) 
@@ -155,10 +155,10 @@ auto win32::VirtualFree(void* address_v, std::size_t size_v,
 }
 
 
-auto win32::CopyDirtyPages(std::span<std::byte> target_v, std::span<std::byte const> source_v) -> std::tuple<std::int32_t, std::size_t>
+auto win32::CopyDirtyPages(std::span<std::byte> target_v, std::span<std::byte const> source_v) -> std::tuple<int32_t, size_t>
 {
 	std::byte const* address_buffer_v[256u];	
-	std::size_t copied_pages_v{ 0u };
+	size_t copied_pages_v{ 0u };
 	while(!source_v.empty() && !target_v.empty()) 
 	{
 		auto [status_v, granularity_v, list_v] = QueryDirtyPages(

@@ -15,7 +15,7 @@
 
 namespace win32
 {
-	enum alloc_flag: std::uint32_t 
+	enum alloc_flag: uint32_t 
 	{
 		commit								= MEM_COMMIT,
 		reserve								= MEM_RESERVE,
@@ -27,7 +27,7 @@ namespace win32
 		write_watch						= MEM_WRITE_WATCH
 	};
 
-	enum free_flag: std::uint32_t 
+	enum free_flag: uint32_t 
 	{
 		decommit							= MEM_DECOMMIT,
 		release								= MEM_RELEASE,
@@ -35,7 +35,7 @@ namespace win32
 		preserve_placeholders	= MEM_PRESERVE_PLACEHOLDER
 	};
 
-	enum page_prot: std::uint32_t 
+	enum page_prot: uint32_t 
 	{
 		no_access							= PAGE_NOACCESS,
 		read_only							= PAGE_READONLY,
@@ -57,7 +57,7 @@ namespace win32
 	DEFINE_ENUM_FLAG_OPERATORS(page_prot)
 	DEFINE_ENUM_FLAG_OPERATORS(free_flag)
 
-	auto VirtualFree(void* address_v, std::size_t size_v,
+	auto VirtualFree(void* address_v, size_t size_v,
 		free_flag flags_v = free_flag::release) -> bool;
 
 	template <typename T>
@@ -77,13 +77,13 @@ namespace win32
 	template <typename T>
 	using unique_span = utils::unique_span<T, virtual_span_deleter<T>>;
 
-	auto VirtualAlloc(std::size_t size_v,
+	auto VirtualAlloc(size_t size_v,
 		page_prot protect_v = page_prot::read_write,
 		alloc_flag flags_v = alloc_flag::commit | alloc_flag::reserve,
 		void* target_v = nullptr) -> void*;
 
 	template <typename T = std::byte> requires (std::is_trivial_v<T>)
-	static inline auto VirtualAlloc_s(std::size_t size_v, page_prot prot_v = page_prot::read_write, 
+	static inline auto VirtualAlloc_s(size_t size_v, page_prot prot_v = page_prot::read_write, 
 		alloc_flag flags_v = alloc_flag::commit | alloc_flag::reserve,
 		void* base_v = nullptr) -> unique_span<T>
 	{
@@ -95,13 +95,13 @@ namespace win32
 	}
 
 
-	auto CopyPagesUsingMask(std::span<std::byte> target_v, std::span<std::byte> source_v, std::span<std::uint64_t> mask_v) -> std::int32_t;
+	auto CopyPagesUsingMask(std::span<std::byte> target_v, std::span<std::byte> source_v, std::span<uint64_t> mask_v) -> int32_t;
 
 	auto QueryDirtyPages(std::span<std::byte const> source_v, std::span<std::byte const*> dirty_list_v, bool reset_v = true)
-		-> std::tuple<std::int32_t, std::uintptr_t, std::span<std::byte const*>>;
+		-> std::tuple<int32_t, uintptr_t, std::span<std::byte const*>>;
 
 	auto CopyDirtyPages(std::span<std::byte> target_v, std::span<std::byte const> source_v) 
-		-> std::tuple<std::int32_t, std::size_t>;
+		-> std::tuple<int32_t, size_t>;
 
-	auto GetMappedFileName(void const* address_v) -> std::variant<std::int32_t, std::filesystem::path>;
+	auto GetMappedFileName(void const* address_v) -> std::variant<int32_t, std::filesystem::path>;
 }

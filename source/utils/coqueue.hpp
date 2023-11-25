@@ -7,7 +7,7 @@
 
 namespace utils
 {
-	template <typename T, std::size_t Q = 0u>
+	template <typename T, size_t Q = 0u>
 	struct coqueue
 	{
 

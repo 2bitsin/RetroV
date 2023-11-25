@@ -16,22 +16,22 @@ namespace core::videodevice
     struct value_type
     {
       constexpr inline value_type
-      (std::uint32_t time_v
-        , std::uint32_t data_v
-        , std::uint16_t size_v
-        , std::uint16_t port_v
-        , std::uint32_t vcpu_v = 0u)
+      (uint32_t time_v
+        , uint32_t data_v
+        , uint16_t size_v
+        , uint16_t port_v
+        , uint32_t vcpu_v = 0u)
         : time{ time_v }
         , data{ data_v }
         , size{ size_v }
         , port{ port_v }
         , vcpu{ vcpu_v }
       {}
-      std::uint32_t time;
-      std::uint32_t data;
-      std::uint16_t size;
-      std::uint16_t port;
-      std::uint32_t vcpu;
+      uint32_t time;
+      uint32_t data;
+      uint16_t size;
+      uint16_t port;
+      uint32_t vcpu;
     };
   #pragma pack(pop)
 

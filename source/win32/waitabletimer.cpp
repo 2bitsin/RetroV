@@ -3,7 +3,7 @@
 
 using win32::waitable_timer;
 
-waitable_timer::waitable_timer(std::uint32_t flags_v)
+waitable_timer::waitable_timer(uint32_t flags_v)
 	: m_timer 
 	{	::CreateWaitableTimerExW(nullptr, nullptr, 
 			(flags_v&high_resolution_flag?CREATE_WAITABLE_TIMER_HIGH_RESOLUTION:0)|
@@ -17,17 +17,16 @@ waitable_timer::waitable_timer(std::uint32_t flags_v)
   if (INVALID_HANDLE_VALUE==m_event.get() || !m_event) error::throw_last_error();
 }
 
-auto win32::waitable_timer::wait(milliseconds timeout_v, bool alertable_v) const -> wait_status 
+auto win32::waitable_timer::wait(milliseconds timeout_v, uint32_t flags_v) const -> wait_status 
 {
   void* handles_v[] = { m_timer.get(), m_event.get() };
   auto const wait_result_v = ::WaitForMultipleObjectsEx(
     2u, handles_v, FALSE, timeout_v.count(), 
-    alertable_v ? TRUE : FALSE);
+    (flags_v & wait_alertable) ? TRUE : FALSE);
 
 	while(true)
 	switch(wait_result_v)
 	{
-	case WAIT_ABANDONED:
 	case WAIT_TIMEOUT:
 		return wait_timedout;
 	case WAIT_OBJECT_0:
@@ -35,17 +34,21 @@ auto win32::waitable_timer::wait(milliseconds timeout_v, bool alertable_v) const
   case WAIT_OBJECT_0+1:
     return wait_cancelled;
 	case WAIT_IO_COMPLETION:
-		continue;
+    if (flags_v & wait_cancel_after_apc) 
+      return wait_cancelled_by_apc;		
+    continue;
+  case WAIT_ABANDONED:
+    throw std::logic_error(__FUNCTION__ " : WAIT_ABANDONED");
+  case WAIT_FAILED:
 	default:
-	case WAIT_FAILED:
 		error::throw_last_error();
 		break;		
 	}
 }
 
-auto waitable_timer::wait(bool alertable_v) const -> wait_status
+auto waitable_timer::wait(uint32_t flags_v) const -> wait_status
 {
-	return wait(milliseconds(INFINITE), alertable_v);
+	return wait(milliseconds(INFINITE), flags_v);
 }
 
 auto waitable_timer::abort() const -> void

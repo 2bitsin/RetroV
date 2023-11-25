@@ -7,20 +7,21 @@
 
 #include <core/videodevice/vgaregisters.hpp>
 
+namespace core
+{
+  struct VideoDevice;
+}
+
 namespace core::videodevice
 {
   struct VGARenderer
   {   
-    constexpr inline VGARenderer() 
-      : m_Hcounter{ 0u }
-      , m_Vcounter{ 0u }
-    {}
-
-    void RenderToClock(std::uint64_t clock_v, VGARegisters const& state_v) 
-    {}
-
+    inline VGARenderer() = default;
+    auto Reset();
+    auto RenderToClock(uint64_t clock_v, VGARegisters const& state_v, VideoDevice& machine_v) -> uint64_t;
+    
   private:
-    std::uint32_t m_Hcounter;
-    std::uint32_t m_Vcounter;
+    uint32_t m_hcounter;
+    uint32_t m_vcounter;
   };
 }

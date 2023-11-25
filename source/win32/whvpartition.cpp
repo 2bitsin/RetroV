@@ -25,7 +25,7 @@ WHvPartition::~WHvPartition()
 		WIN32_ERROR_NOTIFY(result_v);
 		if (result_v == S_OK)
 		{
-			for (std::uint32_t vcpuindex_v = 0u; 
+			for (uint32_t vcpuindex_v = 0u; 
 				vcpuindex_v < vcpucount_v;
 				vcpuindex_v += 1u)			
 			{
@@ -55,22 +55,22 @@ auto WHvPartition::operator=(WHvPartition&& from_v) noexcept -> WHvPartition& {
 	return *this;
 }
 
-auto WHvPartition::SetProperty(WHV_PARTITION_HANDLE handle_v, WHV_PARTITION_PROPERTY_CODE code_v, std::span<std::byte const> value_v) -> std::int32_t
+auto WHvPartition::SetProperty(WHV_PARTITION_HANDLE handle_v, WHV_PARTITION_PROPERTY_CODE code_v, std::span<std::byte const> value_v) -> int32_t
 {
 	return ::WHvSetPartitionProperty(handle_v, code_v, value_v.data(), value_v.size());
 }
 
-auto WHvPartition::GetProperty(WHV_PARTITION_HANDLE handle_v, WHV_PARTITION_PROPERTY_CODE code_v, std::span<std::byte>& value_v) -> std::int32_t
+auto WHvPartition::GetProperty(WHV_PARTITION_HANDLE handle_v, WHV_PARTITION_PROPERTY_CODE code_v, std::span<std::byte>& value_v) -> int32_t
 {
-	std::uint32_t size_o{ 0u };
+	uint32_t size_o{ 0u };
 	auto result_v = ::WHvGetPartitionProperty(handle_v, code_v, value_v.data(), value_v.size(), &size_o);
 	value_v = value_v.first(size_o);
 	return result_v;
 }
 
-auto WHvPartition::SetProperties(WHV_PARTITION_HANDLE handle_v, std::span<property_pair const> props_v) -> std::int32_t
+auto WHvPartition::SetProperties(WHV_PARTITION_HANDLE handle_v, std::span<property_pair const> props_v) -> int32_t
 {
-	std::int32_t result_v{ ERROR_SUCCESS };
+	int32_t result_v{ ERROR_SUCCESS };
 	for (auto const& [prop_k, prop_v] : props_v) {
 		auto status_v = SetProperty(handle_v, prop_k, prop_v);
 		if (ERROR_SUCCESS != status_v)
@@ -79,7 +79,7 @@ auto WHvPartition::SetProperties(WHV_PARTITION_HANDLE handle_v, std::span<proper
 	return result_v;
 }
 
-auto WHvPartition::Mark(std::uint64_t base_v, std::uint64_t size_v, bool is_mapped_v) const -> void
+auto WHvPartition::Mark(uint64_t base_v, uint64_t size_v, bool is_mapped_v) const -> void
 {
 	auto last_v{ base_v + size_v };
 	base_v = (base_v >> 12u);
@@ -92,7 +92,7 @@ auto WHvPartition::Mark(std::uint64_t base_v, std::uint64_t size_v, bool is_mapp
 		is_mapped_v);
 }
 
-auto WHvPartition::IsMapped(std::uint64_t base_v) const -> bool
+auto WHvPartition::IsMapped(uint64_t base_v) const -> bool
 {
 	base_v = (base_v >> 12u);
 	if (base_v >= m_IsMapped.size())
@@ -100,11 +100,11 @@ auto WHvPartition::IsMapped(std::uint64_t base_v) const -> bool
 	return m_IsMapped[base_v];
 }
 
-auto WHvPartition::Create(std::uint32_t vcpucount_v, std::span<property_pair const> properties_v) -> WHV_PARTITION_HANDLE
+auto WHvPartition::Create(uint32_t vcpucount_v, std::span<property_pair const> properties_v) -> WHV_PARTITION_HANDLE
 {
 	using utils::logger;
 	WHV_PARTITION_HANDLE handle_v{ nullptr };
-	std::uint32_t try_again_count_v{ 0u };
+	uint32_t try_again_count_v{ 0u };
 	Again:
 	try
 	{
@@ -113,7 +113,7 @@ auto WHvPartition::Create(std::uint32_t vcpucount_v, std::span<property_pair con
 		//WIN32_ERROR_ASSERT(SetProcessorCount(handle_v, vcpucount_v));		
 		WIN32_ERROR_ASSERT(SetProperties(handle_v, properties_v));
 		WIN32_ERROR_ASSERT(::WHvSetupPartition(handle_v));
-		for (std::uint32_t vcpuindex_v = 0u; vcpuindex_v < vcpucount_v; vcpuindex_v += 1u)
+		for (uint32_t vcpuindex_v = 0u; vcpuindex_v < vcpucount_v; vcpuindex_v += 1u)
 			WIN32_ERROR_ASSERT(::WHvCreateVirtualProcessor(handle_v, vcpuindex_v, 0u));		
 		return handle_v;
 	}
@@ -136,12 +136,12 @@ auto WHvPartition::GetHandle() const -> WHV_PARTITION_HANDLE
 	return m_handle;
 }
 
-auto WHvPartition::Reset() const -> std::int32_t
+auto WHvPartition::Reset() const -> int32_t
 {
 	return ::WHvResetPartition(m_handle);
 }
 
-auto WHvPartition::MapGpaRange(void* src_addr_v, std::uint64_t dst_addr_v, std::uint64_t size_v, core::Access access_v) const -> std::int32_t
+auto WHvPartition::MapGpaRange(void* src_addr_v, uint64_t dst_addr_v, uint64_t size_v, core::Access access_v) const -> int32_t
 {
 	using enum core::Access;
 	WHV_MAP_GPA_RANGE_FLAGS flags_v{ };
@@ -159,35 +159,35 @@ auto WHvPartition::MapGpaRange(void* src_addr_v, std::uint64_t dst_addr_v, std::
 	return ::WHvMapGpaRange(m_handle, src_addr_v, dst_addr_v, size_v, flags_v);
 }
 
-auto WHvPartition::MapGpaRange(void const* src_addr_v, std::uint64_t dst_addr_v, std::uint64_t size_v, core::Access access_v) const->std::int32_t {
+auto WHvPartition::MapGpaRange(void const* src_addr_v, uint64_t dst_addr_v, uint64_t size_v, core::Access access_v) const->int32_t {
 	using enum core::Access;
 	return MapGpaRange(const_cast<void*>(src_addr_v), dst_addr_v, size_v, access_v & ~kAccessWrite);
 }
 
-auto WHvPartition::UnmapGpaRange(std::uint64_t dst_addr_v, std::uint64_t size_v) const -> std::int32_t
+auto WHvPartition::UnmapGpaRange(uint64_t dst_addr_v, uint64_t size_v) const -> int32_t
 {
 	Mark(dst_addr_v, size_v, false);
 	return ::WHvUnmapGpaRange(m_handle, dst_addr_v, size_v);
 }
 
-auto WHvPartition::QueryGpaRangeDirtyBitmap(std::uint64_t address_v, std::uint64_t size_v, std::span<std::uint64_t> bitmap_v) const -> std::int32_t
+auto WHvPartition::QueryGpaRangeDirtyBitmap(uint64_t address_v, uint64_t size_v, std::span<uint64_t> bitmap_v) const -> int32_t
 {
 	using namespace size_literals;
-	assert(bitmap_v.size() * sizeof(std::uint64_t) * 8u >= (size_v + 1_pages - 1u) / 1_pages);
-  return ::WHvQueryGpaRangeDirtyBitmap(m_handle, address_v, size_v, bitmap_v.data(), bitmap_v.size() * sizeof(std::uint64_t));
+	assert(bitmap_v.size() * sizeof(uint64_t) * 8u >= (size_v + 1_pages - 1u) / 1_pages);
+  return ::WHvQueryGpaRangeDirtyBitmap(m_handle, address_v, size_v, bitmap_v.data(), bitmap_v.size() * sizeof(uint64_t));
 }
 
-auto WHvPartition::ClearGpaRangeDirtyBitmap(std::uint64_t address_v, std::uint64_t size_v) const -> std::int32_t
+auto WHvPartition::ClearGpaRangeDirtyBitmap(uint64_t address_v, uint64_t size_v) const -> int32_t
 {
 	return ::WHvQueryGpaRangeDirtyBitmap(m_handle, address_v, size_v, nullptr, 0u);
 }
 
-auto WHvPartition::GetProcessorCount(WHV_PARTITION_HANDLE handle_v) -> std::tuple<std::int32_t, std::uint32_t> {
-	std::uint32_t vcpucount_v{ 0u };
+auto WHvPartition::GetProcessorCount(WHV_PARTITION_HANDLE handle_v) -> std::tuple<int32_t, uint32_t> {
+	uint32_t vcpucount_v{ 0u };
 	auto result_v = GetProperty(handle_v, WHvPartitionPropertyCodeProcessorCount, vcpucount_v);
 	return { result_v, vcpucount_v };
 }
 
-auto WHvPartition::SetProcessorCount(WHV_PARTITION_HANDLE handle_v, std::uint32_t vcpucount_v) -> std::int32_t {
+auto WHvPartition::SetProcessorCount(WHV_PARTITION_HANDLE handle_v, uint32_t vcpucount_v) -> int32_t {
 	return SetProperty(handle_v, WHvPartitionPropertyCodeProcessorCount, vcpucount_v);	
 }

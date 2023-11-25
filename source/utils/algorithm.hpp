@@ -83,7 +83,7 @@ namespace utils
 		return round_down(value_v + alignment_v - 1u, alignment_v); 
 	}
 
-	template <typename T, std::size_t N>
+	template <typename T, size_t N>
 	static inline constexpr auto make_filled_array(T default_v) -> std::array<T, N> {
 		std::array<T, N> result_v{};
 		result_v.fill(default_v);
@@ -92,29 +92,29 @@ namespace utils
 
 	namespace detail
 	{
-		template <std::size_t Bytes, bool IsSigned>
+		template <size_t Bytes, bool IsSigned>
 		struct integer_by_size;
 
-		template <> struct integer_by_size<1u, false> { using type = std::uint8_t;  };
-		template <> struct integer_by_size<2u, false> { using type = std::uint16_t; };
-		template <> struct integer_by_size<3u, false> { using type = std::uint32_t; };
-		template <> struct integer_by_size<4u, false> { using type = std::uint32_t; };
-		template <> struct integer_by_size<5u, false> { using type = std::uint64_t; };
-		template <> struct integer_by_size<6u, false> { using type = std::uint64_t; };
-		template <> struct integer_by_size<7u, false> { using type = std::uint64_t; };
-		template <> struct integer_by_size<8u, false> { using type = std::uint64_t; };
-		template <> struct integer_by_size<1u, true > { using type = std::int8_t;   };
-		template <> struct integer_by_size<2u, true > { using type = std::int16_t;  };
-		template <> struct integer_by_size<3u, true > { using type = std::int32_t;  };
-		template <> struct integer_by_size<4u, true > { using type = std::int32_t;  };
-		template <> struct integer_by_size<5u, true > { using type = std::int64_t;  };
-		template <> struct integer_by_size<6u, true > { using type = std::int64_t;  };
-		template <> struct integer_by_size<7u, true > { using type = std::int64_t;  };
-		template <> struct integer_by_size<8u, true > { using type = std::int64_t;  };
+		template <> struct integer_by_size<1u, false> { using type = uint8_t;  };
+		template <> struct integer_by_size<2u, false> { using type = uint16_t; };
+		template <> struct integer_by_size<3u, false> { using type = uint32_t; };
+		template <> struct integer_by_size<4u, false> { using type = uint32_t; };
+		template <> struct integer_by_size<5u, false> { using type = uint64_t; };
+		template <> struct integer_by_size<6u, false> { using type = uint64_t; };
+		template <> struct integer_by_size<7u, false> { using type = uint64_t; };
+		template <> struct integer_by_size<8u, false> { using type = uint64_t; };
+		template <> struct integer_by_size<1u, true > { using type = int8_t;   };
+		template <> struct integer_by_size<2u, true > { using type = int16_t;  };
+		template <> struct integer_by_size<3u, true > { using type = int32_t;  };
+		template <> struct integer_by_size<4u, true > { using type = int32_t;  };
+		template <> struct integer_by_size<5u, true > { using type = int64_t;  };
+		template <> struct integer_by_size<6u, true > { using type = int64_t;  };
+		template <> struct integer_by_size<7u, true > { using type = int64_t;  };
+		template <> struct integer_by_size<8u, true > { using type = int64_t;  };
 	}
 
 	template <std::integral Target, std::integral Source,
-		std::size_t Ways = sizeof(Source) / sizeof(Target)>
+		size_t Ways = sizeof(Source) / sizeof(Target)>
 	requires (sizeof(Target) <= sizeof(Source))
 	static inline constexpr auto integral_split_msw(Source value_v) -> 
 		std::array<Target, Ways>

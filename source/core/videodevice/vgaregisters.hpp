@@ -15,7 +15,7 @@ namespace core::videodevice
 #pragma pack(push, 1)
 	struct alignas(0x400u) VGARegisters
 	{
-		enum class ValueIndex : std::uint16_t {
+		enum class ValueIndex : uint16_t {
 
 			DrvHorizontalTotalChars,
 			DrvHorizontalVisibleChars,
@@ -58,11 +58,16 @@ namespace core::videodevice
 			MaximumScanline,
 			DotClockRate,
 			EightDotMode,
-      DoubleWordAddressing,
-      AddressClockDivideByFour,
-      AddressClockDivideByTwo,
-      ScanlineClockDivideByTwo, 
-      DoubleScanning
+      ReadModeSelect,
+      WriteModeSelect,
+      //DoubleWordAddressing,
+      //AddressClockDivideByFour,
+      //AddressClockDivideByTwo,
+      //ScanlineClockDivideByTwo, 
+      //DoubleScanning,
+      ChainFourEnable,
+      ReadMapSelect,
+
 		};
 
 		constexpr inline VGARegisters() noexcept 
@@ -90,7 +95,7 @@ namespace core::videodevice
 			feature_control = 0x00u;
 		}
 
-		constexpr inline auto IoPortWrite(std::uint16_t port_v, std::uint8_t data_v) noexcept -> void 
+		constexpr inline auto IoPortWrite(uint16_t port_v, uint8_t data_v) noexcept -> void 
 		{
       auto const port_crt_data  = misc.io_addr_3dx 
                                 ? Port_VgaCrtData        
@@ -212,7 +217,7 @@ namespace core::videodevice
 		}
 
 		
-		constexpr inline auto IoPortFetch(std::uint16_t port_v) noexcept -> std::uint8_t
+		constexpr inline auto IoPortFetch(uint16_t port_v) noexcept -> uint8_t
 		{
 			uint8_t tmp_v{ 0 };
       auto const port_crt_data  = misc.io_addr_3dx 
@@ -328,12 +333,15 @@ namespace core::videodevice
 		template <ValueIndex _Index>
 		constexpr inline auto GetValue() const
 		{
-			static constexpr auto F = [](auto x, auto m) { x &= (m - 1); return !x ? m : x; };
-
 			using enum ValueIndex;
 			     if constexpr (_Index == EightDotMode              ) return sequencer.eight_dot_mode ;
 			else if constexpr (_Index == DotClockRate              ) return sequencer.dot_clock_rate ;
+      else if constexpr (_Index == ChainFourEnable           ) return sequencer.chain_four_enable ;
+      else if constexpr (_Index == ReadMapSelect             ) return graphics.read_map_select;
+      else if constexpr (_Index == ReadModeSelect            ) return graphics.read_mode;
+      else if constexpr (_Index == WriteModeSelect           ) return graphics.write_mode;
       else if constexpr (_Index == MasterClockSelect         ) return misc.clock_select;
+
       else if constexpr (_Index == MaximumScanline           ) return crtctrl.maximum_scan_line ;
 			else if constexpr (_Index == HorizontalTotal           ) return crtctrl.horizontal_total ;
 			else if constexpr (_Index == HorizontalDisplayEnd      ) return crtctrl.horizontal_display_end ;

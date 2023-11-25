@@ -19,17 +19,17 @@ auto Debugger::Reset() -> void
 	m_Buffer.clear();
 }
 
-auto Debugger::IoPortAccess(Processor const& vcpu_v, bool is_write_v, std::uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> std::int32_t
+auto Debugger::IoPortAccess(Processor const& vcpu_v, bool is_write_v, uint16_t port_v, utils::limited_span<std::byte, 4u> data_v) -> int32_t
 {
 	return ERROR_ACCESS_DENIED;
 }
 
-auto Debugger::MemoryAccess(Processor const& vcpu_v, bool is_write_v, std::uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> std::int32_t
+auto Debugger::MemoryAccess(Processor const& vcpu_v, bool is_write_v, uint64_t addr_v, utils::limited_span<std::byte, 8u> data_v) -> int32_t
 {
   return ERROR_ACCESS_DENIED;
 }
 
-auto Debugger::Hypercall_UnrealModeEnable(Processor const& vcpu_v, bool enable_v) -> std::int32_t 
+auto Debugger::Hypercall_UnrealModeEnable(Processor const& vcpu_v, bool enable_v) -> int32_t 
 {	
 	static constexpr const WHV_REGISTER_NAME name_v[] = {
 		WHvX64RegisterDs,
@@ -63,7 +63,7 @@ auto Debugger::Hypercall_UnrealModeEnable(Processor const& vcpu_v, bool enable_v
 	return S_OK;
 }
 
-auto Debugger::Hypercall_WriteLogString(Processor const& vcpu_v, std::uint64_t address_v, std::uint64_t length_v) -> std::int32_t
+auto Debugger::Hypercall_WriteLogString(Processor const& vcpu_v, uint64_t address_v, uint64_t length_v) -> int32_t
 {
 	using utils::logger;
 	std::vector<std::byte> output_v;
@@ -74,7 +74,7 @@ auto Debugger::Hypercall_WriteLogString(Processor const& vcpu_v, std::uint64_t a
 	return ERROR_SUCCESS;
 }
 
-auto Debugger::Hypercall_DebuggerBreak(Processor const& vcpu_v, std::uint64_t lin_v, std::uint16_t seg_v, std::uint64_t off_v) -> std::int32_t
+auto Debugger::Hypercall_DebuggerBreak(Processor const& vcpu_v, uint64_t lin_v, uint16_t seg_v, uint64_t off_v) -> int32_t
 {
 	using utils::logger;
 	s_log.DebugTrap(vcpu_v.GetIndex(), lin_v, seg_v, off_v);
@@ -82,7 +82,7 @@ auto Debugger::Hypercall_DebuggerBreak(Processor const& vcpu_v, std::uint64_t li
   return ERROR_SUCCESS;
 }
 
-auto Debugger::Hypercall_WriteLogChar(Processor const& vcpu_v, char value_v) -> std::int32_t
+auto Debugger::Hypercall_WriteLogChar(Processor const& vcpu_v, char value_v) -> int32_t
 {
 	WriteLogString(vcpu_v, { &value_v, 1u });
 	return ERROR_SUCCESS;
@@ -101,7 +101,7 @@ auto Debugger::WriteLogString(Processor const& vcpu_v, std::string_view message_
 	}
 }
 
-auto Debugger::Hypercall(Processor const& vcpu_v, HypercallContext const& context_v) -> std::int32_t
+auto Debugger::Hypercall(Processor const& vcpu_v, HypercallContext const& context_v) -> int32_t
 {
 	using namespace win32::regs;
 

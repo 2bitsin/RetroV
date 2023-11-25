@@ -12,7 +12,7 @@
 
 namespace win32
 {
-	enum share_type: std::uint32_t {
+	enum share_type: uint32_t {
 		share_read = FILE_SHARE_READ,
 		share_write = FILE_SHARE_WRITE,
 		share_delete = FILE_SHARE_DELETE,
@@ -21,7 +21,7 @@ namespace win32
 
 	DEFINE_ENUM_FLAG_OPERATORS(share_type)
 
-	enum cf_mode : std::uint32_t {
+	enum cf_mode : uint32_t {
 		create_new = CREATE_NEW,
 		create_always = CREATE_ALWAYS,
 		open_existing = OPEN_EXISTING,
@@ -57,7 +57,7 @@ namespace win32
 		auto swap(MappedFile& other_v) noexcept -> void;
 
 		auto Data() const noexcept -> std::span<std::byte>;
-		auto Size() const noexcept -> std::size_t;
+		auto Size() const noexcept -> size_t;
 
 		operator std::span<std::byte>() const noexcept { return Data(); }
 

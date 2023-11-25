@@ -1,23 +1,24 @@
 #include <SDL2/SDL.h>
 
-#include <win32/error.hpp>
-#include <win32/windows.hpp>
 #include <win32/whvcapabilities.hpp>
-#include <win32/whvregisters.hpp>
-#include <win32/workqueue.hpp>
-#include <win32/memory.hpp>
-#include <win32/mappedfile.hpp>
 #include <win32/waitabletimer.hpp>
+#include <win32/whvregisters.hpp>
+#include <win32/mappedfile.hpp>
+#include <win32/workqueue.hpp>
+#include <win32/windows.hpp>
+#include <win32/memory.hpp>
+#include <win32/async.hpp>
+#include <win32/error.hpp>
 
-#include <core/machine.hpp>
 #include <core/videodevice/videoclock.hpp>
+#include <core/machine.hpp>
 
 #include <utils/smart_span.hpp>
 #include <utils/literals.hpp>
 #include <utils/metaprog.hpp>
+#include <utils/pattern.hpp>
 #include <utils/logger.hpp>
 #include <utils/paths.hpp>
-#include <utils/pattern.hpp>
 
 #include <condition_variable>
 #include <string_view>
@@ -55,58 +56,34 @@ int main(int argc, char** argv) try
 	using namespace core;
 	using namespace win32;
 
+  drain_apc_queue_guard drain_apcs_v;
 
 	current_path(path(argv[0])
 		.parent_path()
 		.parent_path());
 
-  waitable_timer wtimer_v{ waitable_timer::high_resolution_flag };
-  std::binary_semaphore sem_v{ 0 };
-  auto const wakeup_v = std::async(std::launch::async, [&]() {
-    sem_v.acquire();
-    std::this_thread::sleep_for(5s);
-    wtimer_v.cancel_wait();
-  });
-  auto t0 = high_resolution_clock::now();
-  wtimer_v.set(filetime_clock::now() + 10s);
-  sem_v.release();
-  auto const result_v = wtimer_v.wait();
-  auto t1 = high_resolution_clock::now();
-  auto dt = duration_cast<microseconds>(t1-t0).count() * 1e-6;
+  waitable_timer wtimer_v;
 
-  std::print("dT -> {:0.4f} s\n", dt);
-  switch (result_v)
-  {
-  case waitable_timer::wait_timedout: std::print("wait_timedout\n"); break;
-  case waitable_timer::wait_failed: std::print("wait_failed\n"); break;
-  case waitable_timer::timer_elapsed: std::print("timer_elapsed\n"); break;
-  case waitable_timer::wait_cancelled: std::print("wait_cancelled\n"); break;
-  default: std::print("unknown\n"); break;
-  }
-
-  __debugbreak();
-#if 0
-  core::videodevice::video_timer vtimer_v{ 25'144'000u, 800u, 449u };
-
-  std::uint64_t counter_v{ 0u };
-  std::uint32_t misses_v{ 0u };
-
-  std::condition_variable cv;
-
-  vtimer_v.sync_clock();    
-  auto t0 = high_resolution_clock::now();  
-  while(high_resolution_clock::now() - t0 < 10s) {
-    counter_v += 1u;
-    misses_v += !vtimer_v.wait_until_sline(counter_v);
-  }
-  auto t1 = high_resolution_clock::now();
+//wtimer_v.set(filetime_clock::now() + 1s);
+  auto future_v = queue_user_apc(current_thread(),     
+    []() { 
+      std::print("Hello from APC\n"); 
+      
+    });
   
-  std::print("waits  : {}\n", (uint64_t)counter_v);
-  std::print("misses : {}\n", (uint64_t)misses_v);
-  std::print("deltat : {} s\n", duration_cast<nanoseconds>(t1 - t0).count()/1e9);
-  std::print("ctpsec : {}\n", (counter_v*1e9) / duration_cast<nanoseconds>(t1 - t0).count());
+//wtimer_v.wait(wtimer_v.wait_cancel_after_apc
+//             |wtimer_v.wait_alertable);
+//
+
+  std::printf("Testing !\n");
+  auto const t0 = high_resolution_clock::now();
+  future_v.get();
+  auto const t1 = high_resolution_clock::now();
+  auto const dt = duration_cast<nanoseconds>(t1 - t0);
+  std::print("Wait time: {:0.4f}s\n", dt.count() * 1e-9);
+  
+
   __debugbreak();
-#endif
 
 #if 0
 	using std::chrono::steady_clock;
@@ -123,8 +100,8 @@ int main(int argc, char** argv) try
 	Machine vmcore_v{ MakeConfiguration() };
 	vmcore_v.Start();
 
-	std::uint16_t IRQstate_v{ 0 };
-	std::uint16_t last_IRQstate_v{ 0 };
+	uint16_t IRQstate_v{ 0 };
+	uint16_t last_IRQstate_v{ 0 };
 
 	SDL_Event event_v {};
 
