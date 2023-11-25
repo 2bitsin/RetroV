@@ -186,8 +186,10 @@ auto VideoDevice::HostFetchByte(VGARegisters const& state_v, uint32_t addr_v) ->
 
   if (state_v.GetValue<ReadModeSelect>()) {
     __debugbreak();
-    throw std::runtime_error("ReadModeSelect not implemented");
+    throw std::runtime_error("Read mode 1 not implemented.");
   }
+
+  
 }
 
 auto VideoDevice::HostWrite(bool is_ahead_v, VGARegisters const& state_v, uint32_t addr_v, uint32_t data_v, uint8_t size_v) -> void
