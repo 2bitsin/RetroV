@@ -72,41 +72,41 @@ namespace core::videodevice
 
 		constexpr inline VGARegisters() noexcept 
 		{
-			for (auto& value_v: crtctrl.data  ) value_v = 0x00u;
-			for (auto& value_v: sequencer.data) value_v = 0x00u;
-			for (auto& value_v: graphics.data ) value_v = 0x00u;			
+			for (auto& value_v: CRTC.data  ) value_v = 0x00u;
+			for (auto& value_v: SEQU.data) value_v = 0x00u;
+			for (auto& value_v: GFXC.data ) value_v = 0x00u;			
 			for (auto& value_v: attrib.data   ) value_v = 0x00u;
-      for (auto& value_v: ramdac.color  ) value_v = 0x00u;
+      for (auto& value_v: RDAC.color  ) value_v = 0x00u;
 
-      crtctrl.index          = 0x00u;
-      sequencer.index        = 0x00u;
-      graphics.index         = 0x00u;
+      CRTC.index          = 0x00u;
+      SEQU.index        = 0x00u;
+      GFXC.index         = 0x00u;
       attrib.index_and_pas   = 0x00u;
-      ramdac.latch           = 0x00u;
-			ramdac.index           = 0x00u;
-			ramdac.flags           = 0x00u;
-			ramdac.mask            = 0x00u;
-			misc.value             = 0x00u;
-			misc.io_addr_3dx       = 0x01u;
-			misc.ram_access_enable = 0x01u;
-			misc.sync_polarity     = SyncPolarity_400;
-			misc.clock_select      = ClockSelect_28MHz;
+      RDAC.latch           = 0x00u;
+			RDAC.index           = 0x00u;
+			RDAC.flags           = 0x00u;
+			RDAC.mask            = 0x00u;
+			MISC.value             = 0x00u;
+			MISC.io_addr_3dx       = 0x01u;
+			MISC.ram_access_enable = 0x01u;
+			MISC.sync_polarity     = SyncPolarity_400;
+			MISC.clock_select      = ClockSelect_28MHz;
 
 			feature_control = 0x00u;
 		}
 
 		constexpr inline auto IoPortWrite(uint16_t port_v, uint8_t data_v) noexcept -> void 
 		{
-      auto const port_crt_data  = misc.io_addr_3dx 
+      auto const port_crt_data  = MISC.io_addr_3dx 
                                 ? Port_VgaCrtData        
                                 : Port_MdaCrtData ;
-      auto const port_crt_index = misc.io_addr_3dx 
+      auto const port_crt_index = MISC.io_addr_3dx 
                                 ? Port_VgaCrtIndex       
                                 : Port_MdaCrtIndex ;
-      auto const port_status    = misc.io_addr_3dx 
+      auto const port_status    = MISC.io_addr_3dx 
                                 ? Port_VgaInputStatus
                                 : Port_MdaInputStatus ;
-      auto const port_control   = misc.io_addr_3dx 
+      auto const port_control   = MISC.io_addr_3dx 
                                 ? Port_VgaFeatureControl 
                                 : Port_MdaFeatureControl ;
 
@@ -116,24 +116,24 @@ namespace core::videodevice
 				 *	RAM DAC
 				 ***********************/
 			case Port_DacPixelMask:
-				ramdac.mask = data_v;
+				RDAC.mask = data_v;
 				return;
 
 			case Port_DacIndexWrite:
-				ramdac.index = data_v * 3u;
-				ramdac.latch = 0x3u;
+				RDAC.index = data_v * 3u;
+				RDAC.latch = 0x3u;
 				return;
 
 			case Port_DacIndexRead:
-				ramdac.index = data_v * 3u;
-				ramdac.latch = 0x0u;
+				RDAC.index = data_v * 3u;
+				RDAC.latch = 0x0u;
 				return;
 
 			case Port_DacDataWrite:
-				ramdac.color[ramdac.index] = data_v & 0x3Fu;
-				ramdac.index += 1u;
-				while (ramdac.index >= 0x300u)
-					ramdac.index -= 0x300u;
+				RDAC.color[RDAC.index] = data_v & 0x3Fu;
+				RDAC.index += 1u;
+				while (RDAC.index >= 0x300u)
+					RDAC.index -= 0x300u;
 				return;
 
 				/***********************
@@ -142,17 +142,17 @@ namespace core::videodevice
 			case Port_MdaCrtIndex:
 			case Port_VgaCrtIndex:
 				if (port_v != port_crt_index) break;
-				crtctrl.index = data_v & 0x1Fu;
+				CRTC.index = data_v & 0x1Fu;
 				return;
 
 			case Port_MdaCrtData:
 			case Port_VgaCrtData:
 				if (port_v != port_crt_data) break;
-				if (crtctrl.index < std::size(crtctrl.data) && (
-            !(crtctrl.data[0x11u] & 0x80u) 
-            ||crtctrl.index > 0x07u)) 
+				if (CRTC.index < std::size(CRTC.data) && (
+            !(CRTC.data[0x11u] & 0x80u) 
+            ||CRTC.index > 0x07u)) 
         {
-  				crtctrl.data[crtctrl.index] = data_v;
+  				CRTC.data[CRTC.index] = data_v;
 				}
 				return;
 
@@ -160,23 +160,23 @@ namespace core::videodevice
 				 *	SEQUENCER
 				 ***********************/
 			case Port_SequencerIndex:
-				sequencer.index = data_v & 0x7u;
+				SEQU.index = data_v & 0x7u;
 				return;
 
 			case Port_SequencerData:
-        if (sequencer.index < std::size(sequencer.data))
-				  sequencer.data[sequencer.index] = data_v;
+        if (SEQU.index < std::size(SEQU.data))
+				  SEQU.data[SEQU.index] = data_v;
 				return;
 
 				/*********************************
 				 *	GRAHPICS CONTROLLER
 				 *********************************/
 			case Port_GraphicsCtrlIndex:
-				graphics.index = data_v & 0x0Fu;
+				GFXC.index = data_v & 0x0Fu;
 				return;
 			case Port_GraphicsCtrlData:
-        if (graphics.index < std::size(graphics.data))
-				  graphics.data[graphics.index] = data_v;
+        if (GFXC.index < std::size(GFXC.data))
+				  GFXC.data[GFXC.index] = data_v;
 				return;
 
 				/***********************
@@ -200,7 +200,7 @@ namespace core::videodevice
 				 *	MISC OUTPUT & FEATURE CONTROL
 				 *********************************/
 			case Port_MiscOutputWrite:
-				misc.value = data_v;
+				MISC.value = data_v;
 				return ;
 
 			case Port_MdaFeatureControl:
@@ -220,16 +220,16 @@ namespace core::videodevice
 		constexpr inline auto IoPortFetch(uint16_t port_v) noexcept -> uint8_t
 		{
 			uint8_t tmp_v{ 0 };
-      auto const port_crt_data  = misc.io_addr_3dx 
+      auto const port_crt_data  = MISC.io_addr_3dx 
                                 ? Port_VgaCrtData        
                                 : Port_MdaCrtData ;
-      auto const port_crt_index = misc.io_addr_3dx 
+      auto const port_crt_index = MISC.io_addr_3dx 
                                 ? Port_VgaCrtIndex       
                                 : Port_MdaCrtIndex ;
-      auto const port_status    = misc.io_addr_3dx 
+      auto const port_status    = MISC.io_addr_3dx 
                                 ? Port_VgaInputStatus
                                 : Port_MdaInputStatus ;
-      auto const port_control   = misc.io_addr_3dx 
+      auto const port_control   = MISC.io_addr_3dx 
                                 ? Port_VgaFeatureControl 
                                 : Port_MdaFeatureControl ;
         
@@ -239,17 +239,17 @@ namespace core::videodevice
 				 *	RAM DAC
 				 *******************/
 			case Port_DacPixelMask:
-				return ramdac.mask;
+				return RDAC.mask;
 
 			case Port_DacDataRead:
-				tmp_v = ramdac.color[ramdac.index];
-				ramdac.index += 1u;
-				while (ramdac.index >= 0x300u)
-					ramdac.index -= 0x300u;
+				tmp_v = RDAC.color[RDAC.index];
+				RDAC.index += 1u;
+				while (RDAC.index >= 0x300u)
+					RDAC.index -= 0x300u;
 				return tmp_v;
 
 			case Port_DacStateRead:
-				return ramdac.latch;
+				return RDAC.latch;
 
 				/***********************
 				 *	CRT CONTROLLER
@@ -258,15 +258,15 @@ namespace core::videodevice
 			case Port_VgaCrtIndex:
 				if (port_v != port_crt_index)
           break;
-				return crtctrl.index;        
+				return CRTC.index;        
 
 			case Port_MdaCrtData:
 			case Port_VgaCrtData:
 				if (port_v != port_crt_data)
           break;
         tmp_v = 0xffu;
-        if (crtctrl.index < std::size(crtctrl.data))
-				  tmp_v = crtctrl.data[crtctrl.index];  
+        if (CRTC.index < std::size(CRTC.data))
+				  tmp_v = CRTC.data[CRTC.index];  
 				return tmp_v;
 
 			case Port_MdaInputStatus:
@@ -280,24 +280,24 @@ namespace core::videodevice
 				 *	SEQUENCER
 				 ***********************/
 			case Port_SequencerIndex:
-				return sequencer.index;
+				return SEQU.index;
 
 			case Port_SequencerData:
         tmp_v = 0xffu;
-        if (sequencer.index < std::size(sequencer.data))
-				  tmp_v = sequencer.data[sequencer.index];
+        if (SEQU.index < std::size(SEQU.data))
+				  tmp_v = SEQU.data[SEQU.index];
 				return tmp_v;
 
 				/**************************
 				 *	GRAPHICS CONTROLLER
 				 **************************/
 			case Port_GraphicsCtrlIndex:
-				return graphics.index;
+				return GFXC.index;
 
 			case Port_GraphicsCtrlData:
         tmp_v = 0xffu;
-        if (graphics.index < std::size(graphics.data))  
-          tmp_v = graphics.data[graphics.index];
+        if (GFXC.index < std::size(GFXC.data))  
+          tmp_v = GFXC.data[GFXC.index];
 				return tmp_v;
 
 				/***********************
@@ -315,7 +315,7 @@ namespace core::videodevice
 				 *	MISC OUTPUT & FEATURE CONTROL
 				 *********************************/
 			case Port_MiscOutputRead:
-				return misc.value;
+				return MISC.value;
 
 			case Port_FeatureControlRead:
 				return feature_control;
@@ -334,36 +334,36 @@ namespace core::videodevice
 		constexpr inline auto GetValue() const
 		{
 			using enum ValueIndex;
-			     if constexpr (_Index == EightDotMode              ) return sequencer.eight_dot_mode ;
-			else if constexpr (_Index == DotClockRate              ) return sequencer.dot_clock_rate ;
-      else if constexpr (_Index == ChainFourEnable           ) return sequencer.chain_four_enable ;
-      else if constexpr (_Index == ReadMapSelect             ) return graphics.read_map_select;
-      else if constexpr (_Index == ReadModeSelect            ) return graphics.read_mode;
-      else if constexpr (_Index == WriteModeSelect           ) return graphics.write_mode;
-      else if constexpr (_Index == MasterClockSelect         ) return misc.clock_select;
+			     if constexpr (_Index == EightDotMode              ) return SEQU.eight_dot_mode ;
+			else if constexpr (_Index == DotClockRate              ) return SEQU.dot_clock_rate ;
+      else if constexpr (_Index == ChainFourEnable           ) return SEQU.chain_four_enable ;
+      else if constexpr (_Index == ReadMapSelect             ) return GFXC.read_map_select;
+      else if constexpr (_Index == ReadModeSelect            ) return GFXC.read_mode;
+      else if constexpr (_Index == WriteModeSelect           ) return GFXC.write_mode;
+      else if constexpr (_Index == MasterClockSelect         ) return MISC.clock_select;
 
-      else if constexpr (_Index == MaximumScanline           ) return crtctrl.maximum_scan_line ;
-			else if constexpr (_Index == HorizontalTotal           ) return crtctrl.horizontal_total ;
-			else if constexpr (_Index == HorizontalDisplayEnd      ) return crtctrl.horizontal_display_end ;
-			else if constexpr (_Index == HorizontalRetraceStart    ) return crtctrl.horizontal_retrace_start ;      
-			else if constexpr (_Index == HorizontalRetraceEnd      ) return crtctrl.horizontal_retrace_end ;
-			else if constexpr (_Index == HorizontalBlankingStart   ) return crtctrl.horizontal_blanking_start ;     
-			else if constexpr (_Index == HorizontalBlankingEnd     ) return crtctrl.horizontal_blanking_end_0_4
-						                                                        + crtctrl.horizontal_blanking_end_5 ;			
-			else if constexpr (_Index == VerticalTotal             ) return crtctrl.vertical_total_0_7 * 0x1u
-						                                                        + crtctrl.vertical_total_8 * 0x100u 
-						                                                        + crtctrl.vertical_total_9 * 0x200u ;
-			else if constexpr (_Index == VerticalDisplayEnd        ) return crtctrl.vertical_display_end_0_7 * 0x1u
-						                                                        + crtctrl.vertical_display_end_8 * 0x100u 
-					                                                          + crtctrl.vertical_display_end_9 * 0x200u ;		
-			else if constexpr (_Index == VerticalRetraceStart      ) return crtctrl.vertical_retrace_start_0_7 * 0x1u
-				 	                                                          + crtctrl.vertical_retrace_start_8 * 0x100u 
-				 	                                                          + crtctrl.vertical_retrace_start_9 * 0x200u ;			
-			else if constexpr (_Index == VerticalRetraceEnd        ) return crtctrl.vertical_retrace_end ;
-			else if constexpr (_Index == VerticalBlankingStart     ) return crtctrl.vertical_blanking_start_0_7 * 0x1u
-					                                                          + crtctrl.vertical_blanking_start_8 * 0x100u 
-					                                                          + crtctrl.vertical_blanking_start_9 * 0x200u ;		
-			else if constexpr (_Index == VerticalBlankingEnd       ) return crtctrl.vertical_blanking_end ;	
+      else if constexpr (_Index == MaximumScanline           ) return CRTC.maximum_scan_line ;
+			else if constexpr (_Index == HorizontalTotal           ) return CRTC.horizontal_total ;
+			else if constexpr (_Index == HorizontalDisplayEnd      ) return CRTC.horizontal_display_end ;
+			else if constexpr (_Index == HorizontalRetraceStart    ) return CRTC.horizontal_retrace_start ;      
+			else if constexpr (_Index == HorizontalRetraceEnd      ) return CRTC.horizontal_retrace_end ;
+			else if constexpr (_Index == HorizontalBlankingStart   ) return CRTC.horizontal_blanking_start ;     
+			else if constexpr (_Index == HorizontalBlankingEnd     ) return CRTC.horizontal_blanking_end_0_4
+						                                                        + CRTC.horizontal_blanking_end_5 ;			
+			else if constexpr (_Index == VerticalTotal             ) return CRTC.vertical_total_0_7 * 0x1u
+						                                                        + CRTC.vertical_total_8 * 0x100u 
+						                                                        + CRTC.vertical_total_9 * 0x200u ;
+			else if constexpr (_Index == VerticalDisplayEnd        ) return CRTC.vertical_display_end_0_7 * 0x1u
+						                                                        + CRTC.vertical_display_end_8 * 0x100u 
+					                                                          + CRTC.vertical_display_end_9 * 0x200u ;		
+			else if constexpr (_Index == VerticalRetraceStart      ) return CRTC.vertical_retrace_start_0_7 * 0x1u
+				 	                                                          + CRTC.vertical_retrace_start_8 * 0x100u 
+				 	                                                          + CRTC.vertical_retrace_start_9 * 0x200u ;			
+			else if constexpr (_Index == VerticalRetraceEnd        ) return CRTC.vertical_retrace_end ;
+			else if constexpr (_Index == VerticalBlankingStart     ) return CRTC.vertical_blanking_start_0_7 * 0x1u
+					                                                          + CRTC.vertical_blanking_start_8 * 0x100u 
+					                                                          + CRTC.vertical_blanking_start_9 * 0x200u ;		
+			else if constexpr (_Index == VerticalBlankingEnd       ) return CRTC.vertical_blanking_end ;	
 
 			else if constexpr (_Index == DrvHorizontalTotalChars   ) return (GetValue<HorizontalTotal>() + 5u) << GetValue<DotClockRate>();
       else if constexpr (_Index == DrvHorizontalVisibleChars ) return (GetValue<HorizontalDisplayEnd>() + 1u) << GetValue<DotClockRate>();
@@ -418,7 +418,7 @@ namespace core::videodevice
 					// 0x08
 					uint8_t preset_row_scan:5;
 					uint8_t byte_panning:2;
-					uint8_t _0:1;
+					uint8_t :1;
 					// 0x09
 					uint8_t maximum_scan_line:5;
 					uint8_t vertical_blanking_start_9:1;
@@ -427,12 +427,12 @@ namespace core::videodevice
 					// 0x0A
 					uint8_t cursor_line_start:5;
 					uint8_t cursor_disable:1;
-					uint8_t _1:2;
+					uint8_t :2;
 
 					// 0x0B
 					uint8_t cursor_line_end:5;
 					uint8_t cursor_skew:2;
-					uint8_t _2:1;
+					uint8_t :1;
 					// 0x0C
 					uint8_t start_address_msb:8;
 					// 0x0D
@@ -445,7 +445,7 @@ namespace core::videodevice
 					uint8_t vertical_retrace_start_0_7:8;
 					// 0x11
 					uint8_t vertical_retrace_end:4;
-					uint8_t _3:2;
+					uint8_t :2;
 					uint8_t bandwidth:1;
 					uint8_t protect:1;
 					// 0x12
@@ -456,18 +456,18 @@ namespace core::videodevice
 					uint8_t underline_location:5;
 					uint8_t memory_address_clock_divide_by_four:1;
 					uint8_t double_word_addressing:1;
-					uint8_t _4:1;
+					uint8_t :1;
 					// 0x15
 					uint8_t vertical_blanking_start_0_7:8;
 					// 0x16
 					uint8_t vertical_blanking_end:7;
-					uint8_t _5:1;
+					uint8_t :1;
 					// 0x17
 					uint8_t map_display_address_13:1;
 					uint8_t map_display_address_14:1;
 					uint8_t scanline_clock_divide_by_two:1;
 					uint8_t memory_address_clock_divide_by_two:1;
-					uint8_t _6:1;
+					uint8_t :1;
 					uint8_t address_wrap_select:1;
 					uint8_t word_byte_mode_select:1;
 					uint8_t sync_enable:1;					
@@ -475,7 +475,7 @@ namespace core::videodevice
 					uint8_t line_compare_0_7:8;
 				};
 			};
-		} crtctrl;
+		} CRTC;
 
 		struct
 		{
@@ -488,33 +488,33 @@ namespace core::videodevice
 					// 0x00
 					uint8_t synchroneous_reset:1;
 					uint8_t asynchroneous_reset:1;
-					uint8_t _0:6;
+					uint8_t :6;
 					// 0x01
 					uint8_t eight_dot_mode:1;
-					uint8_t _1:1;
+					uint8_t :1;
 					uint8_t shift_load_rate:1;
 					uint8_t dot_clock_rate:1;
 					uint8_t shift_four_enable:1;
 					uint8_t screen_disable:1;
-					uint8_t _2:2;
+					uint8_t :2;
 					// 0x02
 					uint8_t memory_plane_write_mask:4;
-					uint8_t _3:4;
+					uint8_t :4;
 					// 0x03
 					uint8_t character_map_select_b_0_1:2;
 					uint8_t character_map_select_a_0_1:2;
 					uint8_t character_map_select_b_2:1;
 					uint8_t character_map_select_a_2:1;
-					uint8_t _4:2;
+					uint8_t :2;
 					// 0x04
-					uint8_t _5:1;
+					uint8_t :1;
 					uint8_t extended_memory_enable:1;
 					uint8_t host_odd_even_write_addressing_disable:1;
 					uint8_t chain_four_enable:1;
-					uint8_t _6:4;
+					uint8_t :4;
 				};
 			};
-		} sequencer;
+		} SEQU;
 
 		struct
 		{
@@ -526,42 +526,42 @@ namespace core::videodevice
 				{
 					// 0x00
 					uint8_t set_or_reset:4;
-					uint8_t _0:4;
+					uint8_t :4;
 					// 0x01
 					uint8_t enable_set_or_reset:4;
-					uint8_t _1:4;
+					uint8_t :4;
 					// 0x02
 					uint8_t color_compare:4;
-					uint8_t _2:4;
+					uint8_t :4;
 					// 0x03
 					uint8_t rotate_count:3;
 					uint8_t logical_operation:2;
-					uint8_t _3:3;
+					uint8_t :3;
 					// 0x04
 					uint8_t read_map_select:2;
-					uint8_t _4:6;
+					uint8_t :6;
 					// 0x05
 					uint8_t write_mode:2;
-					uint8_t _5:1;
+					uint8_t :1;
 					uint8_t read_mode:1;
 					uint8_t host_odd_even_read_addressing_enable:1;
 					uint8_t shift_register_interlieve_mode:1;
 					uint8_t shift_256_color_mode:1;
-					uint8_t _6:1;
+					uint8_t :1;
 					// 0x06
 					uint8_t alphanumeric_mode_disable:1;
 					uint8_t chain_odd_even_enable:1;
 					uint8_t memory_map_select:2;
-					uint8_t _7:4;
+					uint8_t :4;
 					// 0x07
 					uint8_t color_dont_care:4;
-					uint8_t _8:4;
+					uint8_t :4;
 					// 0x08
 					uint8_t bit_mask;
 				};
 			};
 
-		} graphics;
+		} GFXC;
 
 		struct
 		{
@@ -570,7 +570,7 @@ namespace core::videodevice
 			uint8_t latch:8;
 			uint8_t flags:8;
 			uint8_t color[256u * 3u];
-		} ramdac;
+		} RDAC;
 
 		struct
 		{
@@ -581,7 +581,7 @@ namespace core::videodevice
 				struct {
 					uint8_t index:5;
 					uint8_t pas:1;
-					uint8_t _4:2;
+					uint8_t :2;
 				};
 				uint8_t index_and_pas;
 			};
@@ -596,7 +596,7 @@ namespace core::videodevice
 					uint8_t monochome_emulation:1;
 					uint8_t line_graphics_enable:1;
 					uint8_t blink_enable:1;
-					uint8_t _0:1;
+					uint8_t :1;
 					uint8_t pixel_panning_mode:1;
 					uint8_t eight_bit_color_enable:1;
 					uint8_t palette_bits_5_4_select:1;
@@ -604,14 +604,14 @@ namespace core::videodevice
 					uint8_t overscan_color;
 					// 0x12
 					uint8_t color_plane_enable:4;
-					uint8_t _1:4;
+					uint8_t :4;
 					// 0x13
 					uint8_t horizontal_panning:4;
-					uint8_t _2:4;
+					uint8_t :4;
 					// 0x14
 					uint8_t color_select_5_4:2;
 					uint8_t color_select_7_6:2;
-					uint8_t _3:4;
+					uint8_t :4;
 				};
 			};
 		} attrib;
@@ -621,11 +621,11 @@ namespace core::videodevice
 				uint8_t io_addr_3dx:1;
 				uint8_t ram_access_enable:1;
 				uint8_t clock_select:2;
-				uint8_t _0:1;
+				uint8_t :1;
 				uint8_t odd_even_page_select:1;
 				uint8_t sync_polarity:2;
 			};
-		} misc;
+		} MISC;
 		uint8_t feature_control:8;
 
 	};

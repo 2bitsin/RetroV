@@ -184,12 +184,14 @@ auto VideoDevice::HostFetchByte(VGARegisters const& state_v, uint32_t addr_v) ->
 {
   using enum VGARegisters::ValueIndex;
 
+  
+
   if (state_v.GetValue<ReadModeSelect>()) {
     __debugbreak();
     throw std::runtime_error("Read mode 1 not implemented.");
   }
 
-  
+  return 0xff;
 }
 
 auto VideoDevice::HostWrite(bool is_ahead_v, VGARegisters const& state_v, uint32_t addr_v, uint32_t data_v, uint8_t size_v) -> void
@@ -206,7 +208,5 @@ auto VideoDevice::HostWrite(bool is_ahead_v, VGARegisters const& state_v, uint32
 
 auto VideoDevice::HostWriteByte(bool is_ahead_v, VGARegisters const& state_v, uint32_t addr_v, uint8_t value_v) -> void
 {
-  using 
-  auto const read_mode_v = state_v.GetValue<
 }
 
